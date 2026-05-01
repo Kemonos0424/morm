@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Phase 27f — Tx Confirm Dialog Test</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; padding: 20px; background: #0a1218; color: #e6e9ee; }
+    button { display: block; margin: 8px 0; padding: 12px 16px; background: #2b2f37; color: #e6e9ee; border: 1px solid #4dd2ff; border-radius: 4px; cursor: pointer; font-size: 14px; }
+    button:hover { background: #3a4150; }
+    pre { background: #16181d; padding: 12px; border-radius: 4px; font-size: 12px; overflow: auto; }
+  </style>
+</head>
+<body>
+  <h2>Phase 27f — Tx Confirm Dialog Smoke Test</h2>
+  <p>Click each to trigger the modal dialog from <code>morm-identity.js</code>.</p>
+
+  <button id="btn-transfer">TRANSFER (kind=6) — should show "Send to" + "Amount"</button>
+  <button id="btn-bridge-burn">BRIDGE_BURN (kind=21) — should show EVM addr + amount</button>
+  <button id="btn-create-order">CREATE_ORDER (kind=2) — should show seller + value</button>
+  <button id="btn-finalize">FINALIZE (kind=4) — should show order + valid/invalid</button>
+
+  <h3>Result log</h3>
+  <pre id="log"></pre>
+
+  <script type="module">
+    import { showTxConfirmDialog } from './morm-identity.js';
+    const log = document.getElementById('log');
+    const append = (m) => { log.textContent += m + '\n'; log.scrollTop = log.scrollHeight; };
+
+    async function trigger(kind, payload, nonce = 5) {
+      const senderHex = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
+      append(`→ showing dialog kind=${kind}…`);
+      const ok = await showTxConfirmDialog({ kind, payload, nonce, senderHex });
+      append(`← user clicked: ${ok ? 'CONFIRM' : 'CANCEL'}`);
+    }
+
+    document.getElementById('btn-transfer').onclick = () =>
+      trigger(6, { to: 'm0r3or65m6jbnlb6fnd2nvylah23vo54dky', amount: 1000 });
+    document.getElementById('btn-bridge-burn').onclick = () =>
+      trigger(21, { evm_recipient: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb1',
+                    amount: 500, token: 'MORM' });
+    document.getElementById('btn-create-order').onclick = () =>
+      trigger(2, { order_id: '0xabc123', content_id: '0xdef456',
+                   seller: 'm0rktvx7bcbuyxfcbknai7jabv43lucs7gk', value: 100000 });
+    document.getElementById('btn-finalize').onclick = () =>
+      trigger(4, { order_id: '0xabc123', valid: true });
+  </script>
+</body>
+</html>

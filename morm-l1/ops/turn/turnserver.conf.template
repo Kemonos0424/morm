@@ -1,0 +1,43 @@
+# MORM Phase 22 — coturn TURN/STUN config (template).
+#
+# Render with `install-coturn.sh`, which substitutes the placeholders:
+#   __EXTERNAL_IP__   public IPv4 (or LAN IP for intranet-only mode)
+#   __REALM__         realm string used in the SRTP/credential digest
+#   __SECRET__        shared HMAC secret for use-auth-secret credentials
+#                     (must match passkey_morm.py --turn-secret)
+#   __MIN_PORT__      lower bound of the relay UDP port range (e.g. 49160)
+#   __MAX_PORT__      upper bound (e.g. 49200) — keep range small for NAT pin
+#
+# Reference: https://github.com/coturn/coturn/blob/master/examples/etc/turnserver.conf
+
+# ---- Listening sockets ---------------------------------------------------
+listening-port=3478
+tls-listening-port=5349
+listening-ip=0.0.0.0
+
+# Public address — clients receive this as the relay endpoint.
+external-ip=__EXTERNAL_IP__
+
+# Restrict the UDP relay port range. Open these on the firewall.
+min-port=__MIN_PORT__
+max-port=__MAX_PORT__
+
+# ---- Authentication ------------------------------------------------------
+# coturn "use-auth-secret" mode: gateway derives ephemeral creds with
+# HMAC-SHA1 over "<expiry_unix>:<peer_id>" using this secret. No static
+# user database needed; creds expire automatically.
+use-auth-secret
+static-auth-secret=__SECRET__
+realm=__REALM__
+
+# ---- Hardening (PoC defaults; tighten before public exposure) ------------
+no-loopback-peers
+no-multicast-peers
+no-cli
+no-tlsv1
+no-tlsv1_1
+
+# ---- Logging -------------------------------------------------------------
+log-file=stdout
+verbose
+fingerprint

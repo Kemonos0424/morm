@@ -1,0 +1,13 @@
+{
+  "role": "packing",
+  "order_id": "0xdeadbeef1234",
+  "block_hash": "0xabc123def",
+  "block_number": -1,
+  "proof_hash": "0x85eac7b482f92287e9d0f88d1dceaa5e0dad8dc1a1a1a04bee33315e57493949",
+  "cells": [
+    "cell_0000.webm",
+    "cell_0001.webm",
+    "cell_0002.webm",
+    "cell_0003.webm"
+  ]
+}

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#4dd2ff">
+<title>MORM — The Swarm for Every Frame</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/static/icons/morm-192.svg">
+<link rel="stylesheet" href="/static/style.css">
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});</script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">◬</span> MORM
+      <span class="brand-tag">edge-node simulator</span>
+    </div>
+    <div class="content-picker">
+      <select id="content-select"></select>
+    </div>
+  </header>
+
+  <main class="stage">
+    <div class="player-wrap">
+      <video id="player" muted playsinline controls></video>
+      <div class="cell-bar" id="cell-bar"></div>
+      <div class="pulse" id="pulse"></div>
+    </div>
+
+    <aside class="hud">
+      <h2>Swarm HUD</h2>
+      <dl class="stats">
+        <dt>Cells loaded</dt><dd id="stat-loaded">0</dd>
+        <dt>Cells purged</dt><dd id="stat-purged">0</dd>
+        <dt>Buffered range</dt><dd id="stat-buffered">—</dd>
+        <dt>Active cell</dt><dd id="stat-active">—</dd>
+        <dt>Bytes received</dt><dd id="stat-bytes">0 KB</dd>
+        <dt>Pulse +MORM</dt><dd id="stat-pulse">0.000</dd>
+        <dt>P2P</dt><dd id="stat-p2p">0 hits · 0 peers</dd>
+      </dl>
+      <h2 style="margin-top:18px">Peer Edges</h2>
+      <ul class="peers" id="peers-list"></ul>
+      <h2 style="margin-top:18px">MORM Identity</h2>
+      <dl class="stats">
+        <dt>Address</dt><dd id="ident-addr">—</dd>
+        <dt>On-chain bal</dt><dd id="ident-bal">—</dd>
+        <dt>Claimed cells</dt><dd id="ident-claims">0</dd>
+      </dl>
+      <div class="legend">
+        <div><span class="dot dot-loaded"></span>loaded</div>
+        <div><span class="dot dot-active"></span>playing</div>
+        <div><span class="dot dot-purged"></span>purged</div>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="footbar">
+    50/10 cycle · prefetch at 10% · purge at 50% · MSE-driven
+  </footer>
+
+<script src="/static/player.js" type="module"></script>
+</body>
+</html>

@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>MORM Wallet · Policy Manager</title>
+<link rel="stylesheet" href="/static/style.css">
+<style>
+  /* Phase 27g/h/i wallet UI — per-app spend cap + kind whitelist, with
+     a single big "Revoke all" button as the panic switch. Same dark
+     palette as /upload + /player-hls so it feels like part of the same
+     app suite. */
+  :root { color-scheme: dark; }
+  html, body {
+    margin: 0; padding: 0; min-height: 100%; background: #000;
+    color: #e6e9ee;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  .topbar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px;
+    background: linear-gradient(to bottom, rgba(10,14,20,0.85), transparent);
+  }
+  .topbar h1 {
+    font-size: 13px; margin: 0; color: #4dd2ff; letter-spacing: 0.04em;
+  }
+  .pill {
+    display: inline-block; padding: 2px 8px;
+    background: #142a35; border: 1px solid #4dd2ff;
+    border-radius: 999px; font-size: 10px; color: #4dd2ff;
+  }
+  .topbar .ident {
+    font-family: monospace; font-size: 11px; color: #6a7a90;
+    margin-left: auto; max-width: 50%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .stage {
+    max-width: 720px; margin: 0 auto; padding: 8px 14px 32px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .card {
+    background: #11151b; border: 1px solid #2b2f37;
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .card h2 {
+    font-size: 14px; margin: 0 0 10px; color: #4dd2ff;
+    letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .row {
+    display: flex; justify-content: space-between; gap: 12px;
+    align-items: center; flex-wrap: wrap;
+  }
+  .kv {
+    display: grid; grid-template-columns: max-content 1fr;
+    gap: 4px 12px; font-size: 13px;
+  }
+  .kv .label { color: #6a7a90; }
+  .kv .val { font-family: monospace; color: #4dd2ff; word-break: break-all; }
+
+  /* Per-app policy table */
+  table.policies { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.policies th, table.policies td {
+    padding: 8px 6px; border-bottom: 1px solid #2b2f37;
+    text-align: left; vertical-align: top;
+  }
+  table.policies th {
+    color: #6a7a90; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    font-weight: normal;
+  }
+  table.policies td.app   { color: #4dd2ff; font-weight: 600; font-family: monospace; }
+  table.policies td.kinds { color: #e6e9ee; font-family: monospace; word-break: break-word; }
+  table.policies td.cap   { color: #5fffa1; font-family: monospace; text-align: right; white-space: nowrap; }
+  table.policies td.spent { color: #ffd540; font-family: monospace; text-align: right; white-space: nowrap; }
+  .progress-cell {
+    width: 80px; padding: 0 4px;
+  }
+  .progress {
+    height: 6px; background: #2b2f37; border-radius: 999px; overflow: hidden;
+  }
+  .progress .fill {
+    height: 100%; background: #5fffa1; transition: width 0.3s;
+  }
+  .progress .fill.high { background: #ffd540; }
+  .progress .fill.over { background: #ff4040; }
+  .badge-default {
+    background: #142a35; border: 1px solid #4dd2ff; color: #4dd2ff;
+    border-radius: 999px; padding: 1px 6px; font-size: 9px; margin-left: 4px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+
+  /* Buttons */
+  button.primary {
+    background: #4dd2ff; color: #0a1218;
+    border: none; border-radius: 8px; padding: 10px 16px;
+    font-weight: 600; cursor: pointer; font-size: 13px;
+  }
+  button.danger {
+    background: #ff4040; color: #fff;
+    border: none; border-radius: 8px; padding: 12px 20px;
+    font-weight: 700; cursor: pointer; font-size: 14px;
+    width: 100%;
+  }
+  button.danger:disabled { opacity: 0.5; cursor: not-allowed; }
+  button.ghost {
+    background: transparent; color: #6a7a90;
+    border: 1px solid #3a4150; border-radius: 6px;
+    padding: 6px 10px; cursor: pointer; font-size: 12px;
+  }
+  button.ghost:hover { color: #4dd2ff; border-color: #4dd2ff; }
+
+  .hint {
+    color: #6a7a90; font-size: 11px; line-height: 1.5;
+  }
+  .hint code {
+    background: #142a35; padding: 1px 4px; border-radius: 3px;
+    color: #4dd2ff;
+  }
+
+  /* Edit form (inline) */
+  .editor {
+    margin-top: 10px; padding: 10px;
+    background: #0a0e14; border: 1px solid #4dd2ff; border-radius: 8px;
+    display: none;
+  }
+  .editor.on { display: block; }
+  .editor label { font-size: 11px; color: #6a7a90; display: block; margin-top: 6px; }
+  .editor input[type=number] {
+    width: 100%; padding: 6px 8px;
+    background: #16181d; color: #e6e9ee; border: 1px solid #3a4150;
+    border-radius: 4px; font-family: monospace; font-size: 13px;
+    box-sizing: border-box;
+  }
+  .editor .kind-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px;
+    font-size: 11px; margin-top: 4px;
+  }
+  .editor .kind-grid label {
+    margin: 0; color: #e6e9ee; display: flex; gap: 4px; align-items: center; cursor: pointer;
+  }
+  .editor .actions {
+    display: flex; gap: 6px; justify-content: flex-end; margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>MORM <span class="pill" data-i18n="wallet.pill">wallet</span> <span class="pill">27g/h/i</span></h1>
+  <span id="lang-toggle" style="margin-left:8px"></span>
+  <span id="help-btn" style="margin-left:6px"></span>
+  <span class="ident" id="ident-addr" data-i18n="common.identity_unset">— (sign in via /auth-morm)</span>
+</div>
+
+<div class="stage">
+  <!-- Identity / balance -->
+  <section class="card">
+    <h2 data-i18n="wallet.identity">Identity</h2>
+    <div class="kv">
+      <span class="label" data-i18n="wallet.address">Address</span><span class="val" id="addr-full">—</span>
+      <span class="label" data-i18n="wallet.balance">Balance</span><span class="val" id="bal-full">—</span>
+      <span class="label" data-i18n="wallet.nonce">Nonce</span><span class="val" id="nonce-full">—</span>
+    </div>
+  </section>
+
+  <!-- Per-app policies -->
+  <section class="card">
+    <h2><span data-i18n="wallet.policy_section">Per-app policy</span>
+        <button class="ghost" id="refresh" data-i18n="common.refresh">↻ refresh</button></h2>
+    <p class="hint" data-i18n="wallet.policy_hint"></p>
+    <table class="policies" id="policy-table">
+      <thead>
+        <tr>
+          <th data-i18n="wallet.col.app">App</th>
+          <th data-i18n="wallet.col.kinds">Allowed kinds</th>
+          <th data-i18n="wallet.col.cap">Spent / Cap (24h)</th>
+          <th class="progress-cell"></th><th></th>
+        </tr>
+      </thead>
+      <tbody id="policy-tbody">
+        <tr><td colspan="5" class="hint" data-i18n="wallet.loading">loading…</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 27i revocation -->
+  <section class="card">
+    <h2 data-i18n="wallet.revoke_section">Revoke all</h2>
+    <p class="hint" data-i18n="wallet.revoke_hint"></p>
+    <button class="danger" id="revoke-btn" data-i18n="wallet.revoke_btn">🚨 Revoke all (1-tap)</button>
+    <div id="revoke-status" class="hint" style="margin-top:8px"></div>
+  </section>
+</div>
+
+<script type="module" src="/static/wallet.js"></script>
+</body>
+</html>

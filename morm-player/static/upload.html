@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>MORM Upload · Portrait Camera</title>
+<link rel="stylesheet" href="/static/style.css">
+<style>
+  /* Phase 25-Video portrait pivot — camera-first creator UI to match the
+     swipe feed. Live preview in a 9:16 frame, single primary button cycles
+     idle → recording → stopped → uploaded. File drop is kept as a small
+     fallback for desktop / when getUserMedia fails. */
+  :root { color-scheme: dark; }
+  html, body {
+    margin: 0; padding: 0; min-height: 100%; background: #000;
+    color: #e6e9ee;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  .topbar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px;
+    background: linear-gradient(to bottom, rgba(10,14,20,0.85), transparent);
+  }
+  .topbar h1 {
+    font-size: 13px; margin: 0; color: #4dd2ff;
+    letter-spacing: 0.04em;
+  }
+  .pill {
+    display: inline-block; padding: 2px 8px;
+    background: #142a35; border: 1px solid #4dd2ff;
+    border-radius: 999px; font-size: 10px; color: #4dd2ff;
+  }
+  .topbar .ident {
+    font-family: monospace; font-size: 11px; color: #6a7a90;
+    margin-left: auto;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 50%;
+  }
+
+  .stage {
+    max-width: 420px; margin: 0 auto; padding: 0 12px 24px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  /* 9:16 portrait preview frame — matches the feed proportions */
+  .preview-frame {
+    position: relative; width: 100%; aspect-ratio: 9/16;
+    background: #11151b;
+    border-radius: 14px; overflow: hidden;
+    border: 1px solid #2b2f37;
+  }
+  .preview-frame video {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    background: #000;
+  }
+  .preview-frame .badge {
+    position: absolute; top: 10px; left: 10px;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid #4dd2ff; color: #4dd2ff;
+    padding: 2px 8px; font-size: 10px;
+    border-radius: 999px;
+    backdrop-filter: blur(4px);
+    pointer-events: none;
+  }
+  .preview-frame .rec {
+    position: absolute; top: 10px; right: 10px;
+    background: rgba(255, 64, 64, 0.85);
+    color: #fff; padding: 4px 10px;
+    font-size: 11px; font-family: monospace;
+    border-radius: 999px;
+    display: none;
+    animation: pulse 1s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .preview-frame .rec.on { display: inline-block; }
+  @keyframes pulse { 50% { opacity: 0.55; } }
+  .preview-frame .empty {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #6a7a90; font-size: 13px; text-align: center; padding: 16px;
+    pointer-events: none;
+  }
+  /* Big primary action — record / stop / upload */
+  .action {
+    width: 100%; height: 56px;
+    background: #4dd2ff; color: #0a1218;
+    border: none; border-radius: 14px;
+    font-size: 16px; font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.05s;
+  }
+  .action:active { transform: scale(0.98); }
+  .action:disabled { background: #2b2f37; color: #6a7a90; cursor: not-allowed; }
+  .action.rec { background: #ff4040; color: #fff; }
+
+  .row {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  }
+  .row .btn {
+    background: #16181d; color: #e6e9ee;
+    border: 1px solid #3a4150; border-radius: 8px;
+    padding: 8px 14px; cursor: pointer; font-size: 13px;
+  }
+  .row .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* File-drop fallback */
+  .drop {
+    padding: 14px;
+    border: 1px dashed #3a4150; border-radius: 8px;
+    text-align: center;
+    background: #11151b;
+    font-size: 12px; color: #6a7a90;
+    cursor: pointer;
+    display: block;
+  }
+  .drop input[type=file] { display: none; }
+  .drop.hi { border-color: #4dd2ff; background: #142a35; color: #4dd2ff; }
+  .drop #picked { color: #4dd2ff; font-size: 11px; margin-top: 4px; }
+
+  progress { width: 100%; height: 6px; accent-color: #4dd2ff; }
+
+  .meta {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px;
+  }
+  .meta .cell {
+    background: #11151b; border: 1px solid #2b2f37;
+    border-radius: 6px; padding: 6px 8px;
+    font-size: 11px;
+  }
+  .meta .label {
+    color: #6a7a90; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .meta .val {
+    color: #4dd2ff; font-family: monospace;
+    word-break: break-all; margin-top: 2px;
+  }
+
+  .joblog {
+    background: #11151b; border: 1px solid #2b2f37; border-radius: 8px;
+    padding: 8px 10px;
+    font-family: monospace; font-size: 11px;
+    max-height: 180px; overflow-y: auto; white-space: pre-wrap;
+    color: #6a7a90;
+  }
+  .joblog .ok { color: #5fffa1; }
+  .joblog .err { color: #ff8a8a; }
+
+  a.linkbtn {
+    display: inline-block;
+    color: #4dd2ff; text-decoration: none;
+    border: 1px solid #4dd2ff; padding: 8px 14px;
+    border-radius: 8px; font-size: 13px; font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>MORM <span class="pill" data-i18n="upload.pill">portrait upload</span></h1>
+  <span id="lang-toggle" style="margin-left:8px"></span>
+  <span id="help-btn" style="margin-left:6px"></span>
+  <span class="ident" id="ident-addr" data-i18n="common.identity_unset">— (sign in via /auth-morm)</span>
+</div>
+
+<div class="stage">
+  <div class="preview-frame" id="frame">
+    <span class="badge">9:16</span>
+    <span class="rec" id="rec-badge">● REC <span id="rec-time">0:00</span></span>
+    <video id="cam" playsinline muted autoplay></video>
+    <div class="empty" id="cam-empty" data-i18n="upload.empty">tap "Start camera" to begin</div>
+  </div>
+
+  <button id="action" class="action" data-i18n="upload.action.idle">Start camera</button>
+
+  <div class="row">
+    <button class="btn" id="cam-flip" disabled data-i18n="upload.flip">Flip camera</button>
+    <button class="btn" id="cam-discard" disabled data-i18n="upload.discard">Discard clip</button>
+    <a class="linkbtn" id="open-feed" href="/player-hls" style="margin-left:auto" data-i18n="upload.feed">▶ Feed</a>
+  </div>
+
+  <label class="drop" id="drop" for="file">
+    <span data-i18n="upload.drop">or drop / pick a file</span>
+    <input id="file" type="file" accept="video/mp4,video/quicktime,video/webm,video/x-matroska,video/x-m4v">
+    <div id="picked"></div>
+  </label>
+
+  <progress id="prog" value="0" max="100" style="display:none"></progress>
+
+  <div class="meta" id="hud" style="display:none">
+    <div class="cell"><div class="label" data-i18n="upload.hud.job">Job</div><div class="val" id="job-id">—</div></div>
+    <div class="cell"><div class="label" data-i18n="upload.hud.state">State</div><div class="val" id="job-state">—</div></div>
+    <div class="cell"><div class="label" data-i18n="upload.hud.bytes">Bytes</div><div class="val" id="job-bytes">—</div></div>
+    <div class="cell"><div class="label" data-i18n="upload.hud.elapsed">Elapsed</div><div class="val" id="job-elapsed">—</div></div>
+    <div class="cell"><div class="label" data-i18n="upload.hud.files">Files out</div><div class="val" id="job-files">—</div></div>
+    <div class="cell"><div class="label" data-i18n="upload.hud.content">Content</div><div class="val" id="job-cid">—</div></div>
+  </div>
+
+  <div class="joblog" id="joblog" style="display:none"></div>
+</div>
+
+<script type="module" src="/static/upload.js"></script>
+</body>
+</html>

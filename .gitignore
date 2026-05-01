@@ -1,0 +1,87 @@
+# MORM repo .gitignore (Phase 30 — federated installer prep)
+#
+# Keep tracked: source tree, docker/, .github/workflows/, docs/, scripts.
+# Excluded: caches, build artifacts, runtime state, anything containing
+# private keys.
+
+# ---- Python ----
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---- venvs (each module bootstraps its own) ----
+.venv/
+venv/
+env/
+ENV/
+
+# ---- Foundry / Solidity build outputs ----
+morm-chain/cache/
+morm-chain/out/
+morm-chain/broadcast/
+morm-chain/crytic-export/
+morm-chain/.echidna_corpus/
+morm-chain/lib/
+# (forge install foundry-rs/forge-std reproduces lib/forge-std after clone)
+
+# ---- Node / browser deps ----
+node_modules/
+dist/
+build/
+
+# ---- Docker compose runtime data (KEYS LIVE HERE — never commit) ----
+docker/data/
+docker/.env
+docker/*.local.yml
+
+# ---- Phase 13b PoC keys (in /tmp during sessions, but defensive) ----
+*.seed
+*.seed.bak
+quorum-keys.json
+k_treas.json
+
+# ---- L1 / gateway runtime state ----
+*.db
+*.db-shm
+*.db-wal
+state.db*
+passkeys*.db
+storage/
+
+# ---- HLS scratch dirs ----
+hls/
+*.m4s
+*.mp4.tmp
+
+# ---- Editor / OS junk ----
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+!.vscode/settings.json.example
+
+# ---- Logs / scratch ----
+*.log
+/tmp/morm-*
+nohup.out
+
+# ---- Local config overrides ----
+.env
+.env.local
+*.local
+
+# ---- Forge fork cache / scratch ----
+forge-cache/
+
+# ---- Aiquic local certs (regenerated on every node start) ----
+quic.crt
+quic.key

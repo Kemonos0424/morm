@@ -1,0 +1,39 @@
+# MORM L1 — federated chain node.
+#
+# Phase 30a (2026-05-02): minimal slim image, ed25519 + sqlite + optional
+# QUIC gossip (aioquic, opt-in via --quic). Federation seed list is baked
+# into morm_l1/seeds.json (Phase 30c) so a freshly-pulled node can find
+# peers without any centralized service.
+#
+# Build:
+#   docker build -t morm-l1:dev -f docker/Dockerfile.l1 .
+# Run:
+#   docker run -v $PWD/data:/data -p 8900:8900 \
+#     -e PRODUCER_SEED=<hex> -e TREASURY=<m0r…> morm-l1:dev
+
+# ---- builder: compile native deps once, copy site-packages out ----
+FROM python:3.11-slim AS builder
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential libssl-dev libffi-dev \
+ && rm -rf /var/lib/apt/lists/*
+RUN pip install --target=/pkgs \
+        cryptography==47.0.0 \
+        aioquic==1.3.0
+
+# ---- runtime ----
+FROM python:3.11-slim AS runtime
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+WORKDIR /app
+COPY --from=builder /pkgs /usr/local/lib/python3.11/site-packages
+COPY morm-l1/morm_l1 /app/morm_l1
+
+ENV PYTHONPATH=/app
+EXPOSE 8900
+VOLUME /data
+
+COPY docker/entrypoints/l1-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]

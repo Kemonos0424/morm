@@ -1,0 +1,25 @@
+# MORM Edge — origin / mirror Edge Node (Phase 6 + Phase 25Vc CDN).
+#
+# Phase 30a: stdlib-only Python service that serves the legacy WebM
+# Cell content + the new HLS .m4s segments. No third-party deps, so the
+# image is just python:3.11-slim + the source tree.
+#
+# Build:
+#   docker build -t morm-edge:dev -f docker/Dockerfile.edge .
+# Run:
+#   docker run -v $PWD/data/edge:/data -p 8787:8787 \
+#     -e ROLE=origin morm-edge:dev
+
+FROM python:3.11-slim
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+WORKDIR /app
+COPY morm-player/server.py /app/morm-player/server.py
+COPY morm-player/static    /app/morm-player/static
+
+ENV PYTHONPATH=/app
+EXPOSE 8787
+VOLUME /data
+
+COPY docker/entrypoints/edge-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]

@@ -1,0 +1,17 @@
+# Phase 26f Echidna config for MORMBridgeMS.
+#
+# Property mode (default) — all `echidna_*` functions must return true
+# after every fuzzed call sequence. Bumped testLimit slightly above
+# the default 50_000 so the contract sees a representative number of
+# (lock, pokeUnlocked) interleavings; a clean run on this size is the
+# committable smoke baseline. Longer overnight runs are tracked in
+# SECURITY-DESIGN §5 for production sign-off.
+testMode: property
+testLimit: 50000
+seqLen: 50
+shrinkLimit: 5000
+# Allow Echidna to fund its own caller(s) so it can exercise lock(value).
+balanceContract: 1000000000000000000   # 1 ETH (in wei) initial bridge balance
+balanceAddr:     1000000000000000000   # 1 ETH per caller
+# Match foundry's solc version so artifact reuse is automatic.
+solcArgs: "--evm-version paris"

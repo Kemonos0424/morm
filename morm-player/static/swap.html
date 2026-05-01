@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>MORM Bridge · EVM ↔ MORM Swap</title>
+<link rel="stylesheet" href="/static/style.css">
+<style>
+  /* Phase 28a — bridge UI. Two tabs (Lock / Burn) on a single 720px form
+     layout, plus a status card that renders the bridge contract balance
+     and pending unlocks. Same dark palette as /wallet so the page reads
+     as part of the MORM admin suite, not a separate dApp. */
+  :root { color-scheme: dark; }
+  html, body {
+    margin: 0; padding: 0; min-height: 100%; background: #000;
+    color: #e6e9ee;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  .topbar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px;
+    background: linear-gradient(to bottom, rgba(10,14,20,0.85), transparent);
+  }
+  .topbar h1 {
+    font-size: 13px; margin: 0; color: #4dd2ff; letter-spacing: 0.04em;
+  }
+  .pill {
+    display: inline-block; padding: 2px 8px;
+    background: #142a35; border: 1px solid #4dd2ff;
+    border-radius: 999px; font-size: 10px; color: #4dd2ff;
+  }
+  .topbar .ident {
+    font-family: monospace; font-size: 11px; color: #6a7a90;
+    margin-left: auto; max-width: 50%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  .stage {
+    max-width: 720px; margin: 0 auto; padding: 8px 14px 32px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .card {
+    background: #11151b; border: 1px solid #2b2f37;
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .card h2 {
+    font-size: 14px; margin: 0 0 10px; color: #4dd2ff;
+    letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .card p.desc {
+    font-size: 12px; color: #8ea0b8; line-height: 1.55;
+    margin: 0 0 14px;
+  }
+
+  /* Tab strip */
+  .tabs {
+    display: flex; gap: 4px; padding: 4px;
+    background: #0a0e14; border: 1px solid #2b2f37;
+    border-radius: 10px;
+  }
+  .tabs button {
+    flex: 1; padding: 10px 14px;
+    background: transparent; color: #6a7a90;
+    border: 1px solid transparent; border-radius: 8px;
+    font-weight: 600; font-size: 13px; cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+  }
+  .tabs button.active {
+    background: #142a35; color: #4dd2ff; border-color: #4dd2ff;
+  }
+  .tabs button:hover:not(.active) { color: #b0c4dc; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Forms */
+  label.field {
+    display: block; margin: 0 0 12px;
+    font-size: 11px; color: #8ea0b8;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  label.field input, label.field .input-row {
+    display: block; width: 100%;
+    margin-top: 4px;
+    background: #0a0e14; color: #e6e9ee;
+    border: 1px solid #3a4150; border-radius: 6px;
+    padding: 8px 10px; font-size: 13px; font-family: monospace;
+    box-sizing: border-box;
+  }
+  label.field input:focus { outline: none; border-color: #4dd2ff; }
+  label.field .input-row {
+    display: flex; gap: 6px; padding: 0;
+  }
+  label.field .input-row input {
+    flex: 1; border: none; background: transparent; color: #e6e9ee;
+    padding: 8px 10px; font-size: 13px; font-family: monospace;
+  }
+  label.field .input-row button.inline {
+    background: #142a35; color: #4dd2ff;
+    border: none; border-left: 1px solid #3a4150;
+    border-top-right-radius: 6px; border-bottom-right-radius: 6px;
+    font-size: 11px; padding: 0 12px; cursor: pointer;
+    text-transform: lowercase; letter-spacing: 0.04em;
+  }
+  label.field .input-row button.inline:hover { color: #fff; background: #1d3a48; }
+
+  button.primary {
+    background: #4dd2ff; color: #0a1218;
+    border: none; border-radius: 8px; padding: 12px 18px;
+    font-weight: 700; cursor: pointer; font-size: 14px;
+    width: 100%;
+  }
+  button.primary:disabled { opacity: 0.45; cursor: not-allowed; }
+  button.ghost {
+    background: transparent; color: #6a7a90;
+    border: 1px solid #3a4150; border-radius: 6px;
+    padding: 8px 14px; cursor: pointer; font-size: 12px;
+  }
+  button.ghost:hover { color: #4dd2ff; border-color: #4dd2ff; }
+
+  /* Connection chip */
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #0a0e14; border: 1px solid #3a4150;
+    border-radius: 999px; padding: 6px 12px;
+    font-family: monospace; font-size: 12px; color: #e6e9ee;
+    margin-bottom: 14px;
+  }
+  .chip .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #ff4040;
+  }
+  .chip.ok .dot { background: #5fffa1; }
+
+  /* Status / log lines */
+  .log {
+    margin-top: 14px;
+    background: #0a0e14; border: 1px solid #2b2f37;
+    border-radius: 6px; padding: 10px 12px;
+    font-family: monospace; font-size: 11px; color: #b0c4dc;
+    max-height: 180px; overflow-y: auto; white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .log .ok    { color: #5fffa1; }
+  .log .err   { color: #ff7070; }
+  .log .info  { color: #4dd2ff; }
+  .log .muted { color: #6a7a90; }
+
+  /* Bridge status table */
+  .kv {
+    display: grid; grid-template-columns: max-content 1fr;
+    gap: 6px 16px; font-size: 13px;
+  }
+  .kv .label { color: #6a7a90; }
+  .kv .val {
+    font-family: monospace; color: #4dd2ff;
+    word-break: break-all;
+  }
+
+  /* Fallback cast command */
+  .fallback {
+    margin-top: 12px; padding: 10px;
+    background: #0a0e14; border: 1px dashed #3a4150;
+    border-radius: 6px;
+  }
+  .fallback p { font-size: 11px; color: #8ea0b8; margin: 0 0 8px; }
+  .fallback pre {
+    font-family: monospace; font-size: 11px; color: #4dd2ff;
+    margin: 0; white-space: pre-wrap; word-break: break-all;
+  }
+
+  .disabled-banner {
+    background: #2b1d1f; border: 1px solid #ff7070;
+    color: #ffd5d5; padding: 14px 16px;
+    border-radius: 10px; font-size: 13px; line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>MORM <span class="pill" data-i18n="swap.pill">bridge</span> <span class="pill">28a</span></h1>
+  <span id="lang-toggle" style="margin-left:8px"></span>
+  <span id="help-btn" style="margin-left:6px"></span>
+  <span class="ident" id="ident-addr" data-i18n="common.identity_unset">— (sign in via /auth-morm)</span>
+</div>
+
+<div class="stage">
+  <!-- Bridge disabled banner (shown when /api/morm/bridge has no addr) -->
+  <div id="disabled-banner" class="disabled-banner" style="display:none"
+       data-i18n="swap.status.disabled"></div>
+
+  <!-- Bridge status -->
+  <section class="card" id="status-card">
+    <h2 data-i18n="swap.status.title">Bridge status</h2>
+    <div class="kv">
+      <span class="label" data-i18n="swap.status.contract">Contract</span>
+      <span class="val" id="bs-contract">—</span>
+      <span class="label" data-i18n="swap.status.locked_eth">ETH locked</span>
+      <span class="val" id="bs-locked">—</span>
+      <span class="label" data-i18n="swap.status.lock_nonce">Lock nonce</span>
+      <span class="val" id="bs-lock-nonce">—</span>
+      <span class="label" data-i18n="swap.status.unlock_nonce">Unlock nonce</span>
+      <span class="val" id="bs-unlock-nonce">—</span>
+      <span class="label" data-i18n="swap.status.pending_burns">Pending burns</span>
+      <span class="val" id="bs-pending-burns">—</span>
+      <span class="label" data-i18n="swap.status.evm_chain">EVM chain</span>
+      <span class="val" id="bs-chain">—</span>
+      <span class="label" data-i18n="swap.status.morm_rpc">MORM RPC</span>
+      <span class="val" id="bs-rpc">—</span>
+    </div>
+    <div class="kv" id="bs-usdc-block" style="display:none; margin-top:10px; padding-top:10px; border-top:1px dashed #2b2f37">
+      <span class="label" data-i18n="swap.status.usdc_token">USDC token</span>
+      <span class="val" id="bs-usdc-token">—</span>
+      <span class="label" data-i18n="swap.status.usdc_bridge">USDC bridge</span>
+      <span class="val" id="bs-usdc-bridge">—</span>
+      <span class="label" data-i18n="swap.status.usdc_locked">USDC locked</span>
+      <span class="val" id="bs-usdc-locked">—</span>
+    </div>
+  </section>
+
+  <!-- Tab switcher -->
+  <div class="tabs">
+    <button id="tab-lock"     class="active" data-i18n="swap.tab.lock">⟶ Lock ETH</button>
+    <button id="tab-burn"                    data-i18n="swap.tab.burn">⟵ Burn → ETH</button>
+    <button id="tab-usdc"     style="display:none" data-i18n="swap.tab.usdc">USDC</button>
+  </div>
+
+  <!-- LOCK panel -->
+  <section class="card panel active" id="panel-lock">
+    <h2 data-i18n="swap.lock.title">Lock ETH on Ethereum</h2>
+    <p class="desc" data-i18n="swap.lock.desc"></p>
+
+    <div class="chip" id="mm-chip">
+      <span class="dot"></span>
+      <span id="mm-status" data-i18n="swap.lock.connect">Connect MetaMask</span>
+    </div>
+    <button class="ghost" id="mm-connect" data-i18n="swap.lock.connect"
+            style="margin-bottom:14px">Connect MetaMask</button>
+
+    <label class="field">
+      <span data-i18n="swap.lock.amount">Amount (ETH)</span>
+      <input id="lock-amount" type="number" step="0.001" min="0" placeholder="0.5">
+    </label>
+
+    <label class="field">
+      <span data-i18n="swap.lock.recipient">MORM recipient (m0r…)</span>
+      <span class="input-row">
+        <input id="lock-recipient" type="text" placeholder="m0r…">
+        <button class="inline" id="lock-use-mine" type="button"
+                data-i18n="swap.lock.use_mine">use mine</button>
+      </span>
+    </label>
+
+    <button class="primary" id="lock-btn" data-i18n="swap.lock.btn">Lock ETH</button>
+
+    <div class="fallback" id="fallback-cmd" style="display:none">
+      <p data-i18n="swap.lock.fallback_hint">No MetaMask? Run this:</p>
+      <pre id="fallback-pre">—</pre>
+    </div>
+
+    <div class="log" id="lock-log"></div>
+  </section>
+
+  <!-- BURN panel -->
+  <section class="card panel" id="panel-burn">
+    <h2 data-i18n="swap.burn.title">Burn MORM → release ETH</h2>
+    <p class="desc" data-i18n="swap.burn.desc"></p>
+
+    <label class="field">
+      <span data-i18n="swap.burn.amount">Amount (µMORM)</span>
+      <input id="burn-amount" type="number" step="1" min="1" placeholder="100000000000000000">
+    </label>
+
+    <label class="field">
+      <span data-i18n="swap.burn.recipient">EVM recipient (0x…)</span>
+      <input id="burn-recipient" type="text" placeholder="0x…">
+    </label>
+
+    <button class="primary" id="burn-btn" data-i18n="swap.burn.btn">Burn &amp; request unlock</button>
+
+    <div class="log" id="burn-log"></div>
+  </section>
+
+  <!-- USDC panel (Phase 28b) -->
+  <section class="card panel" id="panel-usdc" style="display:none">
+    <h2 data-i18n="swap.usdc.title">USDC bridge (ERC-20)</h2>
+    <p class="desc" data-i18n="swap.usdc.desc"></p>
+
+    <!-- USDC sub-tabs (Lock USDC / Burn USDC) -->
+    <div class="tabs" style="margin-bottom:14px">
+      <button id="usdc-tab-lock" class="active"
+              data-i18n="swap.usdc.sub.lock">⟶ Lock USDC</button>
+      <button id="usdc-tab-burn"
+              data-i18n="swap.usdc.sub.burn">⟵ Burn USDC</button>
+    </div>
+
+    <!-- Lock USDC -->
+    <div id="usdc-panel-lock" class="usdc-sub active">
+      <div class="chip" id="umm-chip">
+        <span class="dot"></span>
+        <span id="umm-status" data-i18n="swap.lock.connect">Connect MetaMask</span>
+      </div>
+      <div class="kv" style="margin-bottom:14px">
+        <span class="label" data-i18n="swap.usdc.your_balance">Your USDC</span>
+        <span class="val" id="usdc-mybal">—</span>
+        <span class="label" data-i18n="swap.usdc.allowance">Bridge allowance</span>
+        <span class="val" id="usdc-allow">—</span>
+      </div>
+      <button class="ghost" id="usdc-faucet" data-i18n="swap.usdc.faucet"
+              style="margin-bottom:10px">🪙 mint 1000 USDC (test)</button>
+
+      <label class="field">
+        <span data-i18n="swap.usdc.amount">Amount (USDC)</span>
+        <input id="usdc-lock-amount" type="number" step="0.01" min="0" placeholder="100">
+      </label>
+
+      <label class="field">
+        <span data-i18n="swap.lock.recipient">MORM recipient (m0r…)</span>
+        <span class="input-row">
+          <input id="usdc-lock-recipient" type="text" placeholder="m0r…">
+          <button class="inline" id="usdc-lock-use-mine" type="button"
+                  data-i18n="swap.lock.use_mine">use mine</button>
+        </span>
+      </label>
+
+      <button class="primary" id="usdc-approve-btn"
+              data-i18n="swap.usdc.approve_btn">1. Approve bridge to spend USDC</button>
+      <button class="primary" id="usdc-lock-btn"
+              data-i18n="swap.usdc.lock_btn"
+              style="margin-top:8px" disabled>2. Lock USDC</button>
+    </div>
+
+    <!-- Burn USDC -->
+    <div id="usdc-panel-burn" class="usdc-sub" style="display:none">
+      <div class="kv" style="margin-bottom:14px">
+        <span class="label" data-i18n="swap.usdc.l1_balance">Your USDC.morm</span>
+        <span class="val" id="usdc-l1bal">—</span>
+      </div>
+
+      <label class="field">
+        <span data-i18n="swap.usdc.amount">Amount (USDC)</span>
+        <input id="usdc-burn-amount" type="number" step="0.01" min="0" placeholder="50">
+      </label>
+
+      <label class="field">
+        <span data-i18n="swap.burn.recipient">EVM recipient (0x…)</span>
+        <input id="usdc-burn-recipient" type="text" placeholder="0x…">
+      </label>
+
+      <button class="primary" id="usdc-burn-btn"
+              data-i18n="swap.usdc.burn_btn">Burn USDC.morm &amp; release USDC</button>
+    </div>
+
+    <div class="log" id="usdc-log"></div>
+  </section>
+</div>
+
+<script type="module" src="/static/swap.js"></script>
+</body>
+</html>

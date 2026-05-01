@@ -1,0 +1,189 @@
+#!/usr/bin/env python3
+"""Unified MORM CLI — single entry point for the PoC.
+
+Dispatches to the right Python venv per subcommand because morm-core and
+morm-l1 have different dependency sets:
+
+    morm core ...      → morm-core/.venv (numpy + Pillow + ffmpeg-python)
+    morm l1 ...        → morm-l1/.venv   (cryptography)
+    morm gateway ...   → morm-l1/.venv   (passkey_morm.py)
+    morm edge ...      → /usr/bin/python3 (stdlib only)
+    morm turn ...      → bash ops/turn/install-coturn.sh
+    morm invite-node   → bash ops/invite-node.sh
+    morm 3node-up      → spin up a local 3-node testnet (Phase 23 doc)
+
+Usage:
+    morm                           # show help
+    morm core encode --input v.mp4 --out output/
+    morm l1 keygen
+    morm l1 node --data-dir /tmp/x --producer-seed ... --treasury ... --port 8900
+    morm gateway --port 8801 --turn-secret SECRET
+    morm turn install --external-ip 192.168.2.122 --realm morm.lan
+    morm invite-node user@host --name foo
+"""
+from __future__ import annotations
+
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from textwrap import dedent
+
+ROOT      = Path(__file__).resolve().parent.parent          # ~/Desktop/MORM
+CORE_DIR  = ROOT / "morm-core"
+L1_DIR    = ROOT / "morm-l1"
+PLAYER    = ROOT / "morm-player"
+CORE_PY   = CORE_DIR / ".venv" / "bin" / "python"
+L1_PY     = L1_DIR   / ".venv" / "bin" / "python"
+
+USAGE = dedent("""\
+    morm — unified MORM PoC CLI
+
+    Subcommands:
+      core <args>          forward to morm-core CLI (encode | screen | evidence | db-stats | db-gc)
+      l1 <args>            forward to morm-l1 CLI (keygen | node | submit ...)
+      gateway [<args>]     run the MORM passkey gateway (passkey_morm.py)
+      edge [<args>]        run a Phase 6 edge node (server.py)
+      turn install ...     install + configure coturn (ops/turn/install-coturn.sh)
+      invite-node ...      onboard a new L1 node (ops/invite-node.sh)
+      3node-up             bootstrap a local 3-node testnet (Phase 23)
+      info                 show project paths + venv status
+
+    Examples:
+      morm l1 keygen
+      morm core encode --input clip.mp4 --out output/
+      morm gateway --port 8801 --turn-url turn:host:3478?transport=udp --turn-secret HEX
+      morm turn install --external-ip 192.168.2.122 --realm morm.lan
+""")
+
+
+def _exec(py: Path | str, *args: str, cwd: Path | None = None) -> int:
+    """exec the given python interpreter with args; preserve exit code."""
+    cmd = [str(py), *args]
+    return subprocess.call(cmd, cwd=str(cwd) if cwd else None)
+
+
+def cmd_core(rest: list[str]) -> int:
+    if not CORE_PY.exists():
+        sys.stderr.write(f"morm-core venv missing: {CORE_PY}\n")
+        sys.stderr.write(f"  cd {CORE_DIR} && python3.11 -m venv .venv && .venv/bin/pip install -e .\n")
+        return 2
+    return _exec(CORE_PY, "-m", "morm_core.cli", *rest, cwd=CORE_DIR)
+
+
+def cmd_l1(rest: list[str]) -> int:
+    if not L1_PY.exists():
+        sys.stderr.write(f"morm-l1 venv missing: {L1_PY}\n")
+        sys.stderr.write(f"  cd {L1_DIR} && python3.11 -m venv .venv && .venv/bin/pip install cryptography\n")
+        return 2
+    return _exec(L1_PY, "-m", "morm_l1.cli", *rest, cwd=L1_DIR)
+
+
+def cmd_gateway(rest: list[str]) -> int:
+    """Run the passkey gateway (port 8801 by default). Pass-through args."""
+    if not L1_PY.exists():
+        sys.stderr.write(f"morm-l1 venv required for gateway: {L1_PY}\n")
+        return 2
+    script = PLAYER / "passkey_morm.py"
+    return _exec(L1_PY, str(script), *rest, cwd=PLAYER)
+
+
+def cmd_edge(rest: list[str]) -> int:
+    """Run a Phase 6 edge node (server.py). Stdlib only."""
+    return _exec("/usr/bin/python3", str(PLAYER / "server.py"), *rest, cwd=PLAYER)
+
+
+def cmd_turn(rest: list[str]) -> int:
+    if not rest:
+        sys.stderr.write("usage: morm turn install [--external-ip IP] [--realm R] ...\n")
+        return 2
+    if rest[0] != "install":
+        sys.stderr.write(f"unknown turn subcommand: {rest[0]}\n")
+        return 2
+    return _exec("bash", str(L1_DIR / "ops" / "turn" / "install-coturn.sh"), *rest[1:])
+
+
+def cmd_invite_node(rest: list[str]) -> int:
+    return _exec("bash", str(L1_DIR / "ops" / "invite-node.sh"), *rest)
+
+
+def cmd_3node_up(_rest: list[str]) -> int:
+    """Bootstrap a local 3-node testnet (Phase 23). Idempotent."""
+    if not L1_PY.exists():
+        sys.stderr.write(f"morm-l1 venv required: {L1_PY}\n")
+        return 2
+    data = Path("/tmp/morm-3node")
+    data.mkdir(exist_ok=True)
+    (data / "a").mkdir(exist_ok=True)
+    (data / "b").mkdir(exist_ok=True)
+    (data / "c").mkdir(exist_ok=True)
+    # Reuse seeds if present, else generate fresh.
+    seeds_env = data / "seeds.env"
+    if not seeds_env.exists():
+        import json
+        out = {}
+        for name in ("SEED_A", "SEED_B", "SEED_C", "SEED_TREAS"):
+            r = subprocess.run([str(L1_PY), "-m", "morm_l1.cli", "keygen"],
+                               cwd=L1_DIR, capture_output=True, text=True, check=True)
+            out[name] = json.loads(r.stdout)["seed_hex"]
+        # derive treasury address
+        sys.path.insert(0, str(L1_DIR))
+        from morm_l1 import crypto
+        treas_seed = bytes.fromhex(out["SEED_TREAS"])
+        out["TREAS_ADDR"] = crypto.address(crypto.pubkey_from_seed(treas_seed))
+        seeds_env.write_text("\n".join(f"{k}={v}" for k, v in out.items()) + "\n")
+        print(f"generated seeds → {seeds_env}")
+    print(f"to launch: source {seeds_env} && for I in a:8910 b:8911 c:8912; do ...")
+    print("(see morm-l1/ops/3NODE-TESTNET.md for the full launch loop)")
+    return 0
+
+
+def cmd_info(_rest: list[str]) -> int:
+    print(f"MORM root:     {ROOT}")
+    print(f"core venv:     {CORE_PY}  exists={CORE_PY.exists()}")
+    print(f"l1 venv:       {L1_PY}    exists={L1_PY.exists()}")
+    print(f"gateway:       {PLAYER / 'passkey_morm.py'}")
+    print(f"3-node doc:    {L1_DIR / 'ops' / '3NODE-TESTNET.md'}")
+    print(f"turn doc:      {L1_DIR / 'ops' / 'TURN.md'}")
+    # quick liveness probes
+    import urllib.request, json
+    for name, url in (
+        ("L1 RPC (8900)",   "http://127.0.0.1:8900/info"),
+        ("Gateway (8801)",  "http://127.0.0.1:8801/api/morm/info"),
+        ("Edge (8787)",     "http://127.0.0.1:8787/health"),
+    ):
+        try:
+            urllib.request.urlopen(url, timeout=1).read()
+            print(f"  {name:18s} ✓ up")
+        except Exception:
+            print(f"  {name:18s} ✗ down")
+    return 0
+
+
+COMMANDS = {
+    "core":        cmd_core,
+    "l1":          cmd_l1,
+    "gateway":     cmd_gateway,
+    "edge":        cmd_edge,
+    "turn":        cmd_turn,
+    "invite-node": cmd_invite_node,
+    "3node-up":    cmd_3node_up,
+    "info":        cmd_info,
+}
+
+
+def main() -> int:
+    if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help", "help"):
+        print(USAGE)
+        return 0
+    sub = sys.argv[1]
+    if sub not in COMMANDS:
+        sys.stderr.write(f"unknown subcommand: {sub}\n\n")
+        sys.stderr.write(USAGE)
+        return 2
+    return COMMANDS[sub](sys.argv[2:])
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

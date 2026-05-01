@@ -1,0 +1,54 @@
+{
+  "content_id": "aaaa59c06e5c437c81dae909edc7a815565c325ec8c234ea3c4fa00c50b758d6",
+  "creator_id": "aiservice",
+  "generation_id": "gen-XYZ-001",
+  "created_at": 1777075864,
+  "encoder_version": "0.1.0",
+  "cells": [
+    {
+      "index": 0,
+      "filename": "cell_0000.webm",
+      "size": 327933,
+      "sha256": "74134e9943f12ce689f888527d9aa22833bd279345492b7676f7a9463d8130a8",
+      "vhash": {
+        "visual": "84e9a6164f8b175784ab071361deaf17a60d03b60f11fe57a60c331669bf00ffa600cc330bde23ffa6030e9e6113dfce",
+        "audio": "00000000a82017ffaffff800000007ffaffff80000000fffaffff00000000fff"
+      },
+      "duration_target": 3.0
+    },
+    {
+      "index": 1,
+      "filename": "cell_0001.webm",
+      "size": 370803,
+      "sha256": "1384dbc51de02a21d8f3a6fa1996fe4a11d02e219d9be6d4924d70c4f9db0cc6",
+      "vhash": {
+        "visual": "ae310107cfcececcae713b3a693c2c8ca4794e8687133b3da64f871369dec321864d133e87399e6386443b966d930cfb",
+        "audio": "00000000affffe0000000fff00000fffaffff0000000000000000fffaffff800"
+      },
+      "duration_target": 3.0
+    },
+    {
+      "index": 2,
+      "filename": "cell_0002.webm",
+      "size": 363069,
+      "sha256": "f33e14cf11df9b0a448874ad3a86eb519246af4c77304e33d9d4eedeacaa1331",
+      "vhash": {
+        "visual": "86446c33c32e79db8613c42e6d3bd38e8e919397c3868e6e8c11193a6d7c766e84292e46c39b7d7c842f47936d568b55",
+        "audio": "00000000affffe0000000fff00000fffaffff000adfff40000000fffaffff800"
+      },
+      "duration_target": 3.0
+    },
+    {
+      "index": 3,
+      "filename": "cell_0003.webm",
+      "size": 229556,
+      "sha256": "4f3bb6db3cbfb4c30ba67a120e44b9a586dcc993f612f902fbe04d1f12630a82",
+      "vhash": {
+        "visual": "862d132fc31dae598624ab526d9b46f98645259b4b5635bb864b042665bb9beb864b042665bb9beb864b042665bb9beb",
+        "audio": "00000000a81affffadffc80000000fffaffff00000000fffaffff000afc33fff"
+      },
+      "duration_target": 3.0
+    }
+  ],
+  "parent_block_hash": null
+}

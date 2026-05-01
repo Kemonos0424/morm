@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>MORM HLS Player · Portrait Feed</title>
+<link rel="stylesheet" href="/static/style.css">
+<style>
+  /* Phase 25-Video portrait pivot + swipe-feed (2026-04-30):
+     A scroll-snap column of 9:16 cards, one per content. The browser's
+     native scroll-snap handles the gesture (mouse wheel + touch swipe);
+     IntersectionObserver decides which item is "active" and mounts the
+     hls.js + P2P announcer there. No custom gesture code, no JS swipe
+     library — works on iOS Safari and Chrome alike. */
+  :root { color-scheme: dark; }
+  html, body {
+    margin: 0; padding: 0; height: 100%; background: #000;
+    color: #e6e9ee;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    overflow: hidden;
+  }
+  /* Top bar — persists above the feed, shows identity + balance + mode pill. */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0;
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px;
+    z-index: 50;
+    background: linear-gradient(to bottom, rgba(10,14,20,0.85), transparent);
+    pointer-events: none;     /* video below stays interactive */
+  }
+  .topbar > * { pointer-events: auto; }
+  .topbar h1 {
+    font-size: 13px; margin: 0; color: #4dd2ff;
+    letter-spacing: 0.04em; flex: 0 0 auto;
+  }
+  .pill {
+    display: inline-block; padding: 2px 8px;
+    background: #142a35; border: 1px solid #4dd2ff;
+    border-radius: 999px; font-size: 10px; color: #4dd2ff;
+  }
+  .topbar .ident {
+    font-family: monospace; font-size: 11px; color: #6a7a90;
+    margin-left: auto; max-width: 50%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .topbar .bal { color: #5fffa1; font-family: monospace; font-size: 12px; }
+
+  /* Feed scrolls vertically; each item is exactly one viewport tall. */
+  .feed {
+    height: 100vh;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    scrollbar-width: none;          /* Firefox */
+  }
+  .feed::-webkit-scrollbar { display: none; }   /* WebKit */
+
+  .feed-item {
+    height: 100vh;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    background: #000;
+  }
+  .feed-item video {
+    width: auto;
+    height: 100%;
+    max-width: 100vw;
+    aspect-ratio: 9 / 16;
+    object-fit: cover;
+    background: #000;
+    border-radius: 0;
+  }
+  /* Click anywhere on the video card to toggle play/pause */
+  .feed-item .tap {
+    position: absolute; inset: 0;
+    cursor: pointer;
+    background: transparent;
+  }
+  /* Per-item HUD floats over the bottom of the video. Stats stack
+     vertically so a narrow phone screen still fits them all. */
+  .item-hud {
+    position: absolute;
+    left: 12px; right: 12px; bottom: 16px;
+    display: flex; flex-direction: column; gap: 4px;
+    font-family: monospace; font-size: 11px;
+    color: #e6e9ee;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    pointer-events: none;
+  }
+  .item-hud .cid { color: #4dd2ff; word-break: break-all; }
+  .item-hud .row {
+    display: flex; gap: 12px; flex-wrap: wrap;
+    color: #6a7a90;
+  }
+  .item-hud .row span { white-space: nowrap; }
+  .item-hud .row b { color: #5fffa1; font-weight: normal; }
+  .item-hud .pos {
+    align-self: flex-end;
+    color: #6a7a90; font-size: 10px;
+  }
+  /* Empty / loading states */
+  .empty {
+    color: #6a7a90; padding: 24px; text-align: center;
+  }
+  /* Quick paged indicator on the right edge — one dot per content. */
+  .pager {
+    position: fixed; right: 8px; top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 6px;
+    z-index: 40; pointer-events: none;
+  }
+  .pager .dot {
+    width: 4px; height: 4px;
+    background: #2b2f37; border-radius: 999px;
+    transition: background 0.15s, transform 0.15s;
+  }
+  .pager .dot.active {
+    background: #4dd2ff; transform: scale(1.6);
+  }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>MORM <span class="pill" data-i18n="player.pill">portrait feed</span></h1>
+  <span id="lang-toggle" style="margin-left:8px"></span>
+  <span id="help-btn" style="margin-left:6px"></span>
+  <span class="ident" id="ident-addr" data-i18n="common.identity_unset">— (sign in via /auth-morm)</span>
+  <span class="bal" id="ident-bal">—</span>
+</div>
+<div class="feed" id="feed">
+  <div class="empty" id="empty" data-i18n="player.empty.loading">loading…</div>
+</div>
+<div class="pager" id="pager"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
+<script type="module" src="/static/player-hls.js"></script>
+</body>
+</html>

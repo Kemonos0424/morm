@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  MORM L1 LaunchAgent template.
+  Place at ~/Library/LaunchAgents/com.morm.l1.plist after substituting:
+    @PYTHON@        absolute path to a python with `cryptography` installed
+    @MORM_L1_DIR@   absolute path to ~/Desktop/MORM/morm-l1 (or wherever)
+    @DATA_DIR@      where the chain data lives, e.g. ~/Library/Application Support/morm-l1
+    @PRODUCER_SEED@ 32-byte ed25519 seed (hex) for this node
+    @TREASURY@      treasury address (0x…)
+    @PORT@          RPC port, e.g. 8900
+    @PEERS@         comma-separated peer URLs (or empty)
+    @HOST@          bind address (127.0.0.1 or 0.0.0.0)
+    @EXTRA_FLAGS@   extra args (e.g. --no-produce)
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.morm.l1</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>@PYTHON@</string>
+        <string>-m</string>
+        <string>morm_l1.cli</string>
+        <string>node</string>
+        <string>--data-dir</string>
+        <string>@DATA_DIR@</string>
+        <string>--producer-seed</string>
+        <string>@PRODUCER_SEED@</string>
+        <string>--treasury</string>
+        <string>@TREASURY@</string>
+        <string>--host</string>
+        <string>@HOST@</string>
+        <string>--port</string>
+        <string>@PORT@</string>
+        <string>--peers</string>
+        <string>@PEERS@</string>
+        @EXTRA_FLAGS@
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>@MORM_L1_DIR@</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+        <key>NetworkState</key>
+        <true/>
+    </dict>
+
+    <key>ThrottleInterval</key>
+    <integer>5</integer>
+
+    <key>StandardOutPath</key>
+    <string>@LOG_DIR@/morm-l1.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>@LOG_DIR@/morm-l1.err.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PYTHONUNBUFFERED</key>
+        <string>1</string>
+    </dict>
+</dict>
+</plist>

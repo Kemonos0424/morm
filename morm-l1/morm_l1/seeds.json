@@ -1,0 +1,36 @@
+{
+  "$schema": "https://morm.network/schemas/seeds-v1.json",
+  "version": 1,
+  "updated_at": "2026-05-02",
+  "comment": [
+    "Phase 30c: federation seed list, baked into every node binary.",
+    "Each entry is a peer the bundled distribution KNOWS will accept",
+    "/info reads (HTTP) and gossip (QUIC) at boot. The list is",
+    "intentionally append-only — never remove a seed without bumping",
+    "the major version, since older nodes still trust it.",
+    "",
+    "An installed node may shadow this list by writing its own copy",
+    "to /data/l1/seeds.json (see morm_l1/seed_loader.py). Normal",
+    "operation: the loader merges baked-in + user-overridden + the",
+    "live `/info.peers` discovered at runtime, dedups, and feeds the",
+    "result to --peers if the operator left it empty.",
+    "",
+    "We deliberately do not depend on a single-DNS-zone bootstrap",
+    "(3原則: no LLC, no privileged registry). The discovery section",
+    "below lists multiple parallel update channels — at least one",
+    "must be reachable for a fresh node to obtain a current list."
+  ],
+  "seeds": [],
+  "discovery": {
+    "dns_seed": "_morm-seeds._tcp.morm.network",
+    "github_raw_seeds_url": null,
+    "ipfs_seed_cid": null,
+    "comment": [
+      "Operator may set github_raw_seeds_url to e.g.",
+      "https://raw.githubusercontent.com/<gh-user>/morm/main/morm-l1/morm_l1/seeds.json",
+      "and the loader will fetch it on a 24h cadence to learn about",
+      "newer peers without a software upgrade. ipfs_seed_cid likewise",
+      "may pin a CID that publishes the same JSON."
+    ]
+  }
+}

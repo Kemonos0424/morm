@@ -1,0 +1,40 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "morm-edge",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "morm-player/server.py",
+        "--port", "8787",
+        "--db", "morm-core/output/morm.db"
+      ],
+      "port": 8787
+    },
+    {
+      "name": "morm-static",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m", "http.server", "8788",
+        "--directory", "morm-player/static"
+      ],
+      "port": 8788
+    },
+    {
+      "name": "morm-passkey-hls",
+      "runtimeExecutable": "morm-l1/.venv/bin/python",
+      "runtimeArgs": [
+        "morm-player/passkey_morm.py",
+        "--port", "8801",
+        "--dev-mode",
+        "--morm-rpc", "http://127.0.0.1:8900",
+        "--hls-storage-dir", "/tmp/morm-25va/hls",
+        "--treasury-seed", "26197609d0af7c78d7c7ed1c8503b6514e9cd6621210e02a26b5701b2ac172e3",
+        "--bridge-addr", "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+        "--evm-rpc", "http://127.0.0.1:8545",
+        "--evm-chain-id", "31337"
+      ],
+      "port": 8801
+    }
+  ]
+}

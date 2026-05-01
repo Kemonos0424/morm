@@ -1,0 +1,45 @@
+# MORM Gateway — passkey + browser entry-points.
+#
+# Phase 30a: bundles morm-l1 (for crypto + tx helpers), morm-core (for
+# HLS encoder invocation), and the static assets served by /auth-morm,
+# /upload, /player-hls, /wallet, /shop, /swap. Includes ffmpeg so the
+# Phase 25Vb HLS upload pipeline works without a host-side install.
+#
+# Build:
+#   docker build -t morm-gateway:dev -f docker/Dockerfile.gateway .
+# Run:
+#   docker run -v $PWD/data:/data -p 8801:8801 \
+#     -e MORM_RPC=http://l1:8900 \
+#     -e TREASURY_SEED_FILE=/data/treasury.seed morm-gateway:dev
+
+FROM python:3.11-slim AS builder
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 PIP_NO_CACHE_DIR=1
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential libssl-dev libffi-dev \
+ && rm -rf /var/lib/apt/lists/*
+RUN pip install --target=/pkgs \
+        cryptography==47.0.0 \
+        webauthn==2.7.1 \
+        eth-account==0.13.7 \
+        web3==7.15.0 \
+        pillow==12.2.0 \
+        numpy==2.4.4
+
+FROM python:3.11-slim AS runtime
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ffmpeg ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY --from=builder /pkgs /usr/local/lib/python3.11/site-packages
+COPY morm-l1/morm_l1     /app/morm_l1
+COPY morm-core/morm_core /app/morm_core
+COPY morm-player         /app/morm-player
+
+ENV PYTHONPATH=/app:/app/morm-player
+EXPOSE 8801
+VOLUME /data
+
+COPY docker/entrypoints/gateway-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]

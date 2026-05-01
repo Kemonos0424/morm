@@ -1,0 +1,113 @@
+# MORM federated node — Phase 30b.
+#
+# A single-host stack that boots:
+#   - L1 chain node (port 8900)
+#   - Browser gateway (passkey + /swap + /upload + /player-hls + /wallet, port 8801)
+#   - HLS edge / origin (port 8787)
+#
+# Per the federation design (BRIDGE-DESIGN.md §5 + Phase 30c), each node
+# ships with a baked-in seed list under morm_l1/seeds.json — no centralized
+# DNS or registry is required for new nodes to find peers.
+#
+# Image source: ghcr.io/<gh>/morm-l1, morm-gateway, morm-edge (Phase 30e).
+# For local development, build with:
+#   docker compose -f docker/morm-node.docker-compose.yml build
+# then start with:
+#   docker compose -f docker/morm-node.docker-compose.yml up -d
+#
+# Edit `.env` (copy from `.env.example`) to override defaults.
+
+name: morm-node
+
+services:
+  l1:
+    image: ${L1_IMAGE:-morm-l1:dev}
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.l1
+    restart: unless-stopped
+    environment:
+      MORM_PORT: "8900"
+      TREASURY: "${TREASURY:-}"
+      DAG_MODE: "${DAG_MODE:-0}"
+      QUIC: "${QUIC:-0}"
+      GENESIS_LOCKDOWN_HEIGHT: "${GENESIS_LOCKDOWN_HEIGHT:-0}"
+      NO_PRODUCE: "${NO_PRODUCE:-0}"
+      PUBLIC_URL: "${L1_PUBLIC_URL:-}"
+      # PEERS overrides the baked-in seed list. Leave empty to use seeds.json.
+      PEERS: "${PEERS:-}"
+    volumes:
+      - ./data/l1:/data/l1
+    ports:
+      - "${L1_PORT:-8900}:8900"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; urllib.request.urlopen('http://127.0.0.1:8900/info', timeout=2)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  gateway:
+    image: ${GATEWAY_IMAGE:-morm-gateway:dev}
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.gateway
+    restart: unless-stopped
+    depends_on:
+      l1:
+        condition: service_healthy
+    environment:
+      GATEWAY_PORT: "8801"
+      MORM_RPC: "http://l1:8900"
+      DEV_MODE: "${DEV_MODE:-0}"
+      ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:-}"
+      CDN_BASE_URL: "${CDN_BASE_URL:-}"
+      # Bridge config (Phase 28a/28b). Leave empty to disable /swap.
+      BRIDGE_ADDR: "${BRIDGE_ADDR:-}"
+      EVM_RPC: "${EVM_RPC:-}"
+      EVM_CHAIN_ID: "${EVM_CHAIN_ID:-}"
+      ERC20_BRIDGE_ADDR: "${ERC20_BRIDGE_ADDR:-}"
+      USDC_ADDR: "${USDC_ADDR:-}"
+      # Treasury for HLS encode + register-content hook. Bind a 0o600 file.
+      TREASURY_SEED_FILE: "${TREASURY_SEED_FILE:-}"
+      # TURN
+      TURN_URL: "${TURN_URL:-}"
+      TURN_SECRET: "${TURN_SECRET:-}"
+    volumes:
+      - ./data/gateway:/data
+      # Optional bind-mount of the treasury keyfile (read-only, 0o600 enforced)
+      - ${TREASURY_KEYFILE_HOST:-/dev/null}:${TREASURY_SEED_FILE:-/dev/null}:ro
+    ports:
+      - "${GATEWAY_PORT:-8801}:8801"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8801/api/morm/info', timeout=2)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  edge:
+    image: ${EDGE_IMAGE:-morm-edge:dev}
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.edge
+    restart: unless-stopped
+    environment:
+      EDGE_PORT: "8787"
+      ROLE: "${EDGE_ROLE:-mirror}"
+      NODE_ID: "${EDGE_NODE_ID:-edge-0}"
+      PEERS: "${EDGE_PEERS:-http://l1:8900}"
+    volumes:
+      - ./data/edge:/data/edge
+    ports:
+      - "${EDGE_PORT:-8787}:8787"
+
+# Optional: tunnel sidecar for NAT-traversal (Phase 30f). Uncomment + edit
+# `.env` to use Cloudflare Tunnel as a public ingress without owning a
+# public IP.
+#
+#  tunnel:
+#    image: cloudflare/cloudflared:latest
+#    restart: unless-stopped
+#    depends_on: [gateway]
+#    command: tunnel --no-autoupdate run --token ${CLOUDFLARED_TOKEN}
+#    environment:
+#      CLOUDFLARED_TOKEN: "${CLOUDFLARED_TOKEN:-}"

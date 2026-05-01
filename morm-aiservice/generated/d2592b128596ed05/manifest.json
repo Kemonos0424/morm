@@ -1,0 +1,11 @@
+{
+  "ai_service_pubkey": "b88942319130adc2f65df83255ecf713556d4de8ffb02d7510e69b21e7f6f291",
+  "ai_service_address": "0x32f40ad3b110000255d179eeb94fd910e89bc60a",
+  "prompt": "a swarm of glowing fireflies",
+  "model_seed": 42,
+  "ts_bucket": 0,
+  "generation_id": "0xd2592b128596ed05e6dae14fcc00d29c08307533816ed7d4e7599b438d0fe6c7",
+  "content_id": "0x6c00afcc0832a871f53341926a439d71c34c12e992b9b1acce91fd7f3c1a42b7",
+  "signature": "4b55b2a9a0192ad69132f9d2f149a485bb2661501611e95d4bfae30c7c4e459c819556971cd28067fe79629a100e30d1890acfe8314e0fdc33b63df733268a07",
+  "video": "/Users/akihisayachida/Desktop/MORM/morm-aiservice/generated/d2592b128596ed05/video.mp4"
+}

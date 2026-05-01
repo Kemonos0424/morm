@@ -1,0 +1,11 @@
+{
+  "role": "packing",
+  "order_id": "0x60a03cc87375a2872bf9412522119c51614e0790fd086a869d278b2f57a6ff21",
+  "block_hash": "0xaf994d1c3ba06eef1ff90f2406a968ae4aa99a9aa5b22c81d9ca7b4338a0b7d7",
+  "block_number": -1,
+  "proof_hash": "0x47fe5bb76621997fd8cf6813158fbf8b73d2881523568023d302091b65b5fd30",
+  "cells": [
+    "cell_0000.webm",
+    "cell_0001.webm"
+  ]
+}

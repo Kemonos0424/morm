@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#4dd2ff">
+<title>MORM Shop — P2P with Proof of Physical Evidence</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/static/icons/morm-192.svg">
+<link rel="stylesheet" href="/static/style.css">
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});</script>
+<style>
+  .shop-grid {
+    max-width: 1100px; margin: 32px auto; padding: 0 20px;
+    display: grid; grid-template-columns: 1fr 360px; gap: 24px;
+  }
+  @media (max-width: 920px) { .shop-grid { grid-template-columns: 1fr; } }
+  .listing, .panel {
+    background: var(--void-2); border: 1px solid var(--line);
+    border-radius: 12px; padding: 20px 24px;
+  }
+  .listing h2, .panel h2 {
+    font-size: 11px; letter-spacing: 0.24em;
+    text-transform: uppercase; color: var(--muted);
+    margin: 0 0 14px;
+  }
+  .item {
+    padding: 12px 0; border-bottom: 1px dashed rgba(255,255,255,0.06);
+    display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: start;
+  }
+  .item:last-child { border-bottom: none; }
+  .item-cid { font-family: Menlo, monospace; font-size: 11px; color: var(--neon-blue); word-break: break-all; }
+  .item-creator { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .item-buy {
+    background: var(--neon-blue); color: #002030;
+    border: 0; border-radius: 6px;
+    padding: 6px 12px; font-size: 12px;
+    font-weight: 600; cursor: pointer;
+  }
+  .panel-row {
+    margin-top: 12px; padding: 10px 12px;
+    background: rgba(77,210,255,0.04);
+    border: 1px solid rgba(77,210,255,0.18);
+    border-radius: 8px;
+    font-family: Menlo, monospace; font-size: 11px;
+    color: var(--neon-blue); word-break: break-all; white-space: pre-wrap;
+  }
+  .step {
+    display: grid; grid-template-columns: 22px 1fr;
+    gap: 10px; padding: 10px 0;
+    border-bottom: 1px dashed rgba(255,255,255,0.05);
+  }
+  .step:last-child { border: none; }
+  .step .num {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: rgba(77,210,255,0.18); color: var(--neon-blue);
+    font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .step .num.done { background: var(--neon-blue); color: #002030; }
+  .step .num.fail { background: #ff5050; color: #fff; }
+  .step .label { font-size: 13px; color: var(--text); }
+  .step .detail { font-size: 11px; color: var(--muted); margin-top: 2px; font-family: Menlo, monospace; }
+  .ctas { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .ctas button {
+    background: transparent; color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 6px; padding: 8px 14px;
+    font-size: 12px; cursor: pointer;
+  }
+  .ctas button.primary {
+    background: var(--neon-blue); color: #002030; border: 0; font-weight: 600;
+  }
+  .ctas button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .log {
+    margin-top: 16px;
+    background: #050508; border: 1px solid var(--line); border-radius: 6px;
+    padding: 10px 12px;
+    font-family: Menlo, monospace; font-size: 11px; line-height: 1.5;
+    max-height: 200px; overflow: auto;
+  }
+  .log .ok { color: var(--neon-blue); }
+  .log .err { color: #ff7070; }
+  .log .info { color: var(--muted); }
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">◬</span> MORM Shop
+      <span class="brand-tag">P2P · Proof of Physical Evidence</span>
+    </div>
+    <div style="display:flex;gap:14px;align-items:center;font-size:12px">
+      <a href="/" style="color:var(--muted);text-decoration:none">passkey ↗</a>
+      <a href="/player" style="color:var(--muted);text-decoration:none">swarm ↗</a>
+      <span id="my-id" style="color:var(--neon-blue);font-family:Menlo,monospace">—</span>
+    </div>
+  </header>
+
+  <main class="shop-grid">
+    <div class="listing">
+      <h2>Listings (accepted contents on MORM Chain)</h2>
+      <div id="items"></div>
+
+      <h2 style="margin-top:24px">Camera (Proof of Physical Evidence)</h2>
+      <div style="position:relative;">
+        <video id="cam" autoplay muted playsinline
+               style="width:100%;max-width:480px;background:#000;border-radius:8px;aspect-ratio:4/3;"></video>
+        <div id="cam-overlay" style="position:absolute;top:8px;left:8px;color:#fff;
+             font-family:Menlo,monospace;font-size:11px;
+             background:rgba(0,0,0,0.55);padding:4px 8px;border-radius:4px;">
+          MORM camera · idle
+        </div>
+      </div>
+      <div class="ctas" style="margin-top:8px">
+        <button id="cam-start" class="primary">Start camera</button>
+        <button id="cam-stop" disabled>Stop</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Active Order</h2>
+      <div id="order-card">
+        <div style="color:var(--muted);font-size:12px">no order — pick an item to start.</div>
+      </div>
+      <div id="steps"></div>
+      <div class="ctas" id="ctas"></div>
+      <div class="log" id="log"></div>
+    </div>
+  </main>
+
+<script type="module" src="/static/shop.js"></script>
+</body>
+</html>
