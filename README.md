@@ -10,6 +10,14 @@ Federated video SNS with **walletless passkey identity**, an **ed25519 DAG L1 ch
 
 ## Run a federated node (Docker)
 
+> ⚠️ **First-time setup note**: as of v0.1.0 the ghcr.io images for this
+> repo were initially private (GitHub default). If pulls require auth,
+> the maintainer needs to flip each image to public: GitHub → `Your
+> profile` → `Packages` → `morm-l1` / `morm-gateway` / `morm-edge` →
+> `Package settings` → `Change visibility` → `Public`. Until then,
+> install.sh falls back to a local `docker compose build` and works the
+> same way (just slower the first time).
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Kemonos0424/morm/main/docker/install.sh | bash
 ```
