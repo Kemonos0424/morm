@@ -22,10 +22,11 @@
   ],
   "seeds": [],
   "discovery": {
-    "dns_seed": "_morm-seeds._tcp.morm.network",
+    "dns_seed": null,
     "github_raw_seeds_url": null,
     "ipfs_seed_cid": null,
     "comment": [
+      "DNS SRV discovery is opt-in. The previous default '_morm-seeds._tcp.morm.network' has been removed because the morm.network domain is not currently registered by this project, and a third-party registration could publish hostile peer URLs that nodes with dnspython installed would automatically consume. Operators who want DNS-driven discovery must set this to a domain THEY control.",
       "Operator may set github_raw_seeds_url to e.g.",
       "https://raw.githubusercontent.com/<gh-user>/morm/main/morm-l1/morm_l1/seeds.json",
       "and the loader will fetch it on a 24h cadence to learn about",

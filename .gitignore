@@ -85,3 +85,7 @@ forge-cache/
 # ---- Aiquic local certs (regenerated on every node start) ----
 quic.crt
 quic.key
+
+# ---- generated test fixtures (PoC scratch output, not source-of-truth) ----
+morm-aiservice/generated/
+morm-core/output/

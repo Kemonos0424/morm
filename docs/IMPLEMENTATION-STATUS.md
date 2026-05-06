@@ -160,8 +160,8 @@
 | `127.0.0.1:8800` | passkey_server.py (Phase 7) | Anvil/secp256k1 用 (legacy) |
 | `127.0.0.1:8801` | passkey_morm.py (Phase 10e/22b) | MORM L1 用 gateway, TURN config配信 |
 | `127.0.0.1:8900` | morm-l1 node (data: `/tmp/morm-l1-admin`) | gateway/admin の back-end chain。dag_mode=False (single chain) |
-| `192.168.2.122:3478` | coturn (homebrew) | TURN/STUN server, HMAC use-auth-secret |
-| `192.168.2.122:11435` | llama.cpp Qwen3.6-35B (launchd) | 別プロジェクト (PoUW worker候補だが現在 unrelated) |
+| `<LAN-IP>:3478` | coturn (homebrew) | TURN/STUN server, HMAC use-auth-secret |
+| `<LAN-IP>:11435` | llama.cpp Qwen3.6-35B (launchd) | 別プロジェクト (PoUW worker候補だが現在 unrelated) |
 
 ポート 8787-8789 は Phase 6 edge nodes (現在停止)、8910-8912 は Phase 23/24a 検証用 (現在停止)。
 

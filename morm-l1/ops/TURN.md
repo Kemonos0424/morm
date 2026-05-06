@@ -47,9 +47,9 @@ ICE packets pass through. The gateway only signs short-lived credentials.
 
 ```bash
 # 1) Install + configure coturn on the Mac Mini.
-ssh user@192.168.2.122 \
+ssh user@<LAN-IP> \
   "cd ~/Desktop/MORM/morm-l1 && \
-   ops/turn/install-coturn.sh --external-ip 192.168.2.122 --realm morm.lan"
+   ops/turn/install-coturn.sh --external-ip <LAN-IP> --realm morm.lan"
 # It prints SHARED_SECRET — copy it.
 
 # 2) Restart the gateway with TURN enabled.
@@ -58,8 +58,8 @@ cd ~/Desktop/MORM/morm-player
   --host 0.0.0.0 --port 8801 \
   --morm-rpc http://127.0.0.1:8900 \
   --treasury-seed <hex> \
-  --turn-url 'turn:192.168.2.122:3478?transport=udp' \
-  --turn-url 'turn:192.168.2.122:3478?transport=tcp' \
+  --turn-url 'turn:<LAN-IP>:3478?transport=udp' \
+  --turn-url 'turn:<LAN-IP>:3478?transport=tcp' \
   --turn-secret <SHARED_SECRET>
 
 # 3) Verify ICE config is being served.
@@ -68,8 +68,8 @@ curl -s 'http://localhost:8801/api/signal/ice?peer_id=test01' | jq
 # {
 #   "ice_servers": [
 #     { "urls": "stun:stun.l.google.com:19302" },
-#     { "urls": ["turn:192.168.2.122:3478?transport=udp",
-#                "turn:192.168.2.122:3478?transport=tcp"],
+#     { "urls": ["turn:<LAN-IP>:3478?transport=udp",
+#                "turn:<LAN-IP>:3478?transport=tcp"],
 #       "username": "1745611200:test01",
 #       "credential": "abc...="
 #     }
@@ -78,7 +78,7 @@ curl -s 'http://localhost:8801/api/signal/ice?peer_id=test01' | jq
 
 # 4) 2-tab verification (real browser, real machines preferred).
 #    Tab A on MacBook Safari, Tab B on iPhone (over LAN or carrier).
-#    Open http://192.168.2.122:8801/player and select the same content.
+#    Open http://<LAN-IP>:8801/player and select the same content.
 #    HUD should show "P2P: 0 hits · 1 peers · turn" in both tabs.
 #    Play a cell on A; B's HUD ticks "1 hits".
 ```

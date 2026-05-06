@@ -18,7 +18,7 @@ Usage:
     morm l1 keygen
     morm l1 node --data-dir /tmp/x --producer-seed ... --treasury ... --port 8900
     morm gateway --port 8801 --turn-secret SECRET
-    morm turn install --external-ip 192.168.2.122 --realm morm.lan
+    morm turn install --external-ip <LAN-IP> --realm morm.lan
     morm invite-node user@host --name foo
 """
 from __future__ import annotations
@@ -54,7 +54,7 @@ USAGE = dedent("""\
       morm l1 keygen
       morm core encode --input clip.mp4 --out output/
       morm gateway --port 8801 --turn-url turn:host:3478?transport=udp --turn-secret HEX
-      morm turn install --external-ip 192.168.2.122 --realm morm.lan
+      morm turn install --external-ip <LAN-IP> --realm morm.lan
 """)
 
 

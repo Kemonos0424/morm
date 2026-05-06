@@ -7,7 +7,7 @@
 #   ops/install-launchd.sh \
 #       3b5557fe8c4c09188005bd2b23b2451e2674d850209cbbc8df3e15ca026aafe1 \
 #       0xdba3eeb3c90b561f15a3d36b8580fadd5dde0d58 \
-#       http://192.168.2.122:8900
+#       http://<LAN-IP>:8900
 #
 # Add `--no-produce` to MORM_EXTRA_FLAGS to run a passive importer instead.
 set -euo pipefail

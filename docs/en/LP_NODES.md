@@ -77,10 +77,19 @@ MORM is designed so that **one machine earns from four kinds of work** simultane
 ### Step 1: Download node software
 
 ```
-curl -fsSL https://get.morm.network | sh
+# Phase 30 (current — Docker compose installer):
+curl -fsSL https://raw.githubusercontent.com/Kemonos0424/morm/main/docker/install.sh | bash
+
+# Future (planned — once an authoritative DNS zone is acquired):
+# curl -fsSL https://get.<acquired-zone>/morm | sh
 ```
 
-Or via package managers:
+Note: `get.morm.network` is **not** currently registered by this project.
+Until an authoritative zone is acquired, all install paths route through
+the GitHub raw URL above (verifiable against the public source repo). Be
+suspicious of any other "official" install URL.
+
+Future package-manager paths (planned, not yet shipped):
 
 - macOS: `brew install morm-node`
 - Windows: official MSI installer

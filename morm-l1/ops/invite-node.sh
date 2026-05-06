@@ -14,7 +14,7 @@
 # Usage:
 #   ops/invite-node.sh <ssh-target> [--name NAME] [--no-produce]
 #
-#   ops/invite-node.sh user@192.168.2.122 --name "mac-mini-1"
+#   ops/invite-node.sh user@<LAN-IP> --name "mac-mini-1"
 set -euo pipefail
 
 if [ $# -lt 1 ]; then

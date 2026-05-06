@@ -2,7 +2,7 @@
 
 ## Symptom
 
-Running `morm_l1.cli node` on the Mac Mini (192.168.2.122, macOS 25.4.0
+Running `morm_l1.cli node` on the Mac Mini (<LAN-IP>, macOS 25.4.0
 Darwin "Tahoe", Python 3.11.15 from Homebrew) **silently fails to bind RPC**:
 
 - The Python process starts and is alive (`ps` shows it).
@@ -43,8 +43,8 @@ Not fixed in 3.11.15.
 
 1. **Upgrade to Python 3.12** on Mac Mini and rebuild the venv:
    ```sh
-   ssh user@192.168.2.122 'brew install python@3.12'
-   ssh user@192.168.2.122 'cd ~/Desktop/MORM/morm-l1 && rm -rf .venv && \
+   ssh user@<LAN-IP> 'brew install python@3.12'
+   ssh user@<LAN-IP> 'cd ~/Desktop/MORM/morm-l1 && rm -rf .venv && \
      /opt/homebrew/bin/python3.12 -m venv .venv && .venv/bin/pip install cryptography'
    ```
 2. **Build Python from source** with the EINTR retry patch.
