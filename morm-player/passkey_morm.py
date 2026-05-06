@@ -445,7 +445,180 @@ class Handler(BaseHTTPRequestHandler):
                 "erc20_bridge_addr": getattr(self.server, "erc20_bridge_addr", None),
                 "usdc_addr":         getattr(self.server, "usdc_addr", None),
             })
+        # Phase 30g — admin diagnostic endpoints. Read-only, anonymous;
+        # they describe the local node's view of the federation. No
+        # signing keys are exposed.
+        if path == "/api/admin/peer-discovery":
+            return self._admin_peer_discovery()
+        if path == "/api/admin/registration-template":
+            return self._admin_registration_template()
+        if path == "/api/admin/info":
+            # Read-only proxy of the local L1's /info. Lets the admin UI
+            # work behind a Docker-internal RPC URL where the browser
+            # itself can't reach the L1 directly.
+            return self._admin_proxy("/info")
+        if path == "/api/admin/bootstrap":
+            return self._admin_proxy("/bootstrap")
         return self._json(404, {"error": "not found"})
+
+    # ---- Phase 30g admin handlers ---------------------------------------
+    def _admin_proxy(self, l1_path: str):
+        """Verbatim JSON proxy of a GET to the local L1 RPC. Used by
+        admin.js so the browser doesn't need direct access to the L1's
+        port (which lives on a Docker-internal name in compose mode).
+        Re-uses _json() for a consistent response shape + CORS handling."""
+        try:
+            with urllib.request.urlopen(
+                self.server.morm_rpc.rstrip("/") + l1_path, timeout=2,
+            ) as r:
+                doc = json.loads(r.read())
+            return self._json(200, doc)
+        except Exception as e:
+            return self._json(502, {"ok": False, "error": str(e)})
+
+    def _admin_peer_discovery(self):
+        """Run the federation seed loader server-side and probe each
+        candidate peer's `/info` for liveness. Useful for an operator
+        who just installed the stack and wants to confirm they can see
+        peers.
+
+        The seed_loader lives in morm-l1, which is on the gateway image's
+        PYTHONPATH (Phase 30a Dockerfile.gateway). For non-Docker runs
+        we fall back to importing from the source tree."""
+        try:
+            try:
+                from morm_l1.seed_loader import load_peer_urls
+            except ImportError:
+                # Source-tree fallback: morm-l1/ as sibling.
+                sys.path.insert(0, str(ROOT.parent / "morm-l1"))
+                from morm_l1.seed_loader import load_peer_urls  # noqa
+        except Exception as e:
+            return self._json(500, {"ok": False, "error": f"seed_loader unavailable: {e}"})
+
+        public_url = os.environ.get("PUBLIC_URL")
+        # Allow operator to bind data dir for local-mutable seeds.
+        data_dir_env = os.environ.get("L1_DATA_DIR") or "/data/l1"
+        data_dir = Path(data_dir_env) if Path(data_dir_env).is_dir() else None
+
+        seed_set = load_peer_urls(
+            data_dir=data_dir,
+            public_url=public_url,
+            enable_discovery=True,
+        )
+
+        # Probe every peer in parallel-ish (sequential with short timeout
+        # is fine for the tiny lists we expect, ≤ ~30 peers).
+        out = []
+        for s in seed_set.seeds:
+            entry = {"url": s.url, "source": s.source, "alive": False}
+            t0 = time.time()
+            try:
+                with urllib.request.urlopen(s.url.rstrip("/") + "/info",
+                                            timeout=2) as r:
+                    info = json.loads(r.read())
+                entry.update({
+                    "alive": True,
+                    "head_height": info.get("head_height"),
+                    "treasury": info.get("treasury"),
+                    "state_root": (info.get("state_root") or "")[:16] + "…",
+                    "ms": int((time.time() - t0) * 1000),
+                })
+            except Exception as e:
+                entry["error"] = type(e).__name__
+            out.append(entry)
+        return self._json(200, {
+            "peers": out,
+            "public_url": public_url or None,
+            "summary": {
+                "total":     len(out),
+                "alive":     sum(1 for x in out if x["alive"]),
+                "by_source": dict(seed_set.sources),
+            },
+        })
+
+    def _admin_registration_template(self):
+        """Help a brand-new operator request producer registration from
+        the treasury holder. Returns the operator's local producer pubkey
+        (read from /data/l1/producer.pub or queried from the local L1's
+        /info) along with a copy-paste tx template + the morm CLI
+        invocation a treasury operator needs to run.
+
+        Returns 200 even when the local node has no producer key — the
+        UI will explain that the gateway/edge-only deployment doesn't
+        need REGISTER_PRODUCER."""
+        prod_pub_hex = None
+        prod_addr    = None
+        head_height  = None
+        treasury     = None
+
+        # Try the producer.pub file (Docker default) first.
+        candidate_pubs = [
+            Path("/data/l1/producer.pub"),
+            Path("/data/l1/producer.address"),
+        ]
+        for p in candidate_pubs:
+            try:
+                if p.exists() and p.suffix == ".pub":
+                    prod_pub_hex = p.read_text().strip()
+                if p.exists() and p.suffix == ".address":
+                    prod_addr = p.read_text().strip()
+            except Exception:
+                pass
+
+        # As a fallback, ask the local L1 RPC.
+        try:
+            with urllib.request.urlopen(
+                self.server.morm_rpc.rstrip("/") + "/info", timeout=2,
+            ) as r:
+                info = json.loads(r.read())
+            prod_pub_hex = prod_pub_hex or info.get("producer")
+            prod_addr    = prod_addr    or info.get("producer_address")
+            head_height  = info.get("head_height")
+            treasury     = info.get("treasury")
+            registered = any(
+                p.get("pubkey") == prod_pub_hex
+                for p in (info.get("producers") or [])
+            )
+        except Exception:
+            registered = None
+
+        # Build the JSON template the operator hands to a treasury
+        # signer. They submit it via:
+        #   `morm submit register-producer --pubkey <hex> --name <str>`
+        suggestion = os.environ.get("PUBLIC_URL") or "<your-node-name>"
+        template = {
+            "kind": "REGISTER_PRODUCER (kind=31, treasury-only)",
+            "payload": {
+                "producer_pubkey": prod_pub_hex,
+                "name": suggestion,
+            },
+            "treasury_cli_command": (
+                f"morm submit register-producer "
+                f"--pubkey {prod_pub_hex} --name {suggestion}"
+                if prod_pub_hex else
+                "(no producer key on this node — registration not applicable)"
+            ),
+        }
+        return self._json(200, {
+            "producer_pubkey": prod_pub_hex,
+            "producer_address": prod_addr,
+            "treasury_address": treasury,
+            "local_head_height": head_height,
+            "already_registered": registered,
+            "template": template,
+            "instructions": [
+                "1. Copy the JSON 'template' below.",
+                "2. Send it to whoever holds the treasury seed for the "
+                "network you're joining (out-of-band: email, Signal, "
+                "physical USB stick, anything they trust).",
+                "3. They run `treasury_cli_command` from a host that has "
+                "the treasury seed loaded; it submits a REGISTER_PRODUCER "
+                "tx via /tx and your producer is admitted to the slot "
+                "rotation on the next block.",
+                "4. Watch /info.producers from this admin panel — your "
+                "name appears once registration lands.",
+            ],
+        })
 
     def do_POST(self):
         path = self.path.split("?", 1)[0]

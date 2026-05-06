@@ -126,6 +126,45 @@
       </thead><tbody></tbody></table>
     </div>
 
+    <!-- Phase 30g: Peer Discovery — federation seed list resolved live -->
+    <div class="card" style="grid-column: 1 / -1;">
+      <h2>Peer Discovery <span id="peers-summary" style="font-size:11px;color:var(--muted);font-family:Menlo,monospace;text-transform:none;letter-spacing:0;margin-left:8px"></span></h2>
+      <p style="font-size:12px;color:var(--muted);margin:0 0 12px">
+        Federation seed list resolved by this node — explicit overrides
+        first, then local-mutable <code>/data/l1/seeds.json</code>, then
+        the baked-in distribution list, then live discovery. Each peer
+        is probed for <code>/info</code> liveness.
+      </p>
+      <table id="peers-table"><thead>
+        <tr><th>source</th><th>url</th><th>alive</th><th>head</th><th>state_root</th><th>rtt</th></tr>
+      </thead><tbody>
+        <tr><td colspan="6" style="color:var(--muted)">probing…</td></tr>
+      </tbody></table>
+    </div>
+
+    <!-- Phase 30g: Become a Producer — for new operators who just
+         installed via docker/install.sh and want to join slot rotation. -->
+    <div class="card" style="grid-column: 1 / -1;">
+      <h2>Become a Producer</h2>
+      <p style="font-size:12px;color:var(--muted);margin:0 0 12px">
+        Your local node has been generated a fresh producer ed25519
+        key by <code>docker/init.sh</code>. To join slot rotation on
+        an existing network, the network's treasury holder needs to
+        submit a <code>REGISTER_PRODUCER</code> tx naming your pubkey.
+        Send the JSON below to them out-of-band.
+      </p>
+      <dl class="stat"><dt>your producer pubkey</dt><dd id="reg-pub">—</dd></dl>
+      <dl class="stat"><dt>your producer address</dt><dd id="reg-addr">—</dd></dl>
+      <dl class="stat"><dt>already registered?</dt><dd id="reg-state">—</dd></dl>
+      <h3 style="font-size:11px;letter-spacing:0.18em;color:var(--muted);text-transform:uppercase;margin:14px 0 6px">
+        copy &amp; send to treasury holder
+      </h3>
+      <pre class="invite" id="reg-template" style="white-space:pre-wrap;font-size:11px;line-height:1.5"></pre>
+      <div class="ctas">
+        <button id="btn-copy-reg" class="ghost">📋 copy JSON</button>
+      </div>
+    </div>
+
     <div class="card">
       <h2>Invite a New Node</h2>
       <p style="font-size:12px;color:var(--muted);margin:0 0 12px">
