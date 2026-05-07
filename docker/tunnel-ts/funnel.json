@@ -1,0 +1,23 @@
+{
+  "_comment": [
+    "Tailscale Funnel config — edit BEFORE first `up` of the tunnel-ts profile.",
+    "Replace 'morm-node.YOUR-TAILNET.ts.net' with the actual hostname Tailscale",
+    "assigns this container after `tailscale up`. Preview the hostname after",
+    "auth via: docker compose run --rm tunnel-ts tailscale status",
+    "Reference: https://tailscale.com/kb/1242/tailscale-serve",
+    "          https://tailscale.com/kb/1223/funnel"
+  ],
+  "TCP": {
+    "443": { "HTTPS": true }
+  },
+  "Web": {
+    "morm-node.YOUR-TAILNET.ts.net:443": {
+      "Handlers": {
+        "/": { "Proxy": "http://gateway:8801" }
+      }
+    }
+  },
+  "AllowFunnel": {
+    "morm-node.YOUR-TAILNET.ts.net:443": true
+  }
+}

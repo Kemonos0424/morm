@@ -38,6 +38,26 @@ cd ~/morm
 docker compose -f docker/morm-node.docker-compose.yml down
 ```
 
+## Public ingress (optional)
+
+If you're behind a NAT and want your node reachable from the public
+internet (so others can use your `/auth-morm`, `/swap`, etc.), enable
+one of the two opt-in tunnel sidecars:
+
+```bash
+# Cloudflare Tunnel (free with any domain on Cloudflare DNS):
+docker compose -f docker/morm-node.docker-compose.yml --profile tunnel-cf up -d
+
+# Or Tailscale Funnel:
+docker compose -f docker/morm-node.docker-compose.yml --profile tunnel-ts up -d
+```
+
+Setup steps and trust-model notes:
+[`morm-l1/ops/PUBLIC-INGRESS.md`](morm-l1/ops/PUBLIC-INGRESS.md).
+
+Only the gateway service (port 8801, browser-facing) is published. The
+L1 RPC and Edge stay private inside the compose network.
+
 ## Federation
 
 Each node ships with a baked-in seed list (`morm-l1/morm_l1/seeds.json`, append-only). On boot, [`seed_loader.py`](morm-l1/morm_l1/seed_loader.py) merges:
