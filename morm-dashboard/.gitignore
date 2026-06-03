@@ -1,0 +1,11 @@
+node_modules/
+.next/
+.env.local
+db/*.sqlite
+.vercel
+
+# Third-party website design references (screenshots) — excluded from the
+# public repo for copyright + size. The "sites" design-template feature reads
+# from these at runtime; provision them out-of-band on the deploy host.
+public/design-md-jp/
+public/design-md-en/
