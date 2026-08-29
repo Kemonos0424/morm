@@ -7,6 +7,7 @@ import {
 } from '@/app/lib/morm-address';
 import { mormL1Enabled, transferMorm } from '@/app/lib/morm-l1';
 import { ensureWalletSchema, recordTx } from '@/app/lib/wallet-schema';
+import { issuanceAllowed } from '@/app/lib/issuance';
 
 export const dynamic = 'force-dynamic';
 
@@ -80,8 +81,11 @@ export async function POST(request) {
     }
 
     // ── faucet: materialize the account on the real L1 (best effort) ──
+    // ★システム日次発行上限を超える場合は初期 drip をスキップ(口座作成は継続=登録は失敗させない)。
     let faucetTx = null, faucetStatus = 'pending';
-    if (mormL1Enabled()) {
+    let issOk = true;
+    try { issOk = (await issuanceAllowed(FAUCET_MORM)).ok; } catch { issOk = true; }
+    if (mormL1Enabled() && issOk) {
       try {
         const r = await transferMorm({ to: address, mormAmount: FAUCET_MORM });
         faucetTx = r.txHash; faucetStatus = 'sent';

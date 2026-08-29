@@ -3,6 +3,7 @@ import { dbGet, dbRun } from '@/app/lib/db';
 import { isValidMormAddress } from '@/app/lib/morm-address';
 import { mormL1Enabled, transferMorm } from '@/app/lib/morm-l1';
 import { ensureWalletSchema, recordTx } from '@/app/lib/wallet-schema';
+import { issuanceAllowed } from '@/app/lib/issuance';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +45,11 @@ export async function POST(request) {
     }
     if (!mormL1Enabled()) {
       return NextResponse.json({ error: 'L1 faucet not available' }, { status: 503, headers });
+    }
+    // ★システム日次発行上限(sybil 供給インフレ backstop)
+    const iss = await issuanceAllowed(CLAIM_MORM);
+    if (!iss.ok) {
+      return NextResponse.json({ error: 'daily issuance cap reached, retry later', issuance: { used: iss.used, cap: iss.cap } }, { status: 429, headers });
     }
 
     const r = await transferMorm({ to: address, mormAmount: CLAIM_MORM });

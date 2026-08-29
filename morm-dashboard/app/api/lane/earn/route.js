@@ -9,6 +9,7 @@ import { ensureWalletSchema, recordTx } from '@/app/lib/wallet-schema';
 import {
   ensureLaneSchema, reserveEarn, finalizeEarn, releaseEarn,
 } from '@/app/lib/lane-schema';
+import { issuanceAllowed } from '@/app/lib/issuance';
 
 export const dynamic = 'force-dynamic';
 
@@ -80,6 +81,12 @@ export async function POST(request) {
       `SELECT COUNT(*) AS n FROM lane_earn WHERE addr = ? AND created_at > datetime('now','-1 day')`, [addr]);
     if (Number(used?.n || 0) >= CAP) {
       return NextResponse.json({ error: 'daily earn cap reached', cap: CAP }, { status: 429, headers });
+    }
+
+    // ★システム日次発行上限(sybil 供給インフレ backstop)
+    const iss = await issuanceAllowed(LANE_EARN_MORM);
+    if (!iss.ok) {
+      return NextResponse.json({ error: 'daily issuance cap reached, retry later', issuance: { used: iss.used, cap: iss.cap } }, { status: 429, headers });
     }
 
     // Atomically reserve the (addr, kind, ref) slot; false = already claimed.
