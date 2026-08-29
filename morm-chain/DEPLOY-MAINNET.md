@@ -136,3 +136,9 @@ forge script script/SeedPool.s.sol --rpc-url "$RPC_URL" --broadcast
   windowLen=3600・token=WMORM・5 signers 全 isSigner=true・WMORM.bridge=新bridge(setBridge one-shot 済)。
 - deploy tx: `0x11bd60f0…`（bridge setup）/ `0xb9d75941…`（bridge）/ `0x7040385f…`（WMORM）blk 50605354・総ガス 0.0000142 ETH。
 - **残**: ①deployer に 100 USDC 入金 ②relayer を mainnet 設定で1回起動→L1から10,000 MORM forward→deployer に 10,000 wMORM mint ③SeedPool で pool 作成（100 USDC + 10,000 wMORM @ $0.01）④market UI を mainnet 値へ移行。
+
+## ★プール作成済（2026-08-29・Base mainnet）
+- **POOL**: `0x6615fC0239eDDb27A8fF2D774C438e68C4599A55`（wMORM/USDC・fee 1%・full-range）
+- token0=wMORM `0x7fEf…` / token1=USDC `0x8335…`・**価格 $0.010000**・reserves **10,000 wMORM + 100 USDC**・liquidity≈1e15。
+- POOL_BLOCK=**50606455**（market チャートの増分取得起点）。deploy tx: `0xf8bd04fb…`(approve)/`0x0ed26ec6…`/`0x7cc308f5…`(create)/`0x124bc473…`(mint)。
+- wMORM 入手経路: L1 treasury→10,000 MORM を `bridge_burn`(tx 8d95fb71) → mainnet relayer(3-of-5) が `mintFromBurn` で deployer に 10,000 wMORM。
