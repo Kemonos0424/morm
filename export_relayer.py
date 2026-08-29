@@ -60,6 +60,9 @@ MORM_RPC     = os.environ.get("MORM_RPC", "http://127.0.0.1:8900")
 BRIDGE_ADDR  = os.environ.get("BRIDGE_ADDR", "")
 CHAIN_ID     = int(os.environ.get("CHAIN_ID", "84532"))          # Base Sepolia
 EVM_CONFIRMS = int(os.environ.get("EVM_CONFIRMS", "3"))
+# eth_getLogs の1回あたり最大ブロック範囲。無料枠RPC(例: Alchemy Free=10)の制限に合わせる。
+# reverse(Exit)スキャンはこの幅でチャンク化して呼ぶ→広い範囲/長期ダウン後のギャップでも失敗しない。
+EVM_LOG_CHUNK = int(os.environ.get("EVM_LOG_CHUNK", "10"))
 THRESHOLD    = int(os.environ.get("THRESHOLD", "2"))
 EXPORT_TOKEN = os.environ.get("EXPORT_TOKEN", "MORM")   # L1 burns of this token → wMORM mint
 # L1 MORM is integer (1 MORM = 1 unit); wMORM is 18-decimals. 1 L1 MORM = 1e18 wMORM-wei.
@@ -257,8 +260,13 @@ class ExportRelayer:
         if safe < self.last_block:
             return
         crypto, Transaction = _l1()
-        for ev in self.bridge.events.Exit().get_logs(
-                from_block=self.last_block, to_block=safe):
+        events = []
+        _frm = self.last_block
+        while _frm <= safe:                       # ≤EVM_LOG_CHUNK blocks/getLogs (free-tier RPC caps range)
+            _to = min(_frm + EVM_LOG_CHUNK - 1, safe)
+            events += self.bridge.events.Exit().get_logs(from_block=_frm, to_block=_to)
+            _frm = _to + 1
+        for ev in events:
             evm_id = f"exit:{ev.transactionHash.hex()}:{ev.logIndex}"
             if evm_id in self.handled_exits:
                 continue
