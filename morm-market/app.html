@@ -270,6 +270,19 @@ async function doExit(){
 }
 $("exitBtn").onclick=doExit;
 
+// deep-link from morm.one: ?m0r=… (任意 &amount=…) → ③戻す の受け取りアドレスを自動入力
+(function(){try{const q=new URLSearchParams(location.search);
+  const m=(q.get("m0r")||"").trim(), a=(q.get("amount")||"").trim();
+  if(m.startsWith("m0r")){
+    $("exitAddr").value=m;
+    if(a){$("exitAmt").value=a;$("exitAmt").dispatchEvent(new Event("input"));}
+    const card=$("exitAddr").closest(".card");
+    if(card){card.style.boxShadow="0 0 0 2px var(--blue)";
+      setTimeout(()=>{card.scrollIntoView({behavior:"smooth",block:"center"});},250);
+      setTimeout(()=>{card.style.boxShadow="";},2600);}
+  }
+}catch(e){}})();
+
 $("foot").innerHTML="ブリッジは <b>3-of-5</b> マルチシグのリレーヤが持ち出し／戻しを実行します。Base mainnet の実トークンです。<br>"+
  "<a href='https://basescan.org/token/"+WMORM+"' target='_blank' rel='noopener'>wMORM 契約</a> · "+
  "<a href='https://basescan.org/address/"+BRIDGE+"' target='_blank' rel='noopener'>ブリッジ契約</a>";
