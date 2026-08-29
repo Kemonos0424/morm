@@ -107,3 +107,7 @@ morm-core/output/
 # Apex brand site + whitepaper — deployed via scp to Mac Mini, never pushed to git
 site/
 _archive/morm-node-shop/
+
+# Claude Code worktrees (transient)
+.claude/worktrees/
+**/.claude/worktrees/
