@@ -104,7 +104,13 @@ def cmd_node(args):
 
 
 def cmd_submit(args):
-    seed = bytes.fromhex(args.seed)
+    # seed は env(MORM_SUBMIT_SEED)でも渡せる=argv/`ps` に平文を出さない(run の MORM_PRODUCER_SEED と同型)。
+    # --seed が明示されればそれが勝つ。どちらも無ければエラー。
+    seed_hex = args.seed or os.environ.get("MORM_SUBMIT_SEED", "")
+    if not seed_hex:
+        print("[fatal] provide --seed or MORM_SUBMIT_SEED", file=sys.stderr)
+        raise SystemExit(2)
+    seed = bytes.fromhex(seed_hex)
     pub = crypto.pubkey_from_seed(seed)
     addr = crypto.address(pub)
     # fetch nonce
@@ -222,7 +228,7 @@ def main(argv=None):
 
     s = sub.add_parser("submit", help="sign + POST a tx to a running node")
     s.add_argument("--rpc", default="http://127.0.0.1:8900")
-    s.add_argument("--seed", required=True, help="hex 32-byte signer seed")
+    s.add_argument("--seed", default="", help="hex 32-byte signer seed (or env MORM_SUBMIT_SEED)")
     sub2 = s.add_subparsers(dest="tx", required=True)
 
     rc = sub2.add_parser("register-content")
