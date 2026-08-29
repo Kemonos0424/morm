@@ -3042,9 +3042,10 @@ class H(BaseHTTPRequestHandler):
     # --- proxy impl ---
     def _proxy(self, cid, rest):
         # ★パストラバーサル/SSRF 防止: rest は HLS の相対パス(セグメント/プレイリスト)のみ許可。
-        #   `..`/バックスラッシュ/`//` や想定外文字を含むと edge ホスト上で /api/video/<cid>/ を
-        #   エスケープし内部パスへ到達し得るため、安全 charset 以外・`..` は 400 で拒否。
-        if (".." in rest) or ("\\" in rest) or (not re.match(r"^[A-Za-z0-9._/-]+$", rest)):
+        #   `..`/バックスラッシュや想定外文字を含むと edge ホスト上で /api/video/<cid>/ を
+        #   エスケープし内部パスへ到達し得るため、安全 charset([A-Za-z0-9._/-])以外・`..` は 400 で拒否。
+        #   (連続 `/` は許容=edge 側で正規化・トラバーサルにはならない。末尾改行も \Z で弾く。)
+        if (".." in rest) or ("\\" in rest) or (not re.match(r"^[A-Za-z0-9._/-]+\Z", rest)):
             return self._json(400, {"error": "bad path"})
         rating, status = content_rating(cid)
         # ★admin(有効なX-Admin-Tokenヘッダ)は審査プレビューのため R18/未approved を配信可。
