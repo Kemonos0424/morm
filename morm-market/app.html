@@ -1,6 +1,6 @@
 <!doctype html><html lang="ja"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MORM — ブリッジ & スワップ (Base Sepolia)</title>
+<title>MORM — ブリッジ & スワップ (Base)</title>
 <style>
 :root{--paper:#F4F2EA;--card:#FBFAF4;--ink:#0C0C0E;--soft:#5A5A5E;--line:#0C0C0E22;
 --blue:#1E37E6;--magenta:#EC1E79;--orange:#FF4A17;--green:#0EA24A;--up:#0EA24A;--dn:#EC1E79}
@@ -56,7 +56,7 @@ input,select{width:100%;border:1px solid var(--line);background:var(--paper);col
     <span class="logo">M<b>0</b>RM</span>
     <span class="h1">ブリッジ &amp; スワップ</span>
     <a class="chartlink" href="index.html">価格チャート →</a>
-    <span class="net">Base Sepolia · testnet</span>
+    <span class="net">Base · mainnet</span>
   </div>
 
   <div class="flow">
@@ -70,7 +70,7 @@ input,select{width:100%;border:1px solid var(--line);background:var(--paper);col
   <div class="grid">
     <!-- ===================== EVM / wMORM side ===================== -->
     <div class="card">
-      <h2>wMORM 側</h2><div class="side evm">Base Sepolia · MetaMask</div>
+      <h2>wMORM 側</h2><div class="side evm">Base · MetaMask</div>
       <button class="btn" id="connect">MetaMask を接続</button>
       <div class="addr" id="evmAddr"></div>
       <div class="bal">
@@ -144,13 +144,13 @@ input,select{width:100%;border:1px solid var(--line);background:var(--paper);col
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
 <script>
 // ---------------- config ----------------
-const RPC="https://sepolia.base.org";
-const CHAIN_ID=84532, CHAIN_HEX="0x14a34";
-const WMORM="0x91FF1A51EEcCdBBC5d3A9ABD56E11352885667ed";
-const USDC ="0xcC07858c6ba05A65eD47570233b9B010e2482Ea2";
-const BRIDGE="0x97a84556abe75391CC177204AeE0D2f4c569Ab8E";
-const POOL ="0xcbC9fe1fA344036146949165e935cada066F9E45";
-const ROUTER="0x94cC0AaC535CCDB3C01d6787D6413C739ae12bc4"; // Uniswap SwapRouter02 (Base Sepolia)
+const RPC="https://mainnet.base.org";
+const CHAIN_ID=8453, CHAIN_HEX="0x2105";
+const WMORM="0x7fEf327a811e73F06cccF0De9db022e739d5076d";
+const USDC ="0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+const BRIDGE="0x08Adb8d2c67491249C20edE2A7460d9f4Bd3907A";
+const POOL ="0x6615fC0239eDDb27A8fF2D774C438e68C4599A55";
+const ROUTER="0x2626664c2603336E57B271c5C0b26F421741e481"; // Uniswap SwapRouter02 (Base mainnet)
 const FEE=10000;
 // native L1 API (bridge_burns are read by the relayer from the L1 node HTTP API).
 // Finalized against the live api.morm.one surface — see wiring below.
@@ -201,15 +201,15 @@ async function loadPrice(){try{const p=new ethers.Contract(POOL,POOL_ABI,ro);con
 async function ensureChain(eth){
   try{await eth.request({method:"wallet_switchEthereumChain",params:[{chainId:CHAIN_HEX}]});}
   catch(e){if(e.code===4902){await eth.request({method:"wallet_addEthereumChain",params:[{
-    chainId:CHAIN_HEX,chainName:"Base Sepolia",nativeCurrency:{name:"ETH",symbol:"ETH",decimals:18},
-    rpcUrls:[RPC],blockExplorerUrls:["https://sepolia.basescan.org"]}]});}else throw e;}}
+    chainId:CHAIN_HEX,chainName:"Base",nativeCurrency:{name:"ETH",symbol:"ETH",decimals:18},
+    rpcUrls:[RPC],blockExplorerUrls:["https://basescan.org"]}]});}else throw e;}}
 async function connect(){
   const eth=window.ethereum;
   if(!eth){$("evmAddr").textContent="MetaMask が見つかりません。拡張機能を入れてください。";return;}
   try{
     await eth.request({method:"eth_requestAccounts"});
     await ensureChain(eth);
-    const bp=new ethers.BrowserProvider(eth,{chainId:CHAIN_ID,name:"base-sepolia"});
+    const bp=new ethers.BrowserProvider(eth,{chainId:CHAIN_ID,name:"base"});
     signer=await bp.getSigner();account=await signer.getAddress();
     $("evmAddr").textContent=account;
     $("connect").textContent="接続済み ✓";$("connect").disabled=true;
@@ -262,7 +262,7 @@ async function doSwap(){
     const r=new ethers.Contract(ROUTER,ROUTER_ABI,signer);
     const tx=await r.exactInputSingle({tokenIn,tokenOut,fee:FEE,recipient:account,amountIn,amountOutMinimum:minOut,sqrtPriceLimitX96:0});
     await tx.wait();
-    msg.className="mini ok";msg.innerHTML="スワップ完了 ✓ <a href='https://sepolia.basescan.org/tx/"+tx.hash+"' target='_blank'>tx</a>";
+    msg.className="mini ok";msg.innerHTML="スワップ完了 ✓ <a href='https://basescan.org/tx/"+tx.hash+"' target='_blank'>tx</a>";
     $("swapIn").value="";$("swapOut").value="—";refreshEvm();loadPrice();
   }catch(e){msg.className="mini err";msg.textContent="失敗: "+(e.shortMessage||e.reason||e.message);}
 }
@@ -288,7 +288,7 @@ async function doExit(){
     const tx=await br.exit(amountWei,b20);
     await tx.wait();
     msg.className="mini ok";
-    msg.innerHTML="Exit 完了 ✓ リレーヤが数ブロック後に "+whole+" MORM を "+addr.slice(0,10)+"… へ credit します。 <a href='https://sepolia.basescan.org/tx/"+tx.hash+"' target='_blank'>tx</a>";
+    msg.innerHTML="Exit 完了 ✓ リレーヤが数ブロック後に "+whole+" MORM を "+addr.slice(0,10)+"… へ credit します。 <a href='https://basescan.org/tx/"+tx.hash+"' target='_blank'>tx</a>";
     $("exitAmt").value="";refreshEvm();
   }catch(e){msg.className="mini err";msg.textContent="失敗: "+(e.shortMessage||e.reason||e.message);}
 }
@@ -309,9 +309,9 @@ $("fwdAmt").addEventListener("input",syncFwdLink);
 
 // ---------------- footer / init ----------------
 $("foot").innerHTML=
- "wMORM: <a href='https://sepolia.basescan.org/token/"+WMORM+"' target='_blank'>"+WMORM+"</a><br>"+
- "Bridge: <a href='https://sepolia.basescan.org/address/"+BRIDGE+"' target='_blank'>"+BRIDGE+"</a><br>"+
- "テストネットのため実資金はありません。価格はプールのフロートで変動し、$0.01 は初期発行レートです。"+
+ "wMORM: <a href='https://basescan.org/token/"+WMORM+"' target='_blank'>"+WMORM+"</a><br>"+
+ "Bridge: <a href='https://basescan.org/address/"+BRIDGE+"' target='_blank'>"+BRIDGE+"</a><br>"+
+ "Base mainnet の実プールです。価格はプールのフロートで変動し、$0.01 は初期発行レートです。"+
  "ブリッジは M-of-N マルチシグのリレーヤ（2-of-3）が forward/exit を実行します。";
 $("connect").onclick=connect;
 loadPrice();setInterval(loadPrice,20000);

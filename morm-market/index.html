@@ -1,6 +1,6 @@
 <!doctype html><html lang="ja"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MORM / USD — 実プール価格 (Base Sepolia)</title>
+<title>MORM / USD — 実プール価格 (Base)</title>
 <style>
 :root{--paper:#F4F2EA;--card:#FBFAF4;--ink:#0C0C0E;--soft:#5A5A5E;--line:#0C0C0E22;
 --blue:#1E37E6;--magenta:#EC1E79;--orange:#FF4A17;--green:#0EA24A;--up:#0EA24A;--dn:#EC1E79;--vol:#8A8A8E}
@@ -42,7 +42,7 @@ canvas{width:100%;height:360px;display:block;touch-action:none}
   <div class="top">
     <span class="logo">M<b>0</b>RM</span>
     <span class="pair">wMORM / USDC</span>
-    <span class="net">Base Sepolia · testnet</span>
+    <span class="net">Base · mainnet</span>
   </div>
   <div class="price"><span class="big" id="px">—</span><span class="chg" id="chg"></span></div>
   <div class="sub"><span class="dot"></span><span id="upd">接続中…</span><span class="tag">実プール直読み</span></div>
@@ -71,18 +71,18 @@ canvas{width:100%;height:360px;display:block;touch-action:none}
     取引 (Uniswap): <a id="luni" target="_blank">app.uniswap.org で売買</a>
   </div>
   <div class="foot">
-    価格は Uniswap v3 の実プール(slot0/Swapイベント)を Base Sepolia RPC から直接読み、15秒ごとに更新しています。
+    価格は Uniswap v3 の実プール(slot0/Swapイベント)を Base mainnet RPC から直接読み、15秒ごとに更新しています。
     履歴はブラウザに永続保存し、次回以降は新規ブロックのみ増分取得します。
-    テストネットのため DexScreener/GeckoTerminal 等の公開チャートには載りません（本チャートが実データ）。
+    Base mainnet の実プールです。DexScreener/GeckoTerminal 等の公開チャートにも順次反映されます。
     1 wMORM の初期発行レートは $0.01。市場価格はプールのフロートで変動します。
   </div>
 </div>
 <script>
-const RPC="https://sepolia.base.org";
-const POOL="0xcbC9fe1fA344036146949165e935cada066F9E45";
-const WMORM="0x91FF1A51EEcCdBBC5d3A9ABD56E11352885667ed";
-const USDC="0xcC07858c6ba05A65eD47570233b9B010e2482Ea2";
-const POOL_BLOCK=46111394;
+const RPC="https://mainnet.base.org";
+const POOL="0x6615fC0239eDDb27A8fF2D774C438e68C4599A55";
+const WMORM="0x7fEf327a811e73F06cccF0De9db022e739d5076d";
+const USDC="0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+const POOL_BLOCK=50606455;
 const SWAP="0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67";
 const INIT="0x98636036cb66a9c19a37435efc1e90142190214e8abeb821bdba3f2990dd4c95";
 const CACHE_KEY="mormMarket:"+POOL;
@@ -271,11 +271,11 @@ ranges.forEach(([lbl,ms])=>{const b=document.createElement("button");b.textConte
 const tgl=document.getElementById("tgl");
 [...tgl.children].forEach(b=>b.onclick=()=>{MODE=b.dataset.k;[...tgl.children].forEach(x=>x.classList.remove("on"));b.classList.add("on");render();});
 // links
-document.getElementById("lpool").textContent="sepolia.basescan.org/address/"+POOL;
-document.getElementById("lpool").href="https://sepolia.basescan.org/address/"+POOL;
-document.getElementById("ltok").textContent="sepolia.basescan.org/token/"+WMORM;
-document.getElementById("ltok").href="https://sepolia.basescan.org/token/"+WMORM;
-document.getElementById("luni").href="https://app.uniswap.org/swap?chain=base_sepolia&inputCurrency="+USDC+"&outputCurrency="+WMORM;
+document.getElementById("lpool").textContent="basescan.org/address/"+POOL;
+document.getElementById("lpool").href="https://basescan.org/address/"+POOL;
+document.getElementById("ltok").textContent="basescan.org/token/"+WMORM;
+document.getElementById("ltok").href="https://basescan.org/token/"+WMORM;
+document.getElementById("luni").href="https://app.uniswap.org/swap?chain=base&inputCurrency="+USDC+"&outputCurrency="+WMORM;
 
 async function tick(){try{await loadLive();render();}catch(e){document.getElementById("upd").textContent="RPC再試行中…";}}
 (async()=>{
