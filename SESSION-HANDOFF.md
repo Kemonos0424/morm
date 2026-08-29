@@ -25,6 +25,7 @@ MORM 4サーフェス（www/api/node/play.morm.one）を監査→**致命セキ�
 ## 残タスク（このセッションで全部片付ける）
 ### A. push（外向き・要ユーザー承認）
 - `cd ~/Desktop/MORM && git push origin main`（MORM本体。node-dashboard main は push済）。ブランチ(`chore/*`)は任意。
+- ✅**[pre-push secret scan 済 2026-08-29]** 未push差分(origin/main..HEAD)に**新規の実secretなし**＝push安全。検出64-hexは全て公開物: RFC8032テストベクタ(mormcrypto自己テスト)・ed25519曲線定数・オンチェーンpool/token識別子・**Anvil既定acct#0 privkey `0xac0974..ff80`**(local anvil専用・morm-chain/script・poc・forge-std=周知の公開テスト定数で無害)。むしろ本pushで launch.json dev seed 除去(da4e1f8)が origin に反映。※既存の履歴露出(service-key/旧dev seed)は別件=[[Task B]]で対応中。
 
 ### B. secret ローテ（★既に PUBLIC 露出＝要ローテ判断。詳細=`SECURITY-SECRET-ROTATION.md`）
 - **重大**: リポは PUBLIC・`f82ea6e` は origin/main に push 済 → 両seedは既に GitHub 公開済み（恒久 compromised）。履歴rewriteは公開後は無効＝ローテ＋失効が唯一策。
