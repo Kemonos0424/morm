@@ -985,12 +985,26 @@ def payout(m0r):
             return {"ok": True, "paid": 0, "pending": amt}
         now = int(time.time())
         conn = _db()
-        # ① 予約: 送金前に paid を加算（この時点で他の payout からは pending=0 に見える）
-        conn.execute(
-            "INSERT INTO payouts(account,paid_morm,last_tx,updated) VALUES(?,?,?,?) "
-            "ON CONFLICT(account) DO UPDATE SET paid_morm=paid_morm+?, updated=?",
-            (m0r, amt, "pending", now, amt, now))
-        conn.commit()
+        # ① 予約(CAS): 送金前に paid を加算。earnings が読んだ paid を条件に条件付き更新/PK INSERT し、
+        #   他プロセス/スレッドが同時に paid を変えていたら敗退(skip)＝プロセス跨ぎの二重予約も防ぐ
+        #   (単一プロセスは _payout_lock で直列化。多重プロセス/blue-green でも安全側)。
+        prow = conn.execute("SELECT paid_morm FROM payouts WHERE account=?", (m0r,)).fetchone()
+        if prow is None:
+            try:
+                conn.execute("INSERT INTO payouts(account,paid_morm,last_tx,updated) VALUES(?,?,?,?)",
+                             (m0r, amt, "pending", now))
+                conn.commit()
+            except Exception:
+                conn.close()
+                return {"ok": True, "paid": 0, "pending": amt, "skipped": "concurrent"}
+        else:
+            cur = conn.execute("UPDATE payouts SET paid_morm=paid_morm+?, last_tx=?, updated=? "
+                               "WHERE account=? AND paid_morm=?",
+                               (amt, "pending", now, m0r, prow["paid_morm"]))
+            conn.commit()
+            if cur.rowcount == 0:
+                conn.close()
+                return {"ok": True, "paid": 0, "pending": amt, "skipped": "concurrent"}
         try:
             txh = l1_transfer(m0r, amt)          # ② 送金（着地確認まで）
         except Exception:
