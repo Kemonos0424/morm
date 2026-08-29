@@ -1,0 +1,13 @@
+{
+  "name": "Wrapped MORM",
+  "symbol": "wMORM",
+  "decimals": 18,
+  "description": "wMORM is the Base representation of MORM, the token of the MORM decentralized short-video streaming swarm. It is minted 1:1 on Base by the MORM export bridge (3-of-5 multisig) against MORM locked on the MORM L1, and trades in the wMORM/USDC Uniswap v3 pool.",
+  "website": "https://morm.one",
+  "nobridge": true,
+  "tokens": {
+    "base": {
+      "address": "0x7fEf327a811e73F06cccF0De9db022e739d5076d"
+    }
+  }
+}
