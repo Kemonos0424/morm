@@ -11,7 +11,7 @@
 | **node.morm.one** | **MORMNODE**（MCアカウント名+PWログイン・ノード運用者）＋`/shop`機体販売 | **`MORM/node-dashboard`（git submodule → github.com/Kemonos0424/node-dashboard）**。デプロイ/実行の実体は `~/Desktop/node-cluster/src/node-dashboard/`（`.env.local`/`.vercel`保持・IPPool symlink先）。両者は同一リポ | Vercel `node-dashboard` |
 | **play.morm.one** | **MORM Play**（動画ディスカバリ＋配信元秘匿・自動ed25519ウォレット） | `morm-play/`（`play_server.py`） | Mac Mini launchd `com.morm.play` |
 | L1 `127.0.0.1:8900` | MORM L1 ノード（**不可侵**・写込みは所定手順のみ） | `morm-l1/` | Mac Mini |
-| **market.morm.one** | `MORM/USD 価格`・`ブリッジ&スワップ(Base Sepolia)` | `morm-market/`（app.html/index.html・静的） | **Mac Mini へ scp（静的・www と同方式）**。手順=`morm-market/DEPLOY.md`。※実行(SSH/nginx/CF Tunnel/DNS)=gated・未live |
+| **market.morm.one** | `MORM/USD 価格`・`ブリッジ&スワップ(Base Sepolia)` | `morm-market/`（app.html/index.html・静的） | **Mac Mini scp 静的（www と同方式）＝LIVE(2026-08-29)**。CF morm.one に proxied CNAME market→f60ef43f-…cfargotunnel.com。手順=`morm-market/DEPLOY.md` |
 
 ⚠️ **`morm-dashboard`（api.morm.one）と `node-cluster/src/node-dashboard`（node.morm.one）は別アプリ・別Turso・別Vercel**。前者=旧「Node Dashboard/0x」＋ウォレットAPI、後者=現「MORMNODE/MC」。**node運用の作業は必ず node-cluster 側**。
 

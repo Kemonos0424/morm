@@ -11,7 +11,8 @@
   - MED: valve fail-closed／emit-nodes 410／lane 予約解放／AGE_SECRET 独立化／未承認メタ隠蔽／CLI env-seed。
 - **★重大な運用トラップ発見**: `launchctl kickstart -k` は **plist の env を再読込しない**。plist env 変更は **`bootout`+`bootstrap` 必須**（罠セクション参照）。今回の Play env 全変更は当初 kickstart で未反映→bootout で反映確定。
 - **hpmini mod-worker は sudo 不要でローテ**: `mod_worker.py` が `~/.morm-worker-token` を env より優先読込→ファイル書込み＋自プロセス kill(Restart=always)で反映(手順=`SECURITY-SECRET-ROTATION.md`§0-2)。
-- **残(未対応)**: market.morm.one DNS(morm.one CFで CNAME 作成のみ)／C-1 export_relayer 起動(鍵配置=`agent-lane/ops/relayer-deploy.md`)／C-2 minExit=1e18 再デプロイ(`morm-chain/REDEPLOY-MINEXIT.md`)／設計系 findings(payout CAS=単一プロセスなら安全・pub 秘匿依存read・replay nonce)。
+- ✅**market.morm.one LIVE(2026-08-29)**: CF morm.one に proxied CNAME market→f60ef43f-…cfargotunnel.com 作成→https://market.morm.one/ 200 確認。設計系 findings=payout CAS 実装済・他2件は据置(ユーザー判断・`REVIEW-FINDINGS`に移行計画)。
+- **残(未対応)**: C-2 minExit=1e18 再デプロイ(`morm-chain/redeploy-minexit.sh` ワンコマンド・broadcast=deployer鍵)→その後 C-1 export_relayer 起動(新bridgeへ・`agent-lane/ops/relayer-deploy.md`)。※誤作成の `market.morm.one.ctai.online`(ctai.oneゾーン)は無害だが掃除推奨。
 
 ## 一行サマリ（初期・履歴）
 MORM 4サーフェス（www/api/node/play.morm.one）を監査→致命セキュリティ封鎖・デプロイ済／node.morm.one を earned報酬に統一／リポ整理 Phase 1-3 完了。
