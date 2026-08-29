@@ -1,6 +1,6 @@
 <!doctype html><html lang="ja"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MORM — ブリッジ & スワップ (Base)</title>
+<title>MORM — 売買 & ブリッジ (Base)</title>
 <style>
 :root{--paper:#F4F2EA;--card:#FBFAF4;--ink:#0C0C0E;--soft:#5A5A5E;--line:#0C0C0E22;
 --blue:#1E37E6;--magenta:#EC1E79;--orange:#FF4A17;--green:#0EA24A;--up:#0EA24A;--dn:#EC1E79}
@@ -8,133 +8,100 @@
 :root[data-theme=dark]{--paper:#0C0C0E;--card:#151517;--ink:#F4F2EA;--soft:#B7B7B0;--line:#F4F2EA22;--blue:#4A5CFF;--magenta:#FF3E93;--orange:#FF6A3D}
 :root[data-theme=light]{--paper:#F4F2EA;--card:#FBFAF4;--ink:#0C0C0E;--soft:#5A5A5E;--line:#0C0C0E22;--blue:#1E37E6;--magenta:#EC1E79}
 *{box-sizing:border-box}
-body{margin:0;background:var(--paper);color:var(--ink);font-family:"Helvetica Neue",Helvetica,Arial,"Hiragino Kaku Gothic ProN",sans-serif}
-.wrap{max-width:980px;margin:0 auto;padding:20px 16px 60px}
-.top{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Helvetica Neue",Helvetica,Arial,"Hiragino Kaku Gothic ProN",sans-serif;line-height:1.5}
+.wrap{max-width:760px;margin:0 auto;padding:22px 16px 64px}
+.top{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
 .logo{font-weight:900;font-size:22px;letter-spacing:-.04em;color:var(--magenta)}
 .logo b{color:var(--blue)}
 .h1{font-weight:900;font-size:15px;letter-spacing:-.02em}
 .net{margin-left:auto;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--orange);border:1px solid var(--line);border-radius:999px;padding:5px 10px}
 .chartlink{font-size:12px;font-weight:700;color:var(--blue);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:5px 11px}
-.flow{display:flex;align-items:stretch;gap:8px;margin-bottom:18px;font-size:12px}
-.flow .n{flex:1;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:11px 13px}
-.flow .n b{display:block;font-weight:800;font-size:13px}
-.flow .n span{color:var(--soft)}
-.flow .a{display:flex;flex-direction:column;justify-content:center;align-items:center;color:var(--soft);font-size:10px;font-weight:700;min-width:64px}
-.flow .a i{font-style:normal;font-size:15px;color:var(--magenta)}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-@media(max-width:720px){.grid{grid-template-columns:1fr}.flow{flex-direction:column}.flow .a{flex-direction:row;gap:8px;min-width:0}.flow .a i{transform:rotate(90deg)}}
-.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px}
-.card h2{margin:0 0 4px;font-size:14px;font-weight:900;letter-spacing:-.01em}
-.card .side{font-size:11px;color:var(--soft);font-weight:700;margin-bottom:12px}
-.side.evm{color:var(--blue)} .side.l1{color:var(--magenta)}
-.btn{width:100%;border:none;border-radius:12px;padding:12px;font-size:14px;font-weight:800;cursor:pointer;background:var(--blue);color:#fff}
-.btn.mag{background:var(--magenta)} .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.intro{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px 16px;margin-bottom:16px;font-size:13.5px}
+.intro b{color:var(--magenta)} .intro .w{color:var(--blue)}
+.intro .pxnow{display:inline-block;margin-top:8px;font-size:12px;color:var(--soft);font-weight:700}
+.intro .pxnow b{color:var(--ink)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:14px}
+.card .num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--ink);color:var(--paper);font-weight:900;font-size:13px;margin-right:9px}
+.card h2{margin:0 0 4px;font-size:16px;font-weight:900;letter-spacing:-.01em;display:flex;align-items:center}
+.card .lead{font-size:13px;color:var(--soft);margin:0 0 14px;padding-left:33px}
+.card .body{padding-left:33px}
+@media(max-width:560px){.card .lead,.card .body{padding-left:0}}
+.btn{display:block;width:100%;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:800;cursor:pointer;background:var(--blue);color:#fff;text-align:center;text-decoration:none}
+.btn.mag{background:var(--magenta)} .btn.uni{background:#FF007A;color:#fff}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
 .btn:disabled{opacity:.45;cursor:not-allowed}
-.addr{font-family:ui-monospace,monospace;font-size:12px;color:var(--soft);word-break:break-all;margin-top:8px}
-.bal{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 0}
-.bal div{background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:9px 10px}
+.addr{font-family:ui-monospace,monospace;font-size:12px;color:var(--soft);word-break:break-all;margin:8px 0}
+.bal{display:flex;gap:8px;margin:10px 0}
+.bal div{flex:1;background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:9px 10px}
 .bal span{font-size:10px;color:var(--soft);font-weight:700;display:block}
 .bal b{font-size:14px;font-weight:800}
-.panel{border-top:1px solid var(--line);margin-top:14px;padding-top:14px}
-.panel h3{margin:0 0 9px;font-size:12px;font-weight:800;color:var(--soft);letter-spacing:.02em;display:flex;align-items:center;gap:7px}
-.panel h3 em{font-style:normal;font-size:10px;color:var(--soft);font-weight:700;margin-left:auto}
-label{font-size:11px;color:var(--soft);font-weight:700;display:block;margin:8px 0 4px}
-input,select{width:100%;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:10px;padding:10px;font-size:14px;font-family:inherit}
+label{font-size:12px;color:var(--soft);font-weight:700;display:block;margin:11px 0 4px}
+input{width:100%;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:10px;padding:11px;font-size:15px;font-family:inherit}
 .row{display:flex;gap:8px}.row>*{flex:1}
-.mini{font-size:11px;color:var(--soft);margin-top:7px;line-height:1.5}
+.mini{font-size:12px;color:var(--soft);margin-top:9px;line-height:1.6}
 .mini.err{color:var(--dn)} .mini.ok{color:var(--up)}
-.seg{display:flex;gap:6px;margin-bottom:8px}
-.seg button{flex:1;font-size:12px;font-weight:700;border:1px solid var(--line);background:transparent;color:var(--soft);border-radius:9px;padding:7px;cursor:pointer}
-.seg button.on{background:var(--ink);color:var(--paper);border-color:transparent}
-.foot{margin-top:20px;font-size:11.5px;color:var(--soft);line-height:1.7}
+.note{font-size:12px;color:var(--soft);background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:10px;line-height:1.6}
+.foot{margin-top:22px;font-size:12px;color:var(--soft);line-height:1.8}
 .foot a{color:var(--blue);text-decoration:none;word-break:break-all}
-.pill{display:inline-block;font-size:10px;font-weight:800;border-radius:6px;padding:2px 7px;background:var(--paper);border:1px solid var(--line);color:var(--soft);margin-left:6px}
 </style></head><body>
 <div class="wrap">
   <div class="top">
     <span class="logo">M<b>0</b>RM</span>
-    <span class="h1">ブリッジ &amp; スワップ</span>
+    <span class="h1">売買 &amp; ブリッジ</span>
     <a class="chartlink" href="index.html">価格チャート →</a>
     <span class="net">Base · mainnet</span>
   </div>
 
-  <div class="flow">
-    <div class="n"><b>MORM <span class="pill">L1</span></b><span>パスキー口座 (非EVM)</span></div>
-    <div class="a"><span>forward</span><i>→</i><span>burn→mint</span></div>
-    <div class="n"><b>wMORM <span class="pill">Base</span></b><span>ERC-20 · MetaMask</span></div>
-    <div class="a"><span>exit</span><i>→</i><span>burn→credit</span></div>
-    <div class="n"><b>MORM <span class="pill">L1</span></b><span>戻し (native)</span></div>
+  <div class="intro">
+    <b>MORM</b> は本体チェーン上のトークンです。Base の上では <span class="w">wMORM</span>
+    （<b>1 wMORM = 1 MORM</b> の交換用トークン）として、USDC と売買したり、MORM 本体と行き来できます。
+    <span class="pxnow">いまのレート: 1 wMORM ≈ <b id="pxNow">$0.01</b></span>
   </div>
 
-  <div class="grid">
-    <!-- ===================== EVM / wMORM side ===================== -->
-    <div class="card">
-      <h2>wMORM 側</h2><div class="side evm">Base · MetaMask</div>
-      <button class="btn" id="connect">MetaMask を接続</button>
+  <!-- ① 売買 -->
+  <div class="card">
+    <h2><span class="num">1</span>売買する</h2>
+    <p class="lead">wMORM を USDC で買う／売る。Uniswap のページが開き、お持ちのウォレット（MetaMask・Uniswap Wallet など）でそのまま取引できます。</p>
+    <div class="body">
+      <a class="btn uni" id="uniBtn" target="_blank" rel="noopener">Uniswap で wMORM を売買する →</a>
+      <div class="note">はじめての方へ: Uniswap 側でウォレットを接続 → 「USDC を wMORM に交換」。少額から試せます。手数料はプール 1%。</div>
+    </div>
+  </div>
+
+  <!-- ② MORM → Base -->
+  <div class="card">
+    <h2><span class="num">2</span>MORM を Base に持ち出す</h2>
+    <p class="lead">本体の MORM を Base の wMORM に変えます。安全のため、鍵を預かる <b>morm.one</b>（パスキー）側で実行します。</p>
+    <div class="body">
+      <label>受け取る Base アドレス（0x… / MetaMask）</label>
+      <div class="row">
+        <input id="fwdTo" placeholder="0x…" spellcheck="false">
+        <button class="btn ghost" id="fwdFill" style="flex:0 0 128px;padding:11px 8px;font-size:13px">接続先を使う</button>
+      </div>
+      <label>持ち出す MORM 量（整数）</label>
+      <input id="fwdAmt" inputmode="numeric" placeholder="0">
+      <a class="btn mag" id="fwdGo" href="https://morm.one/account.html#bridge" target="_blank" rel="noopener" style="margin-top:12px">morm.one で実行する →</a>
+      <div class="note">口座をお持ちでない方は <a href="https://morm.one/" target="_blank" rel="noopener" style="color:var(--blue)">morm.one でパスキー口座を作成</a> できます。</div>
+    </div>
+  </div>
+
+  <!-- ③ Base → MORM -->
+  <div class="card">
+    <h2><span class="num">3</span>Base から MORM に戻す</h2>
+    <p class="lead">Base の wMORM を本体の MORM に戻します。ウォレットを接続して、このページから実行できます。</p>
+    <div class="body">
+      <button class="btn" id="connect">ウォレットを接続</button>
       <div class="addr" id="evmAddr"></div>
-      <div class="bal">
-        <div><span>ETH (gas)</span><b id="bEth">—</b></div>
-        <div><span>USDC</span><b id="bUsdc">—</b></div>
+      <div class="bal" id="balBox" style="display:none">
+        <div><span>ETH（手数料）</span><b id="bEth">—</b></div>
         <div><span>wMORM</span><b id="bWm">—</b></div>
       </div>
-
-      <div class="panel">
-        <h3>スワップ <em>Uniswap v3 · 手数料1%</em></h3>
-        <div class="seg" id="swapDir">
-          <button data-d="buy" class="on">USDC → wMORM</button>
-          <button data-d="sell">wMORM → USDC</button>
-        </div>
-        <label id="swapInLbl">支払う USDC</label>
-        <input id="swapIn" inputmode="decimal" placeholder="0.0">
-        <div class="row" style="margin-top:8px">
-          <div><label>スリッページ</label>
-            <select id="slip"><option value="0.5">0.5%</option><option value="1">1%</option><option value="3" selected>3%</option><option value="5">5%</option></select></div>
-          <div><label>受取見込み</label><input id="swapOut" readonly value="—"></div>
-        </div>
-        <button class="btn ghost" id="swapBtn" style="margin-top:10px" disabled>接続してください</button>
-        <div class="mini" id="swapMsg"></div>
-      </div>
-
-      <div class="panel">
-        <h3>Exit — wMORM → native MORM <em>リレーヤ経由</em></h3>
-        <label>受取 MORM アドレス (m0r…)</label>
-        <input id="exitAddr" placeholder="m0r…" spellcheck="false">
-        <label>Exit する wMORM 量</label>
-        <input id="exitAmt" inputmode="decimal" placeholder="0.0">
-        <button class="btn mag" id="exitBtn" style="margin-top:10px" disabled>接続してください</button>
-        <div class="mini" id="exitMsg">wMORM を burn すると、L1 の m0r 口座に整数 MORM が credit されます (1 wMORM = 1 MORM、端数は切り捨て)。</div>
-      </div>
-    </div>
-
-    <!-- ===================== L1 / native side ===================== -->
-    <div class="card">
-      <h2>MORM 側</h2><div class="side l1">L1 · パスキー口座 (非EVM)</div>
-      <div class="mini" style="margin-bottom:10px">MORM L1 は非EVMのため MetaMask にチェーン追加できません。native MORM は端末内 Ed25519 のパスキー口座で扱い、wMORM へ橋渡しします。</div>
-
-      <div class="panel" style="border-top:none;margin-top:0;padding-top:0">
-        <h3>Forward — native MORM → wMORM <em>リレーヤ経由</em></h3>
-        <label>受取先 (Base の MetaMask アドレス 0x…)</label>
-        <div class="row">
-          <input id="fwdTo" placeholder="0x…" spellcheck="false">
-          <button class="btn ghost" id="fwdFill" style="flex:0 0 96px">接続先を使う</button>
-        </div>
-        <label>Forward する MORM 量 (整数)</label>
-        <input id="fwdAmt" inputmode="numeric" placeholder="0">
-        <button class="btn mag" id="fwdBtn" style="margin-top:10px" disabled>morm.one のパスキーで実行</button>
-        <div class="mini" id="fwdMsg">Forward は端末内パスキー(Ed25519)での署名が必要で、鍵は <b>morm.one</b> オリジンに保管されています。安全のためこの操作は morm.one 側で行います。受取先とMORM量を入力し、下のボタンから引き継いで実行してください。</div>
-        <a class="btn mag" id="fwdGo" href="https://morm.one/account.html#bridge" target="_blank" style="display:block;text-align:center;text-decoration:none;margin-top:10px;line-height:1.4">morm.one で Forward を実行 →</a>
-      </div>
-
-      <div class="panel">
-        <h3>口座をお持ちでない方</h3>
-        <a class="btn ghost" href="https://morm.one/" target="_blank" style="display:block;text-align:center;text-decoration:none;line-height:1.4">morm.one でパスキー口座を作成 →</a>
-      </div>
-      <div class="mini" style="margin-top:12px;line-height:1.6">
-        <b>橋渡しの向き</b><br>
-        ・Forward（native→wMORM）: morm.one でパスキー署名 → リレーヤが Base に wMORM を mint。<br>
-        ・Exit（wMORM→native）: 左の「Exit」から即実行 → リレーヤが m0r 口座へ MORM を credit。
-      </div>
+      <label>受け取る MORM アドレス（m0r…）</label>
+      <input id="exitAddr" placeholder="m0r…" spellcheck="false">
+      <label>戻す wMORM 量（整数）</label>
+      <input id="exitAmt" inputmode="numeric" placeholder="0">
+      <button class="btn mag" id="exitBtn" style="margin-top:12px" disabled>先にウォレットを接続</button>
+      <div class="mini" id="exitMsg">wMORM を戻すと、数ブロック後に MORM 本体の口座（m0r…）へ着金します（1 wMORM = 1 MORM・端数は切り捨て）。</div>
     </div>
   </div>
 
@@ -151,27 +118,12 @@ const WMORM="0x7fEf327a811e73F06cccF0De9db022e739d5076d";
 const USDC ="0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const BRIDGE="0x08Adb8d2c67491249C20edE2A7460d9f4Bd3907A";
 const POOL ="0x6615fC0239eDDb27A8fF2D774C438e68C4599A55";
-const ROUTER="0x2626664c2603336E57B271c5C0b26F421741e481"; // Uniswap SwapRouter02 (Base mainnet)
-const FEE=10000;
-// native L1 API (bridge_burns are read by the relayer from the L1 node HTTP API).
-// Finalized against the live api.morm.one surface — see wiring below.
-const API_MORM="https://api.morm.one";
-const L1_SCALE=10n**18n; // 1 L1 MORM = 1e18 wMORM-wei
 
-const ERC20_ABI=[
-  "function balanceOf(address) view returns (uint256)",
-  "function decimals() view returns (uint8)",
-  "function allowance(address,address) view returns (uint256)",
-  "function approve(address,uint256) returns (bool)"
-];
+const ERC20_ABI=["function balanceOf(address) view returns (uint256)"];
 const BRIDGE_ABI=[
   "function exit(uint256 amount, bytes20 mormAddress)",
   "function minExit() view returns (uint256)",
-  "function paused() view returns (bool)",
-  "event Exit(uint256 exitNonce,address from,bytes20 mormAddress,uint256 amount)"
-];
-const ROUTER_ABI=[
-  "function exactInputSingle((address tokenIn,address tokenOut,uint24 fee,address recipient,uint256 amountIn,uint256 amountOutMinimum,uint160 sqrtPriceLimitX96)) payable returns (uint256)"
+  "function paused() view returns (bool)"
 ];
 const POOL_ABI=["function slot0() view returns (uint160 sqrtPriceX96,int24,uint16,uint16,uint16,uint8,bool)"];
 
@@ -179,26 +131,38 @@ const ro=new ethers.JsonRpcProvider(RPC,CHAIN_ID);
 let signer=null, account=null;
 const $=id=>document.getElementById(id);
 
-// ---------------- base32 (RFC4648) for m0r addresses ----------------
+// ---------------- Uniswap deep link (=「UNI優先」: 売買はUniswapが全ウォレット/スリッページを処理) ----------------
+$("uniBtn").href="https://app.uniswap.org/swap?chain=base&inputCurrency="+USDC+"&outputCurrency="+WMORM;
+
+// ---------------- m0r address → bytes20 (base32 RFC4648) ----------------
 const B32="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 function b32decode(s){s=s.toUpperCase().replace(/=+$/,"");let bits=0,val=0;const out=[];
-  for(const c of s){const i=B32.indexOf(c);if(i<0)throw new Error("bad char");val=(val<<5)|i;bits+=5;
+  for(const c of s){const i=B32.indexOf(c);if(i<0)throw new Error("アドレスに使えない文字が含まれます");val=(val<<5)|i;bits+=5;
     if(bits>=8){bits-=8;out.push((val>>>bits)&0xff);}}return Uint8Array.from(out);}
 function mormToBytes20(addr){addr=(addr||"").trim();
-  if(!addr.startsWith("m0r"))throw new Error("m0r… で始まるアドレスを入力してください");
+  if(!addr.startsWith("m0r"))throw new Error("m0r… で始まる MORM アドレスを入力してください");
   const raw=b32decode(addr.slice(3));
-  if(raw.length!==20)throw new Error("アドレスが不正です (20バイトに復号できません)");
+  if(raw.length!==20)throw new Error("アドレスが正しくありません");
   return "0x"+[...raw].map(b=>b.toString(16).padStart(2,"0")).join("");}
-function validMorm(a){try{mormToBytes20(a);return true;}catch(e){return false;}}
 
-// ---------------- price (for swap estimate) ----------------
-// USDC(6dec)=token0, wMORM(18dec)=token1.  USDC per wMORM:
-function priceFromSqrt(sq){const r=Number(sq)/2**96;return (r*r)*1e12;}  // ★新順序: wMORM=token0 → USDC per wMORM = praw*1e12
-let usdcPerWm=0.01;
+// ---------------- live rate (参考表示) ----------------
+function priceFromSqrt(sq){const r=Number(sq)/2**96;return (r*r)*1e12;}  // wMORM=token0 → USDC per wMORM
 async function loadPrice(){try{const p=new ethers.Contract(POOL,POOL_ABI,ro);const s=await p.slot0();
-  usdcPerWm=priceFromSqrt(s[0]);estimate();}catch(e){}}
+  const px=priceFromSqrt(s[0]);$("pxNow").textContent="$"+px.toFixed(6);}catch(e){}}
 
-// ---------------- connect ----------------
+// ---------------- forward (MORM → Base) handoff link ----------------
+$("fwdFill").onclick=()=>{if(account){$("fwdTo").value=account;syncFwd();}};
+function syncFwd(){
+  const to=($("fwdTo").value||"").trim(),amt=($("fwdAmt").value||"").trim();
+  const q=new URLSearchParams();
+  if(/^0x[0-9a-fA-F]{40}$/.test(to))q.set("to",to);
+  if(amt)q.set("amount",amt);
+  const qs=q.toString();$("fwdGo").href="https://morm.one/account.html"+(qs?("?"+qs):"")+"#bridge";
+}
+$("fwdTo").addEventListener("input",syncFwd);
+$("fwdAmt").addEventListener("input",syncFwd);
+
+// ---------------- connect (Exit にのみ必要) ----------------
 async function ensureChain(eth){
   try{await eth.request({method:"wallet_switchEthereumChain",params:[{chainId:CHAIN_HEX}]});}
   catch(e){if(e.code===4902){await eth.request({method:"wallet_addEthereumChain",params:[{
@@ -206,7 +170,7 @@ async function ensureChain(eth){
     rpcUrls:[RPC],blockExplorerUrls:["https://basescan.org"]}]});}else throw e;}}
 async function connect(){
   const eth=window.ethereum;
-  if(!eth){$("evmAddr").textContent="MetaMask が見つかりません。拡張機能を入れてください。";return;}
+  if(!eth){$("evmAddr").textContent="ウォレット（MetaMask 等の拡張機能）が見つかりません。インストール後に再読み込みしてください。";return;}
   try{
     await eth.request({method:"eth_requestAccounts"});
     await ensureChain(eth);
@@ -214,106 +178,57 @@ async function connect(){
     signer=await bp.getSigner();account=await signer.getAddress();
     $("evmAddr").textContent=account;
     $("connect").textContent="接続済み ✓";$("connect").disabled=true;
-    $("swapBtn").disabled=false;$("swapBtn").textContent="スワップ";
-    $("exitBtn").disabled=false;$("exitBtn").textContent="Exit する";
+    $("exitBtn").disabled=false;$("exitBtn").textContent="MORM に戻す";
+    $("balBox").style.display="flex";
+    if($("fwdTo").value==="")$("fwdTo").value=account,syncFwd();
     eth.on&&eth.on("accountsChanged",()=>location.reload());
     eth.on&&eth.on("chainChanged",()=>location.reload());
-    await refreshEvm();
-  }catch(e){$("evmAddr").textContent="接続失敗: "+(e.shortMessage||e.message);}
+    refreshBal();
+  }catch(e){$("evmAddr").textContent="接続に失敗しました: "+(e.shortMessage||e.message);}
 }
 function f(n,d){n=Number(n);return n>=1000?n.toLocaleString(undefined,{maximumFractionDigits:2}):n.toFixed(d);}
-async function refreshEvm(){
+async function refreshBal(){
   if(!account)return;
   try{
     const eth=await ro.getBalance(account);
-    const u=new ethers.Contract(USDC,ERC20_ABI,ro),w=new ethers.Contract(WMORM,ERC20_ABI,ro);
-    const [ub,wb]=await Promise.all([u.balanceOf(account),w.balanceOf(account)]);
+    const w=new ethers.Contract(WMORM,ERC20_ABI,ro);
+    const wb=await w.balanceOf(account);
     $("bEth").textContent=f(ethers.formatEther(eth),4);
-    $("bUsdc").textContent=f(ethers.formatUnits(ub,6),2);
     $("bWm").textContent=f(ethers.formatUnits(wb,18),2);
   }catch(e){}
 }
+$("connect").onclick=connect;
 
-// ---------------- swap ----------------
-let DIR="buy"; // buy=USDC->wMORM, sell=wMORM->USDC
-$("swapDir").querySelectorAll("button").forEach(b=>b.onclick=()=>{
-  DIR=b.dataset.d;$("swapDir").querySelectorAll("button").forEach(x=>x.classList.remove("on"));b.classList.add("on");
-  $("swapInLbl").textContent=DIR==="buy"?"支払う USDC":"支払う wMORM";estimate();});
-function estimate(){
-  const v=parseFloat($("swapIn").value);if(!(v>0)){$("swapOut").value="—";return;}
-  const out=DIR==="buy"? v/usdcPerWm : v*usdcPerWm;
-  $("swapOut").value=f(out,6)+(DIR==="buy"?" wMORM":" USDC");
-}
-$("swapIn").addEventListener("input",estimate);
-async function doSwap(){
-  if(!signer)return;
-  const msg=$("swapMsg");msg.className="mini";
-  try{
-    const amt=parseFloat($("swapIn").value);if(!(amt>0))throw new Error("数量を入力してください");
-    const slip=parseFloat($("slip").value)/100;
-    const tokenIn=DIR==="buy"?USDC:WMORM, tokenOut=DIR==="buy"?WMORM:USDC;
-    const decIn=DIR==="buy"?6:18, decOut=DIR==="buy"?18:6;
-    const amountIn=ethers.parseUnits(String(amt),decIn);
-    const estOut=DIR==="buy"?amt/usdcPerWm:amt*usdcPerWm;
-    const minOut=ethers.parseUnits((estOut*(1-slip)).toFixed(decOut),decOut);
-    const tin=new ethers.Contract(tokenIn,ERC20_ABI,signer);
-    const cur=await tin.allowance(account,ROUTER);
-    if(cur<amountIn){msg.textContent="approve を承認してください…";const ap=await tin.approve(ROUTER,amountIn);await ap.wait();}
-    msg.textContent="スワップを送信中…";
-    const r=new ethers.Contract(ROUTER,ROUTER_ABI,signer);
-    const tx=await r.exactInputSingle({tokenIn,tokenOut,fee:FEE,recipient:account,amountIn,amountOutMinimum:minOut,sqrtPriceLimitX96:0});
-    await tx.wait();
-    msg.className="mini ok";msg.innerHTML="スワップ完了 ✓ <a href='https://basescan.org/tx/"+tx.hash+"' target='_blank'>tx</a>";
-    $("swapIn").value="";$("swapOut").value="—";refreshEvm();loadPrice();
-  }catch(e){msg.className="mini err";msg.textContent="失敗: "+(e.shortMessage||e.reason||e.message);}
-}
-$("swapBtn").onclick=doSwap;
-
-// ---------------- exit (wMORM -> native MORM) ----------------
+// ---------------- exit (Base wMORM → MORM 本体) ----------------
 async function doExit(){
   if(!signer)return;
   const msg=$("exitMsg");msg.className="mini";
   try{
     const addr=$("exitAddr").value.trim();
     const b20=mormToBytes20(addr); // throws if invalid
-    const amt=parseFloat($("exitAmt").value);if(!(amt>0))throw new Error("数量を入力してください");
-    // floor to integer MORM (relayer credits floor(wei/1e18))
+    const amt=parseFloat($("exitAmt").value);
+    if(!(amt>0))throw new Error("戻す量を入力してください");
     const whole=Math.floor(amt);
-    if(whole<1)throw new Error("1 wMORM 以上を Exit してください (端数は L1 に載りません)");
+    if(whole<1)throw new Error("1 wMORM 以上を入力してください（1 未満は本体に載りません）");
     const amountWei=ethers.parseUnits(String(whole),18);
     const br=new ethers.Contract(BRIDGE,BRIDGE_ABI,signer);
+    if(await br.paused())throw new Error("ブリッジが一時停止中です。しばらく待って再度お試しください。");
     const minE=await br.minExit();
-    if(amountWei<minE)throw new Error("最小 Exit 量 "+ethers.formatUnits(minE,18)+" wMORM を下回っています");
-    // ensure bridge can burn: WMORM.burn is bridge-only; exit() burns caller's wMORM (no approve needed — bridge burns via its own mint/burn rights on caller balance)
-    msg.textContent="Exit を送信中… ("+whole+" wMORM → "+whole+" MORM)";
+    if(amountWei<minE)throw new Error("最小 "+ethers.formatUnits(minE,18)+" wMORM から戻せます");
+    msg.textContent="送信中… "+whole+" wMORM を戻しています";
     const tx=await br.exit(amountWei,b20);
     await tx.wait();
     msg.className="mini ok";
-    msg.innerHTML="Exit 完了 ✓ リレーヤが数ブロック後に "+whole+" MORM を "+addr.slice(0,10)+"… へ credit します。 <a href='https://basescan.org/tx/"+tx.hash+"' target='_blank'>tx</a>";
-    $("exitAmt").value="";refreshEvm();
+    msg.innerHTML="完了 ✓ 数ブロック後に "+whole+" MORM が "+addr.slice(0,12)+"… に着金します。 <a href='https://basescan.org/tx/"+tx.hash+"' target='_blank' rel='noopener'>取引を見る</a>";
+    $("exitAmt").value="";refreshBal();
   }catch(e){msg.className="mini err";msg.textContent="失敗: "+(e.shortMessage||e.reason||e.message);}
 }
 $("exitBtn").onclick=doExit;
 
-// ---------------- L1 native side ----------------
-// Forward (native MORM -> wMORM) requires the in-device passkey (Ed25519) whose
-// key-shares are bound to the morm.one origin, plus a kind-21 BRIDGE_BURN relay
-// route. Both live on morm.one, so we hand off there with the intent prefilled.
-$("fwdFill").onclick=()=>{if(account){$("fwdTo").value=account;syncFwdLink();}};
-function syncFwdLink(){
-  const to=$("fwdTo").value.trim(),amt=($("fwdAmt").value||"").trim();
-  const q=new URLSearchParams();if(/^0x[0-9a-fA-F]{40}$/.test(to))q.set("to",to);if(amt)q.set("amount",amt);
-  const qs=q.toString();$("fwdGo").href="https://morm.one/account.html"+(qs?("?"+qs):"")+"#bridge";
-}
-$("fwdTo").addEventListener("input",syncFwdLink);
-$("fwdAmt").addEventListener("input",syncFwdLink);
-
 // ---------------- footer / init ----------------
 $("foot").innerHTML=
- "wMORM: <a href='https://basescan.org/token/"+WMORM+"' target='_blank'>"+WMORM+"</a><br>"+
- "Bridge: <a href='https://basescan.org/address/"+BRIDGE+"' target='_blank'>"+BRIDGE+"</a><br>"+
- "Base mainnet の実プールです。価格はプールのフロートで変動し、$0.01 は初期発行レートです。"+
- "ブリッジは M-of-N マルチシグのリレーヤ（2-of-3）が forward/exit を実行します。";
-$("connect").onclick=connect;
+ "ブリッジは <b>3-of-5</b> マルチシグのリレーヤが持ち出し／戻しを実行します（テストネットではなく Base mainnet の実トークンです）。<br>"+
+ "wMORM: <a href='https://basescan.org/token/"+WMORM+"' target='_blank' rel='noopener'>"+WMORM.slice(0,10)+"…</a> ／ "+
+ "ブリッジ: <a href='https://basescan.org/address/"+BRIDGE+"' target='_blank' rel='noopener'>"+BRIDGE.slice(0,10)+"…</a>";
 loadPrice();setInterval(loadPrice,20000);
 </script></body></html>

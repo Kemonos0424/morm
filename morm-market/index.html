@@ -1,6 +1,6 @@
 <!doctype html><html lang="ja"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MORM / USD — 実プール価格 (Base)</title>
+<title>MORM / USD — 価格チャート (Base)</title>
 <style>
 :root{--paper:#F4F2EA;--card:#FBFAF4;--ink:#0C0C0E;--soft:#5A5A5E;--line:#0C0C0E22;
 --blue:#1E37E6;--magenta:#EC1E79;--orange:#FF4A17;--green:#0EA24A;--up:#0EA24A;--dn:#EC1E79;--vol:#8A8A8E}
@@ -10,13 +10,15 @@
 *{box-sizing:border-box}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:"Helvetica Neue",Helvetica,Arial,"Hiragino Kaku Gothic ProN",sans-serif}
 .wrap{max-width:820px;margin:0 auto;padding:20px 16px 60px}
-.top{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.top{display:flex;align-items:center;gap:12px;margin-bottom:6px;flex-wrap:wrap}
 .logo{font-weight:900;font-size:22px;letter-spacing:-.04em;color:var(--magenta)}
 .logo b{color:var(--blue)}
-.pair{font-family:ui-monospace,monospace;font-size:13px;color:var(--soft);border:1px solid var(--line);border-radius:999px;padding:5px 11px}
+.pair{font-family:ui-monospace,monospace;font-size:12px;color:var(--soft);border:1px solid var(--line);border-radius:999px;padding:5px 11px}
+.use{font-size:12px;font-weight:700;color:#fff;background:var(--magenta);text-decoration:none;border-radius:999px;padding:6px 13px}
 .net{margin-left:auto;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--orange);border:1px solid var(--line);border-radius:999px;padding:5px 10px}
 .price{display:flex;align-items:baseline;gap:14px;margin:14px 0 2px}
 .big{font-size:44px;font-weight:900;letter-spacing:-.02em}
+.unit{font-size:16px;font-weight:800;color:var(--soft)}
 .chg{font-size:16px;font-weight:800}
 .sub{color:var(--soft);font-size:12.5px;margin-bottom:16px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px}
@@ -27,10 +29,14 @@ canvas{width:100%;height:360px;display:block;touch-action:none}
 .rng button.on{background:var(--blue);color:#fff;border-color:transparent}
 .tgl{display:flex;gap:6px;margin-left:auto}
 .tgl button.on{background:var(--ink);color:var(--paper);border-color:transparent}
+.modes{display:flex;gap:6px;margin:12px 0 0}
+.modes button{flex:1;font-size:13px;font-weight:800;border:1px solid var(--line);background:transparent;color:var(--soft);border-radius:11px;padding:9px;cursor:pointer}
+.modes button.on{background:var(--magenta);color:#fff;border-color:transparent}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}
+@media(max-width:560px){.stats{grid-template-columns:1fr 1fr}}
 .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 13px}
-.stat b{display:block;font-size:18px;font-weight:800;margin-top:3px}
-.stat span{font-size:11px;color:var(--soft);font-weight:700;letter-spacing:.03em}
+.stat b{display:block;font-size:17px;font-weight:800;margin-top:3px}
+.stat span{font-size:11px;color:var(--soft);font-weight:700;letter-spacing:.02em}
 .links{margin-top:18px;font-size:12.5px;color:var(--soft);line-height:1.9}
 .links a{color:var(--blue);text-decoration:none;word-break:break-all}
 .foot{margin-top:14px;font-size:11.5px;color:var(--soft);line-height:1.7}
@@ -41,13 +47,19 @@ canvas{width:100%;height:360px;display:block;touch-action:none}
 <div class="wrap">
   <div class="top">
     <span class="logo">M<b>0</b>RM</span>
-    <span class="pair">wMORM / USDC</span>
+    <span class="pair">MORM / USD · wMORM/USDC プール</span>
+    <a class="use" href="app.html">売買・ブリッジ →</a>
     <span class="net">Base · mainnet</span>
   </div>
-  <div class="price"><span class="big" id="px">—</span><span class="chg" id="chg"></span></div>
-  <div class="sub"><span class="dot"></span><span id="upd">接続中…</span><span class="tag">実プール直読み</span></div>
+  <div class="price"><span class="big" id="px">—</span><span class="unit">USD / MORM</span><span class="chg" id="chg"></span></div>
+  <div class="sub"><span class="dot"></span><span id="upd">読み込み中…</span><span class="tag">実プール直読み</span></div>
 
-  <div class="card"><canvas id="cv"></canvas>
+  <div class="modes" id="modes">
+    <button data-m="price" class="on">価格チャート</button>
+    <button data-m="bridged">ブリッジ済み MORM（Base 流通）</button>
+  </div>
+
+  <div class="card" style="margin-top:12px"><canvas id="cv"></canvas>
     <div class="ctl">
       <div class="rng" id="rng"></div>
       <div class="tgl" id="tgl">
@@ -59,218 +71,171 @@ canvas{width:100%;height:360px;display:block;touch-action:none}
 
   <div class="stats">
     <div class="stat"><span>流動性 (TVL)</span><b id="tvl">—</b></div>
-    <div class="stat"><span>プール wMORM</span><b id="rw">—</b></div>
-    <div class="stat"><span>プール USDC</span><b id="ru">—</b></div>
-    <div class="stat"><span>取引数</span><b id="tx">—</b></div>
+    <div class="stat"><span>Base 流通 MORM</span><b id="bridged">—</b></div>
+    <div class="stat"><span>本体 treasury (MORM)</span><b id="treasury">—</b></div>
+    <div class="stat"><span>ブリッジ (持出/戻し)</span><b id="brc">—</b></div>
   </div>
 
   <div class="links">
-    ブリッジ &amp; スワップ: <a href="app.html">接続して swap / exit する →</a><br>
-    プール: <a id="lpool" target="_blank"></a><br>
-    wMORM: <a id="ltok" target="_blank"></a><br>
-    取引 (Uniswap): <a id="luni" target="_blank">app.uniswap.org で売買</a>
+    売買・ブリッジ: <a href="app.html">wMORM を売買 / MORM と行き来する →</a><br>
+    プール: <a id="lpool" target="_blank" rel="noopener"></a><br>
+    wMORM トークン: <a id="ltok" target="_blank" rel="noopener"></a><br>
+    Uniswap で取引: <a id="luni" target="_blank" rel="noopener">app.uniswap.org</a>
   </div>
   <div class="foot">
-    価格は Uniswap v3 の実プール(slot0/Swapイベント)を Base mainnet RPC から直接読み、15秒ごとに更新しています。
-    履歴はブラウザに永続保存し、次回以降は新規ブロックのみ増分取得します。
-    Base mainnet の実プールです。DexScreener/GeckoTerminal 等の公開チャートにも順次反映されます。
-    1 wMORM の初期発行レートは $0.01。市場価格はプールのフロートで変動します。
+    価格は Uniswap v3 の実プール（wMORM/USDC・1 wMORM = 1 MORM）を Base mainnet から直接読んでいます。
+    履歴・統計はサーバ側（market-data.json）で 2 分毎に集計、現在価格は 15 秒毎に更新。
+    「Base 流通 MORM」は Base 上の wMORM 総量（＝MORM がどれだけ Base に渡っているか）です。
+    $0.01 は初期発行レートで、市場価格はプールのフロートで変動します。
   </div>
 </div>
 <script src="rpc-config.js"></script>
 <script>
-const RPC=(window.MORM_RPC)||"https://mainnet.base.org";  // Alchemy(Mac Mini rpc-config.js・git外) / 無ければ公開RPC
+const RPC=(window.MORM_RPC)||"https://mainnet.base.org";  // 現在価格の即時取得のみに使用（getLogs はしない）
 const POOL="0x6615fC0239eDDb27A8fF2D774C438e68C4599A55";
 const WMORM="0x7fEf327a811e73F06cccF0De9db022e739d5076d";
 const USDC="0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
-const POOL_BLOCK=50606455;
-const SWAP="0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67";
-const INIT="0x98636036cb66a9c19a37435efc1e90142190214e8abeb821bdba3f2990dd4c95";
-const CACHE_KEY="mormMarket:"+POOL;
-let id=1;
+const DATA_URL="market-data.json";
+let idc=1;
 async function rpc(method,params){const r=await fetch(RPC,{method:"POST",headers:{"content-type":"application/json"},
-  body:JSON.stringify({jsonrpc:"2.0",id:id++,method,params})});const j=await r.json();if(j.error)throw new Error(j.error.message);return j.result;}
-const hexN=h=>parseInt(h,16);
-const hx=n=>"0x"+n.toString(16);
-// ★新プールは wMORM(18dec)=token0, USDC(6dec)=token1(アドレス順逆転)。
-// price(token1/token0 raw)=USDC-raw/wMORM-raw。USDC per wMORM = praw*(1e18/1e6)=praw*1e12。
-function priceFromSqrt(sqrtBig){const r=Number(sqrtBig)/2**96;const praw=r*r;return praw*1e12;}
-function word(dataHex,i){return BigInt("0x"+dataHex.slice(2+i*64,2+(i+1)*64));}
-function toSigned(u){const M=1n<<256n,H=1n<<255n;return u>=H?u-M:u;}
+  body:JSON.stringify({jsonrpc:"2.0",id:idc++,method,params})});const j=await r.json();if(j.error)throw new Error(j.error.message);return j.result;}
+function priceFromSqrt(sqrtBig){const r=Number(sqrtBig)/2**96;return r*r*1e12;}  // wMORM=token0 → USDC/wMORM
 
-// ---- persistent event store ----
-let events=[];             // {blk, t(ms), p, v(USDC vol), sw}
-let lastScanned=POOL_BLOCK-1;
-let live=null;
-function loadCache(){try{const c=JSON.parse(localStorage.getItem(CACHE_KEY));
-  if(c&&c.pool===POOL&&Array.isArray(c.events)){events=c.events;lastScanned=c.lastBlock||(POOL_BLOCK-1);}}catch(e){}}
-function saveCache(){try{localStorage.setItem(CACHE_KEY,JSON.stringify({pool:POOL,events,lastBlock:lastScanned}));}catch(e){}}
-const txCount=()=>events.reduce((a,e)=>a+(e.sw?1:0),0);
-
-async function blockTimes(blocks){const uniq=[...new Set(blocks)];const map={};
-  await Promise.all(uniq.map(async b=>{const bl=await rpc("eth_getBlockByNumber",[hx(b),false]);map[b]=hexN(bl.timestamp);}));
-  return map;}
-
-// incremental scan: only new blocks since lastScanned
-async function scanNew(){
-  const head=hexN(await rpc("eth_blockNumber",[]));
-  if(head<=lastScanned)return false;
-  let from=lastScanned+1;const logs=[];
-  while(from<=head){const to=Math.min(from+900,head);
-    try{const ls=await rpc("eth_getLogs",[{address:POOL,topics:[[SWAP,INIT]],fromBlock:hx(from),toBlock:hx(to)}]);
-      logs.push(...ls);}catch(e){}
-    from=to+1;}
-  if(!logs.length){lastScanned=head;saveCache();return false;}
-  const raw=[];
-  for(const l of logs){const t0=l.topics[0].toLowerCase();const blk=hexN(l.blockNumber);
-    if(t0===INIT){raw.push({blk,sqrt:word(l.data,0),v:0,sw:0});}
-    else{const a1=toSigned(word(l.data,1));const av=a1<0n?-a1:a1;   // USDC=token1(新順序)→ USDC出来高
-      raw.push({blk,sqrt:word(l.data,2),v:Number(av)/1e6,sw:1});}}
-  const tmap=await blockTimes(raw.map(e=>e.blk));
-  for(const e of raw)events.push({blk:e.blk,t:tmap[e.blk]*1000,p:priceFromSqrt(e.sqrt),v:e.v,sw:e.sw});
-  events.sort((a,b)=>a.blk-b.blk);
-  lastScanned=head;saveCache();return true;
+// ---- data (from server market-data.json) ----
+let md=null;                 // full snapshot
+let events=[];               // price points {t,p,v,sw}
+let bridgedPts=[];           // {t,wmorm}
+let live=null;               // {t,price} live tick
+async function loadData(){
+  try{const r=await fetch(DATA_URL,{cache:"no-store"});md=await r.json();
+    events=(md.priceHistory||[]).map(e=>({t:e.t,p:e.p,v:e.v||0,sw:1}));
+    bridgedPts=(md.bridgedHistory||[]).slice();
+    return true;}catch(e){return false;}
+}
+async function tickLive(){
+  try{const s0=await rpc("eth_call",[{to:POOL,data:"0x3850c7bd"},"latest"]);
+    const sqrt=BigInt("0x"+s0.slice(2,66));live={t:Date.now(),price:priceFromSqrt(sqrt)};render();
+  }catch(e){document.getElementById("upd").textContent="RPC再試行中…";}
 }
 
-async function loadLive(){
-  const [s0,rw,ru]=await Promise.all([
-    rpc("eth_call",[{to:POOL,data:"0x3850c7bd"},"latest"]),
-    rpc("eth_call",[{to:WMORM,data:"0x70a08231000000000000000000000000"+POOL.slice(2)},"latest"]),
-    rpc("eth_call",[{to:USDC ,data:"0x70a08231000000000000000000000000"+POOL.slice(2)},"latest"]),
-  ]);
-  const sqrt=BigInt("0x"+s0.slice(2,66));
-  live={price:priceFromSqrt(sqrt),wmorm:Number(BigInt(rw))/1e18,usdc:Number(BigInt(ru))/1e6,t:Date.now()};
-  return live;
-}
-
-// ---- bucketing ----
-let RANGE=0, MODE="candle";
+// ---- view state ----
+let VIEW="price", RANGE=0, MODE="candle";
 function bucketMs(range,span){
   if(range>0){if(range<=3600e3)return 5*60e3;if(range<=6*3600e3)return 30*60e3;if(range<=24*3600e3)return 60*60e3;return 3*3600e3;}
-  const s=span||1;return Math.max(60e3,Math.pow(2,Math.round(Math.log2(s/40)))); // ~40 buckets, snapped
+  const s=span||1;return Math.max(60e3,Math.pow(2,Math.round(Math.log2(s/40))));
 }
-function priceSeries(){ // for line mode: raw price points + live
-  let s=events.filter(e=>e.p>0).map(e=>({t:e.t,p:e.p}));
+function priceSeries(){let s=events.filter(e=>e.p>0).map(e=>({t:e.t,p:e.p}));
   if(live)s=s.concat([{t:live.t,p:live.price}]);
-  if(RANGE>0){const cut=Date.now()-RANGE;s=s.filter(x=>x.t>=cut);}
-  return s;
-}
+  if(RANGE>0){const cut=Date.now()-RANGE;s=s.filter(x=>x.t>=cut);}return s;}
 function candles(){
-  let ev=events.filter(e=>e.p>0);
-  const now=Date.now();
+  let ev=events.filter(e=>e.p>0);const now=Date.now();
   if(RANGE>0)ev=ev.filter(e=>e.t>=now-RANGE);
-  const withLive=ev.concat(live?[{t:live.t,p:live.price,v:0,sw:0}]:[]);
+  const withLive=ev.concat(live?[{t:live.t,p:live.price,v:0}]:[]);
   if(!withLive.length)return {arr:[],bw:0};
-  const span=withLive[withLive.length-1].t-withLive[0].t;
-  const bw=bucketMs(RANGE,span);
-  const map=new Map();
+  const span=withLive[withLive.length-1].t-withLive[0].t;const bw=bucketMs(RANGE,span);const map=new Map();
   for(const e of withLive){const k=Math.floor(e.t/bw)*bw;let c=map.get(k);
     if(!c){c={t:k,o:e.p,h:e.p,l:e.p,c:e.p,v:0};map.set(k,c);}
     c.h=Math.max(c.h,e.p);c.l=Math.min(c.l,e.p);c.c=e.p;c.v+=e.v;}
   const arr=[...map.values()].sort((a,b)=>a.t-b.t);
-  for(let i=1;i<arr.length;i++)arr[i].o=arr[i-1].c; // open = prev close for continuity
-  return {arr,bw};
-}
+  for(let i=1;i<arr.length;i++)arr[i].o=arr[i-1].c;return {arr,bw};}
+function bridgedSeries(){let s=(bridgedPts||[]).map(e=>({t:e.t,p:e.wmorm}));
+  if(md&&typeof md.bridged==="number")s=s.concat([{t:(md.updated||Date.now()/1000)*1000,p:md.bridged}]);
+  if(RANGE>0){const cut=Date.now()-RANGE;s=s.filter(x=>x.t>=cut);}return s;}
 
 // ---- chart ----
 const cv=document.getElementById("cv"),ctx=cv.getContext("2d");
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 function setup(){const dpr=Math.min(2,window.devicePixelRatio||1);const w=cv.clientWidth,h=cv.clientHeight;
-  cv.width=w*dpr;cv.height=h*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);return {w,h,dpr};}
+  cv.width=w*dpr;cv.height=h*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);return {w,h};}
 function fmtTime(t,range){const d=new Date(t);const p=n=>String(n).padStart(2,"0");
   return (range>0&&range<=24*3600e3)?p(d.getHours())+":"+p(d.getMinutes()):p(d.getMonth()+1)+"/"+p(d.getDate());}
+function noData(w,h,txt){ctx.fillStyle=css("--soft");ctx.font="13px inherit";ctx.textAlign="center";
+  ctx.fillText(txt,w/2,h/2);ctx.textAlign="left";}
 
 function draw(){
   const {w,h}=setup();
-  const pad={l:58,r:12,t:14,b:24};
-  const volH=Math.round((h-pad.t-pad.b)*0.22);   // volume sub-panel
-  const gap=10;
-  const priceBot=h-pad.b-volH-gap;               // bottom y of price panel
-  if(MODE==="line"){drawLine(w,h,pad,priceBot);return;}
-  const c=candles();if(!c.arr.length)return;
+  const pad={l:64,r:12,t:14,b:24};
+  if(VIEW==="bridged"){drawSeries(w,h,pad,bridgedSeries(),v=>fmtN(v),css("--magenta"),"まだブリッジ履歴がありません");return;}
+  if(MODE==="line"){drawSeries(w,h,pad,priceSeries(),v=>"$"+v.toFixed(5),null,"取引履歴がまだありません（価格は上部に表示）");return;}
+  const volH=Math.round((h-pad.t-pad.b)*0.22),gap=10,priceBot=h-pad.b-volH-gap;
+  const c=candles();if(!c.arr.length){noData(w,h,"取引履歴がまだありません（現在価格は上部に表示）");return;}
   const {arr,bw}=c;
   let x0=arr[0].t,x1=arr[arr.length-1].t+bw;if(x0===x1){x0-=bw;x1+=bw;}
-  let lo=Math.min(...arr.map(k=>k.l)),hi=Math.max(...arr.map(k=>k.h));
-  const yp=(hi-lo)*0.14||hi*0.05;lo-=yp;hi+=yp;
+  let lo=Math.min(...arr.map(k=>k.l)),hi=Math.max(...arr.map(k=>k.h));const yp=(hi-lo)*0.14||hi*0.05;lo-=yp;hi+=yp;
   const vmax=Math.max(...arr.map(k=>k.v),1e-9);
-  const X=t=>pad.l+(w-pad.l-pad.r)*(t-x0)/(x1-x0);
-  const Y=v=>pad.t+(priceBot-pad.t)*(1-(v-lo)/(hi-lo));
-  const VY=v=>h-pad.b-(volH)*(v/vmax);
-  // grid + price labels
+  const X=t=>pad.l+(w-pad.l-pad.r)*(t-x0)/(x1-x0),Y=v=>pad.t+(priceBot-pad.t)*(1-(v-lo)/(hi-lo)),VY=v=>h-pad.b-(volH)*(v/vmax);
   ctx.strokeStyle=css("--line");ctx.fillStyle=css("--soft");ctx.font="11px ui-monospace,monospace";ctx.lineWidth=1;
   for(let i=0;i<=4;i++){const v=lo+(hi-lo)*i/4,yy=Y(v);
     ctx.globalAlpha=.5;ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(w-pad.r,yy);ctx.stroke();ctx.globalAlpha=1;
     ctx.fillText("$"+v.toFixed(5),6,yy+3);}
-  // candles
-  const bwpx=(w-pad.l-pad.r)*(bw/(x1-x0));
-  const cw=Math.max(2,Math.min(14,bwpx*0.62));
+  const bwpx=(w-pad.l-pad.r)*(bw/(x1-x0)),cw=Math.max(2,Math.min(14,bwpx*0.62));
   const up=css("--up"),dn=css("--dn");
-  for(const k of arr){const cx=X(k.t+bw/2);const rising=k.c>=k.o;const col=rising?up:dn;
-    // wick
+  for(const k of arr){const cx=X(k.t+bw/2),rising=k.c>=k.o,col=rising?up:dn;
     ctx.strokeStyle=col;ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(cx,Y(k.h));ctx.lineTo(cx,Y(k.l));ctx.stroke();
-    // body
-    const yo=Y(k.o),yc=Y(k.c);let top=Math.min(yo,yc),bh=Math.abs(yc-yo);if(bh<1.4)bh=1.4;
-    ctx.fillStyle=col;ctx.fillRect(cx-cw/2,top,cw,bh);
-    // volume bar
-    ctx.globalAlpha=.45;ctx.fillStyle=rising?up:dn;
-    const vy=VY(k.v);ctx.fillRect(cx-cw/2,vy,cw,(h-pad.b)-vy);ctx.globalAlpha=1;}
-  // volume baseline + label
+    const yo=Y(k.o),yc=Y(k.c);let top=Math.min(yo,yc),bh=Math.abs(yc-yo);if(bh<1.4)bh=1.4;ctx.fillStyle=col;ctx.fillRect(cx-cw/2,top,cw,bh);
+    ctx.globalAlpha=.45;ctx.fillStyle=col;const vy=VY(k.v);ctx.fillRect(cx-cw/2,vy,cw,(h-pad.b)-vy);ctx.globalAlpha=1;}
   ctx.strokeStyle=css("--line");ctx.globalAlpha=.6;ctx.beginPath();ctx.moveTo(pad.l,h-pad.b);ctx.lineTo(w-pad.r,h-pad.b);ctx.stroke();ctx.globalAlpha=1;
-  ctx.fillStyle=css("--vol");ctx.font="10px ui-monospace,monospace";
-  ctx.textAlign="right";ctx.fillText("出来高(USDC)",w-pad.r,h-pad.b-volH-4);ctx.textAlign="left";
-  // x time labels — evenly spaced across the time domain (no clustering overlap)
-  ctx.fillStyle=css("--soft");ctx.font="10px ui-monospace,monospace";
-  const nT=4;
-  for(let i=0;i<=nT;i++){const t=x0+(x1-x0)*i/nT;let tx=pad.l+(w-pad.l-pad.r)*i/nT-16;
-    if(i===0)tx=pad.l;if(i===nT)tx=w-pad.r-36;
-    ctx.fillText(fmtTime(t,RANGE),tx,h-6);}
-  // current price dotted line
-  if(live){const yy=Y(live.price);ctx.setLineDash([3,3]);ctx.strokeStyle=css("--blue");ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(w-pad.r,yy);ctx.stroke();ctx.setLineDash([]);}
+  ctx.fillStyle=css("--vol");ctx.font="10px ui-monospace,monospace";ctx.textAlign="right";ctx.fillText("出来高(USDC)",w-pad.r,h-pad.b-volH-4);ctx.textAlign="left";
+  ctx.fillStyle=css("--soft");ctx.font="10px ui-monospace,monospace";const nT=4;
+  for(let i=0;i<=nT;i++){const t=x0+(x1-x0)*i/nT;let tx=pad.l+(w-pad.l-pad.r)*i/nT-16;if(i===0)tx=pad.l;if(i===nT)tx=w-pad.r-36;ctx.fillText(fmtTime(t,RANGE),tx,h-6);}
+  if(live){const yy=Y(live.price);ctx.setLineDash([3,3]);ctx.strokeStyle=css("--blue");ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(w-pad.r,yy);ctx.stroke();ctx.setLineDash([]);}
 }
-function drawLine(w,h,pad,priceBot){
-  const S=priceSeries();if(S.length<1)return;
+function drawSeries(w,h,pad,S,ylabel,forceCol,empty){
+  if(S.length<1){noData(w,h,empty);return;}
   const xs=S.map(p=>p.t),ys=S.map(p=>p.p);
   let x0=Math.min(...xs),x1=Math.max(...xs);if(x0===x1){x0-=1;x1+=1;}
-  let y0=Math.min(...ys),y1=Math.max(...ys);const yp=(y1-y0)*0.12||y1*0.05;y0-=yp;y1+=yp;
-  const X=t=>pad.l+(w-pad.l-pad.r)*(t-x0)/(x1-x0);
-  const Y=v=>pad.t+(h-pad.t-pad.b)*(1-(v-y0)/(y1-y0));
+  let y0=Math.min(...ys),y1=Math.max(...ys);const yp=(y1-y0)*0.12||Math.abs(y1)*0.08||1;y0-=yp;y1+=yp;
+  const X=t=>pad.l+(w-pad.l-pad.r)*(t-x0)/(x1-x0),Y=v=>pad.t+(h-pad.t-pad.b)*(1-(v-y0)/(y1-y0));
   ctx.strokeStyle=css("--line");ctx.fillStyle=css("--soft");ctx.font="11px ui-monospace,monospace";ctx.lineWidth=1;
   for(let i=0;i<=4;i++){const v=y0+(y1-y0)*i/4,yy=Y(v);
-    ctx.globalAlpha=.5;ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(w-pad.r,yy);ctx.stroke();ctx.globalAlpha=1;
-    ctx.fillText("$"+v.toFixed(5),6,yy+3);}
-  const up=S[S.length-1].p>=S[0].p;const col=up?css("--up"):css("--dn");
+    ctx.globalAlpha=.5;ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(w-pad.r,yy);ctx.stroke();ctx.globalAlpha=1;ctx.fillText(ylabel(v),6,yy+3);}
+  const up=S[S.length-1].p>=S[0].p;const col=forceCol||(up?css("--up"):css("--dn"));
   const g=ctx.createLinearGradient(0,pad.t,0,h-pad.b);g.addColorStop(0,col+"55");g.addColorStop(1,col+"00");
-  ctx.beginPath();ctx.moveTo(X(S[0].t),Y(S[0].p));for(const p of S)ctx.lineTo(X(p.t),Y(p.p));
-  ctx.lineTo(X(S[S.length-1].t),h-pad.b);ctx.lineTo(X(S[0].t),h-pad.b);ctx.closePath();ctx.fillStyle=g;ctx.fill();
-  ctx.beginPath();ctx.moveTo(X(S[0].t),Y(S[0].p));for(const p of S)ctx.lineTo(X(p.t),Y(p.p));
-  ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.lineJoin="round";ctx.stroke();
+  // stepped for bridged (supply is piecewise-constant), smooth for price
+  const step=(VIEW==="bridged");
+  function path(){ctx.beginPath();ctx.moveTo(X(S[0].t),Y(S[0].p));
+    for(let i=1;i<S.length;i++){if(step)ctx.lineTo(X(S[i].t),Y(S[i-1].p));ctx.lineTo(X(S[i].t),Y(S[i].p));}}
+  path();ctx.lineTo(X(S[S.length-1].t),h-pad.b);ctx.lineTo(X(S[0].t),h-pad.b);ctx.closePath();ctx.fillStyle=g;ctx.fill();
+  path();ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.lineJoin="round";ctx.stroke();
   const last=S[S.length-1];ctx.fillStyle=col;ctx.beginPath();ctx.arc(X(last.t),Y(last.p),4,0,7);ctx.fill();
+  // x labels
+  ctx.fillStyle=css("--soft");ctx.font="10px ui-monospace,monospace";const nT=4;
+  for(let i=0;i<=nT;i++){const t=x0+(x1-x0)*i/nT;let tx=pad.l+(w-pad.l-pad.r)*i/nT-16;if(i===0)tx=pad.l;if(i===nT)tx=w-pad.r-36;ctx.fillText(fmtTime(t,RANGE),tx,h-6);}
 }
 window.addEventListener("resize",draw);
 
-function fmt(n,d){return n>=1000?n.toLocaleString(undefined,{maximumFractionDigits:0}):n.toFixed(d);}
+function fmtN(n){n=Number(n);return n>=1e6?(n/1e6).toFixed(2)+"M":n>=1000?n.toLocaleString(undefined,{maximumFractionDigits:0}):n.toFixed(2);}
+function bigMorm(w){w=Number(w);  // 日本語大数単位（万/億/兆/京）
+  if(w>=1e16)return (w/1e16>=100?(w/1e16).toFixed(0):(w/1e16).toFixed(1))+"京";
+  if(w>=1e12)return (w/1e12).toFixed(1)+"兆";
+  if(w>=1e8)return (w/1e8).toFixed(2)+"億";
+  if(w>=1e4)return (w/1e4).toFixed(1)+"万";
+  return w.toFixed(0);}
 function render(){
-  const cur=live?live.price:(events.length?events[events.length-1].p:0);
+  const cur=live?live.price:(md?md.price:(events.length?events[events.length-1].p:0));
   document.getElementById("px").textContent="$"+cur.toFixed(6);
   const base=events.filter(e=>e.p>0);const first=base.length?base[0].p:cur;const ch=first?((cur-first)/first*100):0;
-  const chg=document.getElementById("chg");chg.textContent=(ch>=0?"▲ +":"▼ ")+ch.toFixed(2)+"%";
-  chg.style.color=ch>=0?css("--up"):css("--dn");
-  if(live){document.getElementById("tvl").textContent="$"+fmt(live.usdc+live.wmorm*live.price,0);
-    document.getElementById("rw").textContent=fmt(live.wmorm,0);
-    document.getElementById("ru").textContent="$"+fmt(live.usdc,0);}
-  document.getElementById("tx").textContent=txCount();
+  const chg=document.getElementById("chg");chg.textContent=(ch>=0?"▲ +":"▼ ")+ch.toFixed(2)+"%";chg.style.color=ch>=0?css("--up"):css("--dn");
+  if(md){document.getElementById("tvl").textContent="$"+fmtN(md.tvl);
+    document.getElementById("bridged").textContent=bigMorm(md.bridged)+" MORM";
+    document.getElementById("treasury").textContent=md.l1&&md.l1.treasury!=null?bigMorm(md.l1.treasury):"—";
+    const c=md.counts||{};document.getElementById("brc").textContent=(c.forwards||0)+" / "+(c.exits||0);}
   document.getElementById("upd").textContent="更新: "+new Date().toLocaleTimeString("ja-JP");
   draw();
 }
+
 // range buttons
 const ranges=[["1H",3600e3],["6H",6*3600e3],["24H",24*3600e3],["全期間",0]];
 const rng=document.getElementById("rng");
 ranges.forEach(([lbl,ms])=>{const b=document.createElement("button");b.textContent=lbl;if(ms===0)b.classList.add("on");
   b.onclick=()=>{RANGE=ms;[...rng.children].forEach(x=>x.classList.remove("on"));b.classList.add("on");render();};rng.appendChild(b);});
-// mode toggle
+// candle/line toggle
 const tgl=document.getElementById("tgl");
 [...tgl.children].forEach(b=>b.onclick=()=>{MODE=b.dataset.k;[...tgl.children].forEach(x=>x.classList.remove("on"));b.classList.add("on");render();});
+// price/bridged mode
+const modes=document.getElementById("modes");
+[...modes.children].forEach(b=>b.onclick=()=>{VIEW=b.dataset.m;[...modes.children].forEach(x=>x.classList.remove("on"));b.classList.add("on");
+  tgl.style.visibility=(VIEW==="price")?"visible":"hidden";render();});
 // links
 document.getElementById("lpool").textContent="basescan.org/address/"+POOL;
 document.getElementById("lpool").href="https://basescan.org/address/"+POOL;
@@ -278,12 +243,10 @@ document.getElementById("ltok").textContent="basescan.org/token/"+WMORM;
 document.getElementById("ltok").href="https://basescan.org/token/"+WMORM;
 document.getElementById("luni").href="https://app.uniswap.org/swap?chain=base&inputCurrency="+USDC+"&outputCurrency="+WMORM;
 
-async function tick(){try{await loadLive();render();}catch(e){document.getElementById("upd").textContent="RPC再試行中…";}}
 (async()=>{
-  loadCache();render();
-  try{await scanNew();}catch(e){}
-  await tick();
-  setInterval(tick,15000);                                   // live price every 15s
-  setInterval(async()=>{try{if(await scanNew())render();}catch(e){}},30000); // incremental history every 30s
+  await loadData();render();
+  await tickLive();
+  setInterval(tickLive,15000);                 // live price 15s
+  setInterval(async()=>{if(await loadData())render();},60000); // history/stats refresh 60s
 })();
 </script></body></html>
