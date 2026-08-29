@@ -34,7 +34,8 @@ MORM 4サーフェス（www/api/node/play.morm.one）を監査→**致命セキ�
 - ✅**[コード完了 commit bfc9309]** play_server.py 4 settle経路(settle_referrals/_settle_fixed/_settle_proportional/settle_challenge)を予約先行に統一(=`_points_loop`経由の自動配当も網羅)。回帰テスト`morm-play/test_settle_idempotency.py`で二重支払いゼロ/失敗ロールバック/2レッグ端ケース検証(28 assert PASS・実チェーン不要)。※`payout()`は既済。
   - **残(gated=要承認)**: **Mac Mini へ転送＋`launchctl kickstart -k gui/$UID/com.morm.play`**。デプロイ前に既存`agent-lane/verify/run_all.sh`(9/9)の再実行推奨。
 - **export_relayer.py**（修正済: last_block永続化+dust ALERT）→ **リレーヤ運用ホストへ反映**＋contractの`MIN_EXIT>=1e18`設定（1MORM未満exit永久損失の根本対策）。
-- play: 読みIDOR(feed/content/mine/earnings/me)・ADMIN_TOKEN in URL→header化・mod preview 404・age自己申告。
+- ✅**[コード完了 commit 51e16de]** play 読み取り経路: (1)IDOR封鎖=/api/earnings・/api/mine を pubkey要求化(生の公開アドレスm0r不可・`pub_to_m0r`で32byte厳格検証)、/api/me も統一。 (2)ADMIN_TOKEN in URL→`X-Admin-Token`ヘッダ化(admin GET 3経路＋呼出元 mod_worker/recaption/ADMIN_MOD_HTML)。 (3)mod preview 404復活=admin(ヘッダ)のみ pending/R18 を審査配信・公開は404据置。 (4)age.verify=署名必須・18-120・HttpOnly cookie で問題なし(自己申告は KYC未導入の設計上既知制約)。実サーバ+curlで全確認・settle回帰PASS。 ※feed/content は公開データ(m0rアドレスのみ・pub非露出)で IDOR非該当。
+  - **残(gated=要承認)**: 上記も play_server.py の一部 → **C冒頭の Mac Mini 転送＋kickstart** に同梱でデプロイ。
 
 ### D. Phase 2 残
 - 旧 `morm-dashboard/app/admin/*` の陳腐化ページ整理（※`/admin/ads`・`/admin/send` は Agent Lane で温存）。
