@@ -506,8 +506,12 @@ def record_watch(cid, watched, completed, viewer="", ip_hash="", viewer_verified
     w = max(0.0, min(float(watched or 0), d * 1.5))  # バッファ先読み等の過大値を抑制
     qualified = (w >= VIEW_MIN_SEC) or (d > 0 and w / d >= VIEW_MIN_FRAC)  # 有効再生(閾値)
     acc = _dedup_first(_seen_watch, (cid, vk), WATCH_DEDUP_TTL)            # watch_sec累積は視聴者1回
-    view = (qualified and _dedup_first(_seen_view, (cid, vk), WATCH_DEDUP_TTL)
-            and _rl_allow("v:" + vk, VIEW_IP_PER_MIN))                     # 有効再生も視聴者1回
+    # ★view(=earnings/報酬に効く計上)の dedup/レート鍵: 署名付きは m0r(vk・シビル耐性あり)、
+    #   未署名は IP に束ねる。未署名は viewer=uid がクライアント任意で、uid ローテだと (cid,vk) dedup も
+    #   v:vk レートも回避でき、1IPから偽 view を量産→views×VIEW_RATE→payout で treasury を drain できるため。
+    view_key = vk if viewer_verified else ("ip:" + ip_hash if ip_hash else vk)
+    view = (qualified and _dedup_first(_seen_view, (cid, view_key), WATCH_DEDUP_TTL)
+            and _rl_allow("v:" + view_key, VIEW_IP_PER_MIN))               # 有効再生も視聴者/IP1回
     if not acc and not view:
         return {"ok": True, "dup": True}
     conn = _db()
@@ -1281,6 +1285,15 @@ def settle_points():
         return {"skipped": True}
     try:
         if EMISSION_MODE == "proportional":
+            # ★予算多重適用の防止: proportional は B_units を ΣP で再分割するため、前回 settle から
+            #   POINT_SETTLE_INTERVAL 未満の再実行(手動二重呼び/クラッシュ後 re-fire)は予算を二重発行し得る
+            #   (例: 部分完了後の再分割で総発行が B を超過)。エポック未満は skip。_settle_proportional は
+            #   開始時に run を予約記録するので、途中クラッシュ後の re-fire もこのガードが捕捉する。
+            conn = _db()
+            last = conn.execute("SELECT MAX(ts) FROM point_settle_runs").fetchone()[0] or 0
+            conn.close()
+            if int(time.time()) - last < POINT_SETTLE_INTERVAL:
+                return {"skipped": "interval", "next_ts": last + POINT_SETTLE_INTERVAL}
             return _settle_proportional()
         return _settle_fixed()
     finally:
@@ -1346,11 +1359,15 @@ def _settle_proportional():
     ・配分は base units(=L1整数)で計算 → BASE=1e6 なら sub-MORM 配分可。
     ・share<1 unit は繰越(settled=0据え置き)。上限超過分は当エポック不払い(反whale)。
     ・総発行は B_units を超えない(=参加者が増えても暴走しない)。"""
+    # ★エポック予約: 送金前に run 行を記録(ts=now)。途中クラッシュ後の re-fire を settle_points の
+    #   間隔ガードが捕捉し、残余口座への B_units 再分割(予算二重発行)を防ぐ。実績は末尾で UPDATE。
     conn = _db()
+    run_id = conn.execute("INSERT INTO point_settle_runs(ts,accounts,morm) VALUES(?,0,0)",
+                          (int(time.time()),)).lastrowid
+    conn.commit()
     rows = conn.execute("SELECT account, id, points FROM point_ledger WHERE settled=0").fetchall()
     conn.close()
     if not rows:
-        _record_settle_run(0, 0)
         return {"ok": True, "mode": "proportional", "accounts": 0, "units": 0}
     per = {}
     for r in rows:
@@ -1359,7 +1376,6 @@ def _settle_proportional():
         d["ids"].append(r["id"])
     total_P = sum(d["P"] for d in per.values())
     if total_P <= 0:
-        _record_settle_run(0, 0)
         return {"ok": True, "mode": "proportional", "accounts": 0, "units": 0}
     B_units = int(round(B_EPOCH_MORM * SPLIT_ENGAGE * MORM_BASE_UNITS_PER_MORM))
     cap_units = int(B_units * EPOCH_ACCT_CAP_FRAC)
@@ -1400,7 +1416,12 @@ def _settle_proportional():
         conn.close()
         paid_accounts += 1
         paid_units_total += share
-    _record_settle_run(paid_accounts, paid_units_total)
+    # エポック確定: 予約 run 行を実績で更新(新規 run は作らない=間隔ガードの基準を二重にしない)。
+    conn = _db()
+    conn.execute("UPDATE point_settle_runs SET accounts=?, morm=? WHERE id=?",
+                 (paid_accounts, paid_units_total, run_id))
+    conn.commit()
+    conn.close()
     return {"ok": True, "mode": "proportional", "accounts": paid_accounts,
             "units": paid_units_total, "budget_units": B_units, "total_points": total_P}
 
@@ -3011,6 +3032,11 @@ class H(BaseHTTPRequestHandler):
 
     # --- proxy impl ---
     def _proxy(self, cid, rest):
+        # ★パストラバーサル/SSRF 防止: rest は HLS の相対パス(セグメント/プレイリスト)のみ許可。
+        #   `..`/バックスラッシュ/`//` や想定外文字を含むと edge ホスト上で /api/video/<cid>/ を
+        #   エスケープし内部パスへ到達し得るため、安全 charset 以外・`..` は 400 で拒否。
+        if (".." in rest) or ("\\" in rest) or (not re.match(r"^[A-Za-z0-9._/-]+$", rest)):
+            return self._json(400, {"error": "bad path"})
         rating, status = content_rating(cid)
         # ★admin(有効なX-Admin-Tokenヘッダ)は審査プレビューのため R18/未approved を配信可。
         is_admin = bool(ADMIN_TOKEN and self.headers.get("X-Admin-Token") == ADMIN_TOKEN)
