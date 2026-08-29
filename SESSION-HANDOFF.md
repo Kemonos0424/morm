@@ -38,9 +38,9 @@ MORM 4サーフェス（www/api/node/play.morm.one）を監査→**致命セキ�
 - ✅**[コード完了 commit 51e16de]** play 読み取り経路: (1)IDOR封鎖=/api/earnings・/api/mine を pubkey要求化(生の公開アドレスm0r不可・`pub_to_m0r`で32byte厳格検証)、/api/me も統一。 (2)ADMIN_TOKEN in URL→`X-Admin-Token`ヘッダ化(admin GET 3経路＋呼出元 mod_worker/recaption/ADMIN_MOD_HTML)。 (3)mod preview 404復活=admin(ヘッダ)のみ pending/R18 を審査配信・公開は404据置。 (4)age.verify=署名必須・18-120・HttpOnly cookie で問題なし(自己申告は KYC未導入の設計上既知制約)。実サーバ+curlで全確認・settle回帰PASS。 ※feed/content は公開データ(m0rアドレスのみ・pub非露出)で IDOR非該当。
   - **残(gated=要承認)**: 上記も play_server.py の一部 → **C冒頭の Mac Mini 転送＋kickstart** に同梱でデプロイ。
 
-### D. Phase 2 残
-- 旧 `morm-dashboard/app/admin/*` の陳腐化ページ整理（※`/admin/ads`・`/admin/send` は Agent Lane で温存）。
-- `morm-market/` のデプロイ先確定（market.morm.one 未live）。
+### D. Phase 2 残（★監査完了 2026-08-29・下記のとおり「安全な機械削除なし」＝要製品判断/gated）
+- **admin 陳腐化整理 → 安全な削除対象なし**: 全11ページ(dashboard/nodes/tasks/scores/sites/send/rewards/connections/designs/ads/chat)が稼働(dbAll直参照 or 生きた/api or 静的)。retire済API(`/api/my/*`・`/api/auth/wallet`)への壊れ参照ゼロ＝Phase2 retireは既にクリーン。孤立ページなし(全てnav可達)。唯一の emission シグナル `scores`(node-emission)も **Agent Lane(lane/earn・ad-campaign・ad-escrow)と共有**のため単純削除不可。「Phase E node emission 廃止」は Lane 活性化順序の話でモジュール削除ではない。→**どの機能を廃止するかはユーザーの製品判断**(稼働中ページの推測削除は不可)。
+- **morm-market デプロイ先 → 推奨=www.morm.one と同方式(Mac Mini scp 静的・nginx+Cloudflare Tunnel)で market.morm.one**。中身は静的HTML2枚(app.html/index.html・Base Sepolia ブリッジ/スワップUI・MORM/USD価格・ビルド無し)。実行(SSH/Cloudflare/DNS)=gated。
 
 ### E. Agent Lane 活性化（`agent-lane/DEPLOY.md` 冒頭★の順）
 - 前提: ①api.morm.one `ADMIN_PASSWORD`=Yachida0024（済）②**payout口座(PLAY/DASH)を fund**（`agent-lane/deploy/fund-payouts.md`・Mac Mini L1操作・base=1整数MORM）③base=1統一。
