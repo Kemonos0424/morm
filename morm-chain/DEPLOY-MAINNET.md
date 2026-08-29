@@ -126,3 +126,13 @@ forge script script/SeedPool.s.sol --rpc-url "$RPC_URL" --broadcast
 | Uniswap v3 Factory | `0x33128a8fC17869897dcE68Ed026d694621f6FDfD` |
 
 ★broadcast 前に上記を Uniswap 公式 docs で最終照合すること（本手順は 2026-08-29 時点）。
+
+---
+## ★実施結果（2026-08-29 deploy 済・Base mainnet 8453）
+- **WMORM**: `0x7fEf327a811e73F06cccF0De9db022e739d5076d`（"Wrapped MORM"/wMORM/18dec/supply 0）
+- **MORMExportBridge**: `0x08Adb8d2c67491249C20edE2A7460d9f4Bd3907A`
+- guardian: `0xC04E2d24125CDc4252B3e519C1BF164439276Df0`／deployer: `0xcB72316d8D47bA0E9F322C5a3D2F366857D4CFBF`
+- **オンチェーン検証済**: threshold=3・signerCount=5・maxSupply=1e27・maxMintPerWindow=1e24・minExit=1e18・
+  windowLen=3600・token=WMORM・5 signers 全 isSigner=true・WMORM.bridge=新bridge(setBridge one-shot 済)。
+- deploy tx: `0x11bd60f0…`（bridge setup）/ `0xb9d75941…`（bridge）/ `0x7040385f…`（WMORM）blk 50605354・総ガス 0.0000142 ETH。
+- **残**: ①deployer に 100 USDC 入金 ②relayer を mainnet 設定で1回起動→L1から10,000 MORM forward→deployer に 10,000 wMORM mint ③SeedPool で pool 作成（100 USDC + 10,000 wMORM @ $0.01）④market UI を mainnet 値へ移行。
