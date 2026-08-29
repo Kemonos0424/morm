@@ -13,7 +13,8 @@
 - **hpmini mod-worker は sudo 不要でローテ**: `mod_worker.py` が `~/.morm-worker-token` を env より優先読込→ファイル書込み＋自プロセス kill(Restart=always)で反映(手順=`SECURITY-SECRET-ROTATION.md`§0-2)。
 - ✅**market.morm.one LIVE(2026-08-29)**: CF morm.one に proxied CNAME market→f60ef43f-…cfargotunnel.com 作成→https://market.morm.one/ 200 確認。設計系 findings=payout CAS 実装済・他2件は据置(ユーザー判断・`REVIEW-FINDINGS`に移行計画)。
 - ✅**C-2 minExit=1e18 再デプロイ完了(2026-08-29)**: Base Sepolia に新スタック deploy＋verify。**WMORM `0x91FF1A51EEcCdBBC5d3A9ABD56E11352885667ed` / MORMExportBridge `0x97a84556abe75391CC177204AeE0D2f4c569Ab8E`(minExit=1e18確認) / MockUSDC `0xcC07858c6ba05A65eD47570233b9B010e2482Ea2`**。新WMORM.setBridge=新bridge 確認。market(app.html/index.html)＋.testnet-deploy.env を新アドレスへ移行・Mac Mini 再scp済(market.morm.one が新bridge配信)。
-- **残(C-2後の機能化)**: ①**新 wMORM/USDC の Uniswap v3 プール作成→index.html の POOL/POOL_BLOCK 更新**(swap/価格チャート用・testnet)。②**C-1 export_relayer 起動**(新 BRIDGE_ADDR で・signer鍵配置＋L1 multisig・`agent-lane/ops/relayer-deploy.md`)。※誤作成の `market.morm.one.ctai.online`(ctai.oneゾーン)は無害だが掃除推奨。
+- ✅**C-1 export_relayer LIVE(2026-08-29)**: Mac Mini launchd `one.morm.relayer`(KeepAlive)常駐。env=`~/.morm-relayer/relayer.env`(0600・新BRIDGE_ADDR・SIGNER_PKS=SIGNER_A/B/C・SUBMITTER=DEPLOYER・TREASURY_SEED_HEX=producer.seed)、wrapper=`~/.morm-relayer/run.sh`(repo dir で source→実行・ABI 相対解決)。selftest MATCH・last_block永続化(`.export_relayer_state.json`)稼働。L1 treasury multisig 未登録=非multisigパス(producer.seed 直)。ログ=`~/.morm-relayer/relayer.{log,err}`。
+- **残(C-2後の機能化・最後の1つ)**: **新 wMORM/USDC の Uniswap v3 プール作成→`index.html` の POOL/POOL_BLOCK 更新**(swap/価格チャート用・testnet)。wMORM は bridge経由でのみ入手(onlyBridge)＝relayer稼働中なので L1 burn→wMORM mint→pool作成+流動性が可能。※誤作成の `market.morm.one.ctai.online` は無害だが掃除推奨。
 
 ## 一行サマリ（初期・履歴）
 MORM 4サーフェス（www/api/node/play.morm.one）を監査→致命セキュリティ封鎖・デプロイ済／node.morm.one を earned報酬に統一／リポ整理 Phase 1-3 完了。
