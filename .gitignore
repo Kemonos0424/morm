@@ -79,6 +79,20 @@ nohup.out
 .env.local
 *.local
 
+# ---- secrets / credentials (NEVER commit) ----
+*.env
+!*.env.example
+*-keys.env
+*-deploy.env
+.guardian-keys.env
+.testnet-*.env
+service-key.json
+*service-key.json
+# launchd plists embed tokens (ADMIN_TOKEN 等) — track a *.plist.example instead
+com.morm.play*.plist
+*.plist
+!*.plist.example
+
 # ---- Forge fork cache / scratch ----
 forge-cache/
 
@@ -89,3 +103,7 @@ quic.key
 # ---- generated test fixtures (PoC scratch output, not source-of-truth) ----
 morm-aiservice/generated/
 morm-core/output/
+
+# Apex brand site + whitepaper — deployed via scp to Mac Mini, never pushed to git
+site/
+_archive/morm-node-shop/
