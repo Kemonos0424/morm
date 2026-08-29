@@ -1,0 +1,23 @@
+[Unit]
+Description=MORM Play moderation worker (text + Qwen2.5-VL frame)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hpmini
+WorkingDirectory=/home/hpmini/morm-play-worker
+ExecStart=/usr/bin/python3 /home/hpmini/morm-play-worker/mod_worker.py
+Restart=always
+RestartSec=5
+Environment=PLAY_URL=http://100.106.58.67:8791
+Environment=ADMIN_TOKEN=adm_1b378edd49741f4661bd
+Environment=GATEWAY=http://127.0.0.1:8801
+Environment=MOD_MODEL=qwen2.5:32b
+Environment=VL_MODEL=qwen2.5vl:7b
+Environment=DGX_OLLAMA=http://100.127.3.16:11434,http://100.122.49.105:11434
+Environment=VL_OLLAMA=http://100.127.3.16:11434
+Environment=FRAME_MOD=on
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,1102 @@
+[
+ {
+  "category": "music",
+  "h3_prompt": "A close-up of a guitar string being plucked, with the instrument's body filling the frame. Audio: Acoustic guitar note.",
+  "title": "弦の一音",
+  "description": "シンプルなアコースティックギターの美しい響きを捉えます。",
+  "tags": [
+   "music",
+   "guitar"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "music",
+  "h3_prompt": "A close-up of a vinyl record spinning on a turntable with light reflections off its surface. Audio: Soft jazz instrumental.",
+  "title": "レコードの踊り",
+  "description": "ジャズが流れるレコード盤の美しい光と動きを表現します。",
+  "tags": [
+   "music",
+   "vinyl"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "music",
+  "h3_prompt": "A drumstick hitting the center of a snare drum, with ripples of tension on the skin. Audio: Snare hit.",
+  "title": "ドン！と一発",
+  "description": "ドラムスティックが当たる瞬間の迫力を表現します。",
+  "tags": [
+   "music",
+   "drums"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "music",
+  "h3_prompt": "A piano key being pressed down, showing only the hand and keys in focus. Audio: Piano note.",
+  "title": "鍵盤の一撃",
+  "description": "ピアノ演奏の一瞬を静かに見せます。",
+  "tags": [
+   "music",
+   "piano"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "music",
+  "h3_prompt": "An electric bass guitar string being picked, with the fingers clearly visible against the strings. Audio: Bass note.",
+  "title": "ベースの脈動",
+  "description": "低音が響く一瞬、指と弦の動きを捉えます。",
+  "tags": [
+   "music",
+   "bass"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "music",
+  "h3_prompt": "A cymbal being struck from above, showing the reverberation ripple across its surface. Audio: Cymbal crash.",
+  "title": "シンバルの一撃",
+  "description": "シンバルが当たる瞬間、その波紋を映し出します。",
+  "tags": [
+   "music",
+   "cymbals"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "dance",
+  "h3_prompt": "A dancer performing a quick, dynamic spin in front of a blurred cityscape background. Audio: Upbeat electronic music.",
+  "title": "都市の踊り",
+  "description": "都会の夜景に溶け込む舞い",
+  "tags": [
+   "dance",
+   "city"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "dance",
+  "h3_prompt": "A dancer executing a high kick into the air, with soft lighting creating dramatic shadows. Audio: Light classical music.",
+  "title": "空中の一撃",
+  "description": "光と影が作り出す一瞬の美",
+  "tags": [
+   "dance",
+   "lighting"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "dance",
+  "h3_prompt": "A dancer performing a graceful leap towards the camera, with a serene forest in the background. Audio: Calm nature sounds.",
+  "title": "森の舞踏",
+  "description": "自然の中に踊る瞬間",
+  "tags": [
+   "dance",
+   "nature"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "dance",
+  "h3_prompt": "A dancer striking a pose on a high rooftop, with panoramic city views. Audio: Inspirational instrumental.",
+  "title": "高所からの挑戦",
+  "description": "ビルの上での一瞬の舞い",
+  "tags": [
+   "dance",
+   "panorama"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "dance",
+  "h3_prompt": "A dancer spinning and catching their flowing scarf, with the sun setting in the background. Audio: Soft acoustic guitar.",
+  "title": "夕暮れの風",
+  "description": "落ちていく日の光の中で舞う",
+  "tags": [
+   "dance",
+   "sunset"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "dance",
+  "h3_prompt": "A dancer performing a powerful jump against a starry night sky. Audio: Intense orchestral music.",
+  "title": "夜空の一躍",
+  "description": "星空に照らされる力強い一跳び",
+  "tags": [
+   "dance",
+   "sky"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "art",
+  "h3_prompt": "A single brushstroke of vivid paint flows across a pristine canvas. Audio: Soft classical music.",
+  "title": "一筆描く",
+  "description": "鮮やかな一画がキャンバスを彩ります。",
+  "tags": [
+   "art",
+   "painting"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "art",
+  "h3_prompt": "A sculptor carves away at a block of marble, revealing a human form. Audio: Chiseling sounds.",
+  "title": "彫刻の舞",
+  "description": "大理石から人間像が生まれていきます。",
+  "tags": [
+   "art",
+   "sculpture"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "art",
+  "h3_prompt": "A watercolor painting comes to life as colors blend and flow. Audio: Water splashing.",
+  "title": "水彩の魔法",
+  "description": "色が流れていく水中画。",
+  "tags": [
+   "art",
+   "watercolor"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "art",
+  "h3_prompt": "A charcoal sketch of a cityscape is drawn in seconds on a large sheet of paper. Audio: Pencil scratching.",
+  "title": "都市の輪郭",
+  "description": "一瞬で描かれる街のスケッチ。",
+  "tags": [
+   "art",
+   "drawing"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "art",
+  "h3_prompt": "A piece of origami is unfolded to reveal its shape. Audio: Paper crinkling.",
+  "title": "折り紙の秘密",
+  "description": "紙が持つ形が現れます。",
+  "tags": [
+   "art",
+   "origami"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "art",
+  "h3_prompt": "A photographer captures the perfect shot of a sunset over mountains. Audio: Shutter click.",
+  "title": "夕焼けの瞬間",
+  "description": "山々をバックに絶景が撮影されます。",
+  "tags": [
+   "art",
+   "photography"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "gaming",
+  "h3_prompt": "A close-up shot of a controller's buttons being pressed rapidly, with reflections on the glossy surface. Audio: Rhythmic tapping sounds.",
+  "title": "疾風のボタン",
+  "description": "ゲームを操る指先の早業",
+  "tags": [
+   "gaming",
+   "controller"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "gaming",
+  "h3_prompt": "A digital screen zooming into an in-game map with the player's location highlighted. Audio: Soft electronic music.",
+  "title": "地図からのサプライズ",
+  "description": "次のステップへの道しるべ",
+  "tags": [
+   "gaming",
+   "map"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "gaming",
+  "h3_prompt": "A game character leaping from a high cliff into the unknown, with vibrant colors and motion blur. Audio: Heart-pounding music.",
+  "title": "飛び込みの瞬間",
+  "description": "冒険の始まり、それは崖からの一跳び",
+  "tags": [
+   "gaming",
+   "jump"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "gaming",
+  "h3_prompt": "A beautifully rendered sunset over a game world, casting long shadows. Audio: Mellow background music.",
+  "title": "ゲームの中の夕暮れ",
+  "description": "光と影が織り成す絶景",
+  "tags": [
+   "gaming",
+   "sunset"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "gaming",
+  "h3_prompt": "A close-up of a player's eyes through the headset, reflecting virtual game imagery. Audio: Slight electronic hum.",
+  "title": "視界の向こうへ",
+  "description": "仮想と現実が交錯する瞬間",
+  "tags": [
+   "gaming",
+   "vr"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "gaming",
+  "h3_prompt": "A quick succession of in-game power-ups and transformations, each more dramatic than the last. Audio: Exciting sound effects.",
+  "title": "強化の連続",
+  "description": "ゲームキャラクターの進化が光る瞬間",
+  "tags": [
+   "gaming",
+   "powerup"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "vlog",
+  "h3_prompt": "A close-up of a hand pouring steaming green tea into a traditional Japanese teacup. Ambient sounds of a serene Japanese garden in the background. Audio: Soft and tranquil.",
+  "title": "日本の緑茶",
+  "description": "伝統的な日本のお茶の瞬間を捉えた。",
+  "tags": [
+   "vlog",
+   "green_tea"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "vlog",
+  "h3_prompt": "A vibrant sunrise over a mountain range, seen through the window of a cozy cabin. Audio: Birdsong and soft ambient sounds.",
+  "title": "山小屋からの朝日",
+  "description": "大自然の中で迎える爽やかな朝。",
+  "tags": [
+   "vlog",
+   "sunrise"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "vlog",
+  "h3_prompt": "A close-up of colorful, fresh vegetables being chopped on a kitchen counter. Audio: The sound of chopping and sizzling in the background.",
+  "title": "料理の始まり",
+  "description": "新鮮な野菜を使った料理の準備。",
+  "tags": [
+   "vlog",
+   "cooking"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "vlog",
+  "h3_prompt": "A close-up of a bicycle tire moving along a smooth cobblestone path, surrounded by beautiful cherry blossoms. Audio: The sound of the bike and soft wind.",
+  "title": "桜道を自転車で",
+  "description": "春の風に乗って自転車を楽しむ。",
+  "tags": [
+   "vlog",
+   "bicycle"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "vlog",
+  "h3_prompt": "A close-up of a person's hands painting on a canvas with vibrant colors. Audio: Soft classical music.",
+  "title": "絵画制作中",
+  "description": "色彩豊かなキャンバスに思いを描く。",
+  "tags": [
+   "vlog",
+   "painting"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "vlog",
+  "h3_prompt": "A close-up of a person's hands arranging fresh flowers in a vase. Audio: Soft instrumental music.",
+  "title": "花アレンジメント",
+  "description": "フレッシュな花で部屋を彩る。",
+  "tags": [
+   "vlog",
+   "flowers"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "comedy",
+  "h3_prompt": "A man in a suit trips over an invisible line, dramatically flailing his arms. Audio: Laughter and the sound of someone falling.",
+  "title": "スーツの男、見えない線で転倒",
+  "description": "ビジネスマンが急に転び、周囲を笑わせる瞬間。",
+  "tags": [
+   "comedy",
+   "fall"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "comedy",
+  "h3_prompt": "A cat tries to open a door with paws, failing repeatedly. Audio: Cat meowing and knocking sounds.",
+  "title": "猫のドア開けチャレンジ",
+  "description": "試行錯誤する猫が引き出す笑い。",
+  "tags": [
+   "comedy",
+   "cat"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "comedy",
+  "h3_prompt": "A chef tosses a salad, but the bowl is empty. He looks shocked and confused. Audio: Sudden silence followed by surprised gasp.",
+  "title": "サラダの空きボウル",
+  "description": "サラダがないことに気付いたシェフの驚きが面白い。",
+  "tags": [
+   "comedy",
+   "chef"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "comedy",
+  "h3_prompt": "A group of people on a seesaw, but one side is much heavier. The lighter side soars up into the sky comically. Audio: Exaggerated screeching sound effect.",
+  "title": "見事なバランスのずれ",
+  "description": "見事に傾いたてんびんのコマーシャル。",
+  "tags": [
+   "comedy",
+   "seesaw"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "comedy",
+  "h3_prompt": "A kid in a superhero costume tries to fly off the ground, flapping arms wildly. Audio: Superhero music and exaggerated wind sound.",
+  "title": "子供のヒーロー飛行チャレンジ",
+  "description": "超人に扮した子どもが空を飛び立つ試み。",
+  "tags": [
+   "comedy",
+   "kid"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "comedy",
+  "h3_prompt": "A dog chases its tail, spinning faster and faster until it falls over. Audio: Excited barking and the sound of paws running.",
+  "title": "犬の尾追撃",
+  "description": "自分の尾を追いかけ回す犬が滑稽な瞬間。",
+  "tags": [
+   "comedy",
+   "dog"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "food",
+  "h3_prompt": "A single, perfectly ripe strawberry is picked from a lush bush and placed in front of a rustic wooden background. The camera zooms into the strawberry's intricate surface texture. Audio: Soft plucking sound.",
+  "title": "完熟いちごの魅力",
+  "description": "完熟したいちごの鮮やかな美しさを捉えました。",
+  "tags": [
+   "food",
+   "strawberry"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "food",
+  "h3_prompt": "A skilled chef carefully sprinkles sea salt over a perfectly cooked steak on a wooden cutting board. The camera captures the glistening meat and sparkling grains of salt in close-up. Audio: Sizzle sound from the hot surface.",
+  "title": "ステーキにかける魔法",
+  "description": "絶妙な塩加減が引き立つ完璧なステーキの瞬間。",
+  "tags": [
+   "food",
+   "steak"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "food",
+  "h3_prompt": "A drop of olive oil falls from a bottle into a glass, revealing a rich golden hue as it spreads out smoothly. The camera captures the droplet's descent and spread with a slow-motion effect. Audio: Tinkling sound as the oil hits the glass.",
+  "title": "オリーブオイルの瞬間",
+  "description": "オリーブオイルがガラスに触れ、その美しい光沢を放つ瞬間。",
+  "tags": [
+   "food",
+   "oil"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "food",
+  "h3_prompt": "A freshly baked loaf of bread is pulled from a brick oven. Steam rises as the crust cracks open, revealing the warm, golden interior. The camera captures the steamy scene with a soft, ambient glow. Audio: Crisp sound of breaking crust.",
+  "title": "焼きたてのパン",
+  "description": "焼きたてのパンが放つ香りと風景。",
+  "tags": [
+   "food",
+   "bread"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "food",
+  "h3_prompt": "A scoop of creamy ice cream is scooped from a large tub and placed onto a plate. The camera focuses on the silky texture and melting process as it slowly softens under the light. Audio: Scooping sound.",
+  "title": "アイスクリームの瞬間",
+  "description": "クリームのような滑らかさと透明感を放つアイスクリーム。",
+  "tags": [
+   "food",
+   "icecream"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "food",
+  "h3_prompt": "A glass bottle of red wine is carefully uncorked, releasing a subtle hiss. The camera captures the cork being removed and the liquid inside swaying gently. Audio: Cork popping sound.",
+  "title": "ワインの開栓",
+  "description": "高級感あふれる赤ワインの開栓シーン。",
+  "tags": [
+   "food",
+   "wine"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "travel",
+  "h3_prompt": "A panoramic sunrise over a serene lake, reflecting the mountains in the background. Audio: Soft ambient music.",
+  "title": "湖面に映る朝日",
+  "description": "静かな湖で山々が反射する美しい朝の光景です。",
+  "tags": [
+   "travel",
+   "sunrise"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "travel",
+  "h3_prompt": "A bustling market street with colorful stalls and locals shopping, in a narrow alleyway. Audio: Busy market sounds.",
+  "title": "賑わう市場",
+  "description": "色とりどりの露店が並ぶ活気ある街の様子を捉えています。",
+  "tags": [
+   "travel",
+   "market"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "travel",
+  "h3_prompt": "A scenic train ride through a dramatic mountain pass, clouds swirling around the peaks. Audio: Train sounds and wind.",
+  "title": "山岳通過列車",
+  "description": "雲に包まれた山々を横目に走る列車の美しい景色です。",
+  "tags": [
+   "travel",
+   "train"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "travel",
+  "h3_prompt": "A vibrant street festival with lanterns and decorations, people walking around. Audio: Festive music.",
+  "title": "祭りの夜",
+  "description": "提灯で飾られた賑やかな通りを散策する人々の姿です。",
+  "tags": [
+   "travel",
+   "festival"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "travel",
+  "h3_prompt": "A hot air balloon floating over a vast desert landscape under clear blue skies. Audio: Wind and distant balloons.",
+  "title": "砂漠のホット気球",
+  "description": "晴れ渡った空の下、広大な砂漠を漂うホット気球です。",
+  "tags": [
+   "travel",
+   "desert"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "travel",
+  "h3_prompt": "A bustling old town with narrow streets and traditional architecture, people walking around. Audio: Street sounds.",
+  "title": "古い街並み",
+  "description": "伝統的な建物が並ぶ賑やかな通りを歩く人々の様子です。",
+  "tags": [
+   "travel",
+   "oldtown"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "fashion",
+  "h3_prompt": "A model wearing a sleek black trench coat, turning gracefully in front of a modern cityscape. Audio: Upbeat urban soundscape.",
+  "title": "都会の風を切る",
+  "description": "スタイリッシュな黒のトレンチコートが街並みと調和。",
+  "tags": [
+   "fashion",
+   "urban"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "fashion",
+  "h3_prompt": "Close-up of a designer handbag, the leather shimmering in soft light. Audio: Soft melodic piano.",
+  "title": "光の中で",
+  "description": "上質なレザーが優しい光を反射。",
+  "tags": [
+   "fashion",
+   "handbag"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "fashion",
+  "h3_prompt": "A pair of stylish sunglasses reflecting the golden sunset. Audio: Mellow instrumental.",
+  "title": "夕焼けのサングラス",
+  "description": "金色に輝くサンセットとスタイリッシュなサングラス。",
+  "tags": [
+   "fashion",
+   "accessories"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "fashion",
+  "h3_prompt": "A woman tying a vibrant scarf around her neck, the fabric flowing. Audio: Ethnic rhythms.",
+  "title": "色鮮やかな首周り",
+  "description": "鮮やかなスカーフが風に舞う。",
+  "tags": [
+   "fashion",
+   "scarf"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "fashion",
+  "h3_prompt": "A model striking a pose in an oversized floral dress, the fabric swaying gently. Audio: Soft strings.",
+  "title": "花のドレス",
+  "description": "大柄なフローラルプリントのドレスが優雅に揺れる。",
+  "tags": [
+   "fashion",
+   "dress"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "fashion",
+  "h3_prompt": "A pair of high heels on a marble floor, reflecting light. Audio: Elegant classical music.",
+  "title": "大理石上のハイヒール",
+  "description": "光を反射する高級感あふれるハイヒール。",
+  "tags": [
+   "fashion",
+   "heels"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "beauty",
+  "h3_prompt": "Close-up of a makeup brush applying lipstick to lips. The vibrant red color contrasts against the soft skin tone. Audio: Silky brush strokes and light music.",
+  "title": "一瞬で鮮やかなリップ",
+  "description": "ワンストロークで口元を彩る",
+  "tags": [
+   "beauty",
+   "makeup"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "beauty",
+  "h3_prompt": "A hand pouring essence onto fingertips. The lotion glistens under the light as it spreads across the skin. Audio: Gentle pour and soft music.",
+  "title": "瞬時に潤う肌へ",
+  "description": "瞬間のスキンケア効果を体感",
+  "tags": [
+   "beauty",
+   "skincare"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "beauty",
+  "h3_prompt": "A face mist bottle being sprayed into the air. Droplets float and then land on a model's face, giving a fresh look. Audio: Light spritzing sound.",
+  "title": "顔全体に潤いを",
+  "description": "フレッシュな感触が肌を包む",
+  "tags": [
+   "beauty",
+   "hydration"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "beauty",
+  "h3_prompt": "Close-up of a mascara brush gliding along eyelashes. The lashes appear longer and more voluminous after the application. Audio: Soft brush strokes.",
+  "title": "瞬時に目元を引き立てる",
+  "description": "まつ毛が一瞬で長く見える",
+  "tags": [
+   "beauty",
+   "eyelash"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "beauty",
+  "h3_prompt": "A hand mixing a face mask in a bowl. The creamy texture swirls smoothly, creating an inviting visual effect. Audio: Smooth stirring sounds.",
+  "title": "手作りフェイスマスクの魅力",
+  "description": "簡単な手順で肌に栄養を届ける",
+  "tags": [
+   "beauty",
+   "mask"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "beauty",
+  "h3_prompt": "A hand applying a serum with fingertips, spreading it evenly on the face. The skin looks glowing and radiant as the product absorbs quickly. Audio: Soft rubbing sounds.",
+  "title": "瞬時に肌が輝く",
+  "description": "セラムの効果で肌が明るくなる",
+  "tags": [
+   "beauty",
+   "serum"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "tech",
+  "h3_prompt": "A close-up of a smartphone screen displaying a futuristic UI with glitch effects. Audio: Ambient electronic music.",
+  "title": "未来のスマホUI",
+  "description": "最先端のユーザーインターフェースを映した、未来的な映像",
+  "tags": [
+   "tech",
+   "futuristic"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "tech",
+  "h3_prompt": "A drone flying over a city skyline at night, capturing dynamic aerial shots. Audio: Minimalist techno.",
+  "title": "都市夜景の空中パノラマ",
+  "description": "夜の都会を上空から撮影した、ドローン映像",
+  "tags": [
+   "tech",
+   "drone"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "tech",
+  "h3_prompt": "A robotic arm assembling a circuit board in a high-tech lab. Audio: Steady beeps and mechanical whirring.",
+  "title": "最先端ロボットアームの実演",
+  "description": "高精細なロボットアームが回路ボードを組み立てる様子",
+  "tags": [
+   "tech",
+   "robotics"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "tech",
+  "h3_prompt": "A close-up of a person's hand wearing VR gloves, interacting with digital objects in mid-air. Audio: Virtual reality sound effects.",
+  "title": "VR手袋で空中操作",
+  "description": "バーチャルリアリティの手袋を着けた手が、空中に浮かぶオブジェクトと対話する様子",
+  "tags": [
+   "tech",
+   "vr"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "tech",
+  "h3_prompt": "A high-speed chase between two electric cars on a futuristic city street. Audio: Rhythmic engine revving.",
+  "title": "電気自動車の未来都市追跡戦",
+  "description": "未来的な街を疾走する、2台の電気自動車によるパースペクティブ映像",
+  "tags": [
+   "tech",
+   "ev"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "tech",
+  "h3_prompt": "A series of rapid cuts showing the assembly of a modern smartphone from components. Audio: Upbeat electronic music.",
+  "title": "スマホ組立劇場",
+  "description": "スマートフォンのコンポーネントから完成品までの、高速編集映像",
+  "tags": [
+   "tech",
+   "smartphone"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "education",
+  "h3_prompt": "A close-up of a hand writing the mathematical equation E=mc^2 on a blackboard with chalk. Audio: Soft, melodic instrumental music.",
+  "title": "相対性理論の基礎",
+  "description": "物理学の基本方程式を紹介します。",
+  "tags": [
+   "education",
+   "physics"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "education",
+  "h3_prompt": "A young woman explaining the structure of a plant cell using a magnifying glass over a slide. Audio: Gentle, informative voiceover.",
+  "title": "植物細胞の構造",
+  "description": "植物細胞の主要な部分を解説。",
+  "tags": [
+   "education",
+   "biology"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "education",
+  "h3_prompt": "A hand holding and flipping through the pages of a vintage encyclopedia. Audio: Soft, nostalgic sound effects.",
+  "title": "百科事典の旅",
+  "description": "知識の宝庫をめくってみよう。",
+  "tags": [
+   "education",
+   "knowledge"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "education",
+  "h3_prompt": "A series of quick cuts showing different types of rocks and minerals under a microscope. Audio: Dynamic, educational background music.",
+  "title": "岩石の世界",
+  "description": "様々な岩石と鉱物を紹介します。",
+  "tags": [
+   "education",
+   "geology"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "education",
+  "h3_prompt": "A hand arranging algebraic blocks on a table to visually demonstrate solving equations. Audio: Upbeat, educational sound effects.",
+  "title": "数学の楽しさ",
+  "description": "方程式を視覚的に解く方法。",
+  "tags": [
+   "education",
+   "math"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "education",
+  "h3_prompt": "A hand painting the stages of a sunflower's growth on canvas. Audio: Relaxing, nature-inspired soundtrack.",
+  "title": "太陽花の成長",
+  "description": "植物がどのように成長するかを描きます。",
+  "tags": [
+   "education",
+   "botany"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "news",
+  "h3_prompt": "A bustling city street at dusk with pedestrians and neon lights reflecting off wet pavement. Audio: Urban background sounds, light rain pattering.",
+  "title": "夜の街に雨が降る",
+  "description": "都市の夜景と雨が織り成す風景を捉えた映像です。",
+  "tags": [
+   "news",
+   "city"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "news",
+  "h3_prompt": "A close-up of a breaking news ticker scrolling on a screen with intense, dramatic background music. Audio: Tense strings and ticking clock sound.",
+  "title": "緊急ニュース",
+  "description": "瞬時に伝わる重要な情報を視覚的に表現しました。",
+  "tags": [
+   "news",
+   "breaking"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "news",
+  "h3_prompt": "A panoramic view of a sunrise over the ocean with waves gently crashing onto the shore. Audio: Calm, ambient wave sounds and light wind.",
+  "title": "日の出と共に",
+  "description": "新鮮な朝の光景を映した穏やかな一瞬です。",
+  "tags": [
+   "news",
+   "nature"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "news",
+  "h3_prompt": "A satellite image of the Earth from space, slowly rotating to reveal continents and oceans. Audio: Mysterious, otherworldly sound effects.",
+  "title": "地球の視点",
+  "description": "宇宙からの地球の姿を捉えた映像です。",
+  "tags": [
+   "news",
+   "space"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "news",
+  "h3_prompt": "A dramatic aerial shot of a wildfire burning in the distance, with smoke billowing into the sky. Audio: Crackling fire sounds and ominous music.",
+  "title": "大火災の現場",
+  "description": "自然災害の一端を映した緊迫した映像です。",
+  "tags": [
+   "news",
+   "fire"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "news",
+  "h3_prompt": "A serene view of a crowded city subway train in the morning rush hour, with commuters looking out the windows. Audio: Soft background hum and distant announcements.",
+  "title": "朝の通勤ラッシュ",
+  "description": "都会の日常を映した落ち着いた光景です。",
+  "tags": [
+   "news",
+   "city"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "sports",
+  "h3_prompt": "A high-speed camera captures a professional soccer player scoring an impressive goal with a powerful kick. The ball zooms past the goalkeeper, flying into the top corner of the net. Audio: Crowd cheering and soccer ball hitting the back of the net.",
+  "title": "華麗なるゴール",
+  "description": "プロのサッカー選手が豪快なシュートで見事に決めるゴールシーン。",
+  "tags": [
+   "sports",
+   "soccer"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "sports",
+  "h3_prompt": "A surfer in mid-air, performing an elegant flip off a massive wave. The sun glints off the ocean and spray of water is visible against a blue sky background. Audio: Waves crashing and excited shouts from onlookers.",
+  "title": "波乗りの舞",
+  "description": "SURFERが巨大な波から空中で優雅にフリップをする瞬間。",
+  "tags": [
+   "sports",
+   "surfing"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "sports",
+  "h3_prompt": "A gymnast flipping through the air, her body forming a perfect arch as she lands gracefully on the floor mat. The gym's high ceiling and polished wooden floors are visible in the background. Audio: Crowd applause and thump of landing.",
+  "title": "優美な宙返り",
+  "description": "体操選手が完璧なアーチを描きながら床に着地する瞬間。",
+  "tags": [
+   "sports",
+   "gymnastics"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "sports",
+  "h3_prompt": "A skier zooming down a steep slope, snow flying up behind them as they carve through the powder. The mountains and blue sky are seen in the background. Audio: Swoosh of skiing and cheers from spectators.",
+  "title": "疾風スキー",
+  "description": "スキーヤーが急斜面を駆け下り、雪が舞う瞬間。",
+  "tags": [
+   "sports",
+   "skiing"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "sports",
+  "h3_prompt": "A martial artist delivering a powerful kick to break several wooden boards stacked together. The focus is on the precision and speed of the foot as it strikes through the boards with splinters flying. Audio: Crackling sound of breaking wood.",
+  "title": "破壊の足技",
+  "description": "武道家が力強い蹴りで木版を粉々にする瞬間。",
+  "tags": [
+   "sports",
+   "martialarts"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "sports",
+  "h3_prompt": "A cyclist riding over a steep hill, the bike leaning sideways as they pedal hard. The road and surrounding greenery are seen below them. Audio: Pedaling sound and wind rushing past.",
+  "title": "激坂突破",
+  "description": "サイクリストが急勾配の登り坂を全力で駆け上がる瞬間。",
+  "tags": [
+   "sports",
+   "cycling"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "pets",
+  "h3_prompt": "A fluffy white kitten playfully pounces on a colorful toy. Audio: Soft meowing and playful jingle.",
+  "title": "遊び心満載の白猫",
+  "description": "愛らしい白い子猫がカラフルな玩具を飛びかかるシーン。",
+  "tags": [
+   "pets",
+   "kitten"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "pets",
+  "h3_prompt": "A golden retriever wagging its tail enthusiastically. Audio: Happy barking and upbeat music.",
+  "title": "尻尾を振るゴールデン",
+  "description": "元気なゴールデンレトリバーが尻尾を振りまくる様子。",
+  "tags": [
+   "pets",
+   "dog"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "pets",
+  "h3_prompt": "A parrot in a colorful cage flaps its wings. Audio: Clear chirping and cheerful background music.",
+  "title": "羽ばたくカラフルなインコ",
+  "description": "色とりどりのケージの中で羽を広げるインコ。",
+  "tags": [
+   "pets",
+   "bird"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "pets",
+  "h3_prompt": "A playful hamster running on a wheel. Audio: Whirring sound and lively tune.",
+  "title": "ハムスターの大運動会",
+  "description": "ハムスターキャベツが元気な動きを見せる。",
+  "tags": [
+   "pets",
+   "hamster"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "pets",
+  "h3_prompt": "A cat grooming itself with a paw. Audio: Soft scratching sound and serene music.",
+  "title": "自分磨きの猫",
+  "description": "落ち着いた表情で自分の毛を梳く猫の様子。",
+  "tags": [
+   "pets",
+   "cat"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "pets",
+  "h3_prompt": "A guinea pig nibbling on a leaf. Audio: Soft munching sounds and gentle music.",
+  "title": "葉っぱをおいしそうに食べるカピバラ",
+  "description": "かわいい姿で葉を食べるキーウィーの様子。",
+  "tags": [
+   "pets",
+   "guinea pig"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "nature",
+  "h3_prompt": "A single dew drop slowly falling from a delicate leaf in the morning mist. Audio: Gentle rustling of leaves and faint bird songs.",
+  "title": "朝露の滴",
+  "description": "朝霧に浮かぶ葉から、ゆっくりと水滴が落ちていきます。",
+  "tags": [
+   "nature",
+   "dewdrop"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "nature",
+  "h3_prompt": "Close-up of a sunflower's face slowly turning towards the sunrise. Audio: Soft instrumental music.",
+  "title": "向日葵の朝顔",
+  "description": "太陽に向かってゆっくりと頭を傾ける向日葵の表情。",
+  "tags": [
+   "nature",
+   "sunflower"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "nature",
+  "h3_prompt": "A hummingbird hovering in front of a vibrant red flower, its wings a blur. Audio: Hummingbird chirps and subtle wind sounds.",
+  "title": "蜂鳥の舞",
+  "description": "鮮やかな赤い花の前で羽を振るう蜂鸟。",
+  "tags": [
+   "nature",
+   "hummingbird"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "nature",
+  "h3_prompt": "Macro view of a spider spinning its web under the moonlight. Audio: Calm and serene instrumental music.",
+  "title": "月光に輝く蜘蛛の巣",
+  "description": "月明かりの中で織られる蜘蛛の巣。",
+  "tags": [
+   "nature",
+   "spiderweb"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "nature",
+  "h3_prompt": "A river flowing through a dense forest, reflecting the trees and sky. Audio: Calm water sounds.",
+  "title": "森林の流れ",
+  "description": "深い森を流れる川とその風景。",
+  "tags": [
+   "nature",
+   "river"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "nature",
+  "h3_prompt": "A close-up of a blooming lotus flower with morning dew on its petals. Audio: Soft, peaceful music.",
+  "title": "蓮の花",
+  "description": "朝露をまとった開く蓮の花。",
+  "tags": [
+   "nature",
+   "lotus"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "asmr",
+  "h3_prompt": "A single leaf gently falls from a tree, swirling slowly in the air. Audio: Soft rustling of leaves.",
+  "title": "落ち葉のささやき",
+  "description": "静かに舞い降りる一筋の落ち葉とその音を楽しむ。",
+  "tags": [
+   "asmr",
+   "nature"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "asmr",
+  "h3_prompt": "Drops of rain fall onto a pond, creating small ripples in the water. Audio: Pattering rain and splashes.",
+  "title": "雨滴の水紋",
+  "description": "雨粒が水面に落ち、小さな波紋を作る音を心地よく感じる。",
+  "tags": [
+   "asmr",
+   "nature"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "asmr",
+  "h3_prompt": "A fireplace crackles with small flames, the wood popping occasionally. Audio: Crackle and pop of burning wood.",
+  "title": "薪のささやき",
+  "description": "小さな炎が躍り、時折ポップ音を立てる暖炉の音色。",
+  "tags": [
+   "asmr",
+   "fire"
+  ],
+  "tier": "staked"
+ },
+ {
+  "category": "asmr",
+  "h3_prompt": "A cat's paw softly lands on a hardwood floor, making faint pitter-patter sounds. Audio: Gentle tapping.",
+  "title": "猫の足音",
+  "description": "木製床に静かに触れる猫の足音を聞く。",
+  "tags": [
+   "asmr",
+   "animals"
+  ],
+  "tier": "staked"
+ }
+]
