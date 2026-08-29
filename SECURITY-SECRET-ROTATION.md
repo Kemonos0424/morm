@@ -6,7 +6,15 @@
 
 ---
 
-## 1. `morm-aiservice/service-key.json`（★要対応・一部 gated）
+## 1. `morm-aiservice/service-key.json`（✅解決 2026-08-29: 本番未登録＝ローテ不要）
+
+**結論（確定）**: 本番 Mac Mini L1（`ts-mini`・:8900・head_height=23 の実チェーン）で
+`GET /ai-services` = **`{"services": []}`**。漏洩pubkey `b88942..f291` は**本番L1に未登録**＝
+attestation を強制される場面がなく**実権限なし**。→ **L1 失効/再登録は不要**。PoC鍵の再生成は
+任意（衛生目的・`service-key.json` は既に不在＋`.gitignore`済で今後コミットもされない）。
+
+---
+### 参考（当初の調査・上記結論の根拠）
 
 - **正体**: AIサービスの ed25519 恒久 identity（`seed`/`pubkey`/`address`）。
   用途 = 動画生成の attestation 署名（`aiservice.py`: `attestation = ed25519_sign(svc_seed, gen_id||cid)`）。
