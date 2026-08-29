@@ -31,7 +31,8 @@ MORM 4サーフェス（www/api/node/play.morm.one）を監査→**致命セキ�
 - `.claude/launch.json` の `--treasury-seed`（anvil/dev用らしい）→ 確認して除去/ローテ。
 
 ### C. 残セキュリティ（コード済/未・要ホスト反映）
-- **play_server.py 他4 settle経路**(settle_referrals/_settle_fixed/_settle_proportional/settle_challenge)+ `_points_loop`自動配当 = `payout()`と同じ「予約先行+lock」を適用 → `agent-lane/verify/run_all.sh` で検証 → **Mac Mini へ転送＋`launchctl kickstart -k gui/$UID/com.morm.play`**。※`payout()`は修正済。
+- ✅**[コード完了 commit bfc9309]** play_server.py 4 settle経路(settle_referrals/_settle_fixed/_settle_proportional/settle_challenge)を予約先行に統一(=`_points_loop`経由の自動配当も網羅)。回帰テスト`morm-play/test_settle_idempotency.py`で二重支払いゼロ/失敗ロールバック/2レッグ端ケース検証(28 assert PASS・実チェーン不要)。※`payout()`は既済。
+  - **残(gated=要承認)**: **Mac Mini へ転送＋`launchctl kickstart -k gui/$UID/com.morm.play`**。デプロイ前に既存`agent-lane/verify/run_all.sh`(9/9)の再実行推奨。
 - **export_relayer.py**（修正済: last_block永続化+dust ALERT）→ **リレーヤ運用ホストへ反映**＋contractの`MIN_EXIT>=1e18`設定（1MORM未満exit永久損失の根本対策）。
 - play: 読みIDOR(feed/content/mine/earnings/me)・ADMIN_TOKEN in URL→header化・mod preview 404・age自己申告。
 
