@@ -16,13 +16,28 @@
 - **緩和材料**: `aiservice.py` は自称 **「PoC stand-in for a real video diffusion model」**。
   本番 L1 のパブリッシャ登録に**未連携なら実害は限定的**。鍵は `get_or_create_keypair()` で自動再生成。
 
+### 露出鍵（公開情報・確認用）
+- pubkey: `b88942319130adc2f65df83255ecf713556d4de8ffb02d7510e69b21e7f6f291`
+- address: `0x32f40ad3b110000255d179eeb94fd910e89bc60a`
+
+### 調査所見（2026-08-29・MacBook から実施）
+- 旧 pubkey/address は **`morm-aiservice/generated/*/manifest.json`（PoC自身の生成物）にのみ**出現。
+  L1 の allowlist / 他サービス / デプロイ設定には**一切なし**。
+- morm-aiservice を起動するのは **`poc/scenario_aiservice.py`（PoCシナリオ）だけ**（launchd/systemd/pm2 の本番デプロイなし）。
+- L1 には ai_services レジストリ有り（`morm-l1/morm_l1/rpc.py` の `GET /ai-services`、登録tx=`register_ai_service`）。
+- MacBook から到達できた `127.0.0.1:8900/ai-services` は **`{"services": []}`（登録ゼロ）**。ただしこれが
+  本番 Mac Mini L1 か別実体か未確定（当機に `~/.morm-l1` なし・Mac Mini :8900 は LAN直では不応答）。
+- **暫定結論**: 漏洩鍵は **PoC専用で本番 L1 未登録の公算大＝実権限なし**。
+
 ### 対応（順に）
-1. **[判断・要確認]** 旧 `address`/`pubkey` が **本番 L1 の既知パブリッシャ登録を持つか**を確認
-   （L1 の publisher registry / 掌管 admin。Mac Mini :8900 側）。
-2. **持つ場合 [gated=L1 admin操作]**: 旧pubkey を**失効/de-register** → 新鍵を生成し登録。
-   - 新鍵生成: サービスホストで旧 `service-key.json` を削除 → `python3 aiservice.py keygen`（自動生成）
-     もしくは `get_or_create_keypair()` 初回起動。新 `pubkey`/`address` を控える。
-3. **持たない場合（PoC未連携）**: 実害低。ローカルで鍵ファイルを再生成して置換すれば足りる。
+1. **[権威確認・gated=Mac Mini で1回]** 本番 L1 で登録有無を確定:
+   ```
+   ssh <MacMini> 'curl -s http://127.0.0.1:8900/ai-services' | python3 -m json.tool
+   # 出力に pubkey b88942...f291 が無ければ = 本番未登録（rotation不要）
+   ```
+2. **登録あり（想定外）の場合 [gated=L1 admin操作]**: 旧pubkey を失効/de-register → 新鍵を生成し再登録。
+   - 新鍵生成: サービスホストで旧 `service-key.json` を削除 → `python3 aiservice.py keygen`（`get_or_create_keypair()` が自動生成）。新 `pubkey`/`address` を控える。
+3. **登録なし（想定どおり）の場合**: 実害なし。衛生目的でローカルの鍵ファイルを再生成して置換すれば足りる（L1 操作不要）。
 4. **共通**: `service-key.json` は `.gitignore`（`*service-key.json`）済 = 今後コミットされない（確認済）。
 
 ---
