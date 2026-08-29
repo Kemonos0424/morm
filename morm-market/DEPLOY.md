@@ -1,68 +1,49 @@
 # morm-market デプロイ手順（market.morm.one・静的・www と同方式）
 
-**方式（決定 2026-08-29）**: www.morm.one と同じ **Mac Mini へ scp（静的）→ nginx で配信 → Cloudflare
-Tunnel で公開**。morm-market は**静的HTML2枚のみ**（`index.html`=LP/入口、`app.html`=ブリッジ&スワップ
-UI。ビルド不要）。**実行は SSH/nginx/Cloudflare/DNS 操作＝gated（要ユーザー承認）**。
+**状態（2026-08-29）**: Mac Mini 側（scp＋nginx＋cloudflared ingress）**完了**。残りは
+**morm.one ゾーンの DNS レコード作成のみ**（gated＝ユーザーの morm.one Cloudflare アカウント）。
 
-> ⚠️ Mac Mini 固有値（scp先ディレクトリ・nginx conf.d パス・cloudflared config パス・tunnel ローカル
-> ポート）は www の「別配線」でリポ外。既存 www/play の実配線に合わせて下の `<...>` を確定すること。
-> 参考パターン: `morm-play/morm-play.conf`（play は proxy_pass、market は静的 root なので下記に差し替え）。
+**方式**: cloudflared(tunnel `f60ef43f-8ba5-45ee-946f-1c1f673df231`) → `localhost:8080`(nginx)
+→ server_name 別 vhost で静的配信。www.morm.one と同一構成（参考 vhost=`morm-apex.conf`）。
+中身は静的HTML2枚（`index.html`=価格チャート/入口、`app.html`=ブリッジ&スワップ・**Base Sepolia testnet**）。
 
-## 1. 静的ファイルを Mac Mini へ転送
-```bash
-# Mac Mini（192.168.2.122）の配信ディレクトリへ（www と同じ親配下に揃える）
-MM=<user>@192.168.2.122
-DEST=<web root>/market.morm.one          # 例: /var/www/market.morm.one（www の site/ と同階層に）
-ssh "$MM" "mkdir -p $DEST"
-scp ~/Desktop/MORM/morm-market/index.html ~/Desktop/MORM/morm-market/app.html "$MM:$DEST/"
-```
+## 実施済み（Mac Mini `ts-mini` / user）
+1. **自己参照を相対リンク化**（`morm-market.zoku.one`→相対）: index.html→`app.html` / app.html→`index.html`（commit 4222502・host非依存）。
+2. **scp**: `scp morm-market/{index,app}.html ts-mini:/Users/user/zoku-sites/morm-market/`（sha一致確認）。
+3. **nginx vhost** `/opt/homebrew/etc/nginx/servers/morm-market.conf`:
+   ```nginx
+   server {
+       listen 8080;
+       server_name market.morm.one;
+       root /Users/user/zoku-sites/morm-market;
+       index index.html;
+       charset utf-8;
+       location ~ /\.(?!well-known) { deny all; }
+       location / { try_files $uri $uri/ =404; }
+   }
+   ```
+   `/opt/homebrew/bin/nginx -t` OK → `nginx -s reload`。確認: `curl -H "Host: market.morm.one" http://localhost:8080/` = 200。
+4. **cloudflared ingress** `/Users/user/.cloudflared/config.yml` の catch-all(`- service: http_status:404`)直前に追加:
+   ```yaml
+     - hostname: "market.morm.one"
+       service: http://localhost:8080
+   ```
+   `cloudflared tunnel ingress validate` OK → `launchctl kickstart -k gui/501/com.cloudflared.tunnel`（★再起動中は全サイト一時 530→数秒で回復。SSH は mini.ctai.online 経由のため一旦切断される）。
 
-## 2. nginx vhost（静的配信）
-`<nginx conf.d>/market.morm.one.conf`（play と違い proxy ではなく root 直配信）:
-```nginx
-server {
-    listen <tunnel port>;            # 例: 8081（play=8080 と衝突しない空きポート）
-    server_name market.morm.one;
-    root <web root>/market.morm.one; # 手順1の DEST
-    index index.html;
-    location / { try_files $uri $uri/ =404; }
-}
-```
-```bash
-ssh "$MM" 'sudo nginx -t && sudo nginx -s reload'
-```
+## 残り（gated＝要ユーザー・morm.one CF アカウント）
+5. **DNS**: morm.one ゾーンに **proxied CNAME**
+   `market.morm.one` → `f60ef43f-8ba5-45ee-946f-1c1f673df231.cfargotunnel.com`
+   を作成（www.morm.one / play.morm.one と同方式）。
+   - ⚠️ `cloudflared tunnel route dns` は tunnel 既定ゾーン **ctai.online** にレコードを付けてしまう
+     （実際 `market.morm.one.ctai.online` を誤作成済→**ctai.online ゾーンで削除**推奨）。morm.one は
+     別アカウント管理のため、**CF ダッシュボード/該当アカウントの API** で手動作成すること。
+6. **検証**（DNS 伝播後）:
+   ```bash
+   curl -sI https://market.morm.one/           # 200
+   curl -s  https://market.morm.one/app.html | head -c 200
+   ```
+   ブラウザで入口→`app.html`（Base Sepolia ブリッジ/スワップ）動作確認。
+   ※ mainnet 化する場合は app.html の RPC/contract を別途更新（現状 testnet）。
 
-## 3. Cloudflare Tunnel ingress
-既存 cloudflared config（play/www と同じファイル）の `ingress:` に追加:
-```yaml
-  - hostname: market.morm.one
-    service: http://localhost:<tunnel port>   # 手順2の listen ポート
-```
-```bash
-# DNS ルート（未作成なら）: market.morm.one を tunnel に向ける
-cloudflared tunnel route dns <tunnel name> market.morm.one
-ssh "$MM" 'sudo systemctl restart cloudflared'   # または該当の再読込
-```
-
-## 3.5 デプロイ前の要編集（自己参照URL）
-- app.html/index.html は **`https://morm-market.zoku.one/...` を自己参照**（canonical/og:url 等・既存
-  zoku デプロイ痕跡）。market.morm.one へ出すなら該当箇所を `https://market.morm.one/...` へ置換:
-  ```bash
-  cd ~/Desktop/MORM/morm-market
-  grep -rl "morm-market.zoku.one" . && sed -i '' 's#morm-market\.zoku\.one#market.morm.one#g' index.html app.html
-  ```
-  （zoku を staging として残すなら置換せず両建ても可＝ユーザー判断）。
-- 中身は **Base Sepolia テストネット**（`sepolia.base.org`・chainId sepolia・testnet contracts）＝
-  実 mainnet 資金は扱わない。プロダクションで mainnet に切替える場合は RPC/contract を別途更新。
-
-## 4. 検証
-```bash
-curl -sI https://market.morm.one/            # 200・index.html
-curl -s  https://market.morm.one/app.html | head -c 200
-```
-- ブラウザで `https://market.morm.one/`（入口）→ `app.html`（Base Sepolia ブリッジ/スワップ）動作確認。
-- app.html が叩く価格/ブリッジ系の向き先（EVM RPC / api.morm.one `/api/price` 等）が本番を指すか確認。
-
-## 5. 反映
-- 更新時は手順1の scp をやり直すだけ（静的・再起動不要）。
-- ARCHITECTURE.md の market.morm.one 行を live に更新。
+## 更新時
+- 手順2の scp をやり直すだけ（静的・再起動不要）。ARCHITECTURE.md の market 行を live に更新。

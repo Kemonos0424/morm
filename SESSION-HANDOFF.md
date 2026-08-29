@@ -42,7 +42,8 @@ MORM 4サーフェス（www/api/node/play.morm.one）を監査→**致命セキ�
 
 ### D. Phase 2 残（★監査完了＋方針決定 2026-08-29）
 - **admin 陳腐化整理 → 【決定=全保持・作業なし】**: 監査で安全な削除対象なしを確認。全11ページ稼働(dbAll直参照 or 生きた/api or 静的)・retire済API(`/api/my/*`等)への壊れ参照ゼロ(Phase2 retireは既にクリーン)・孤立なし。`scores`(node-emission)は Agent Lane と共有のため削除不可。ユーザー判断=全保持。ARCHITECTUREの「陳腐化」表記も訂正済。
-- **morm-market → 【決定=Mac Mini 静的 market.morm.one(www と同方式)】**: 手順を `morm-market/DEPLOY.md` に整備(turnkey・Mac Mini固有値は`<...>`で要確認)。中身=静的HTML2枚・**Base Sepolia testnet**(実mainnet資金なし)。デプロイ前に自己参照URL `morm-market.zoku.one`→`market.morm.one` 置換が必要(既存zoku痕跡)。**実行(SSH/nginx/CF Tunnel/DNS)=gated**。
+- **morm-market → 【Mac Mini側デプロイ完了・DNS のみ残 2026-08-29】**: 自己参照を相対リンク化(commit 4222502)→scp `/Users/user/zoku-sites/morm-market/`(sha一致)→nginx vhost `/opt/homebrew/etc/nginx/servers/morm-market.conf`(listen8080・server_name market.morm.one・root同dir、morm-apex.conf に倣う)→`nginx -t`OK→reload。cloudflared `/Users/user/.cloudflared/config.yml` に `market.morm.one→http://localhost:8080` ingress 追加(catch-all直前)→validate OK→kickstart(一時530→即回復)。nginx は `curl -H "Host: market.morm.one" localhost:8080/` で 200 配信確認済。
+  - **残(gated=要ユーザーの morm.one CFアカウント)**: **market.morm.one の DNS レコード作成**。morm.one ゾーンに **proxied CNAME `market.morm.one` → `f60ef43f-8ba5-45ee-946f-1c1f673df231.cfargotunnel.com`**(www/play と同方式)。※`cloudflared tunnel route dns` は tunnel既定ゾーン ctai.online に付くため不可(誤って `market.morm.one.ctai.online` を作成済→ユーザーが ctai.online ゾーンで削除推奨)。DNS 伝播後 https://market.morm.one/ が live。
 
 ### E. Agent Lane 活性化（`agent-lane/DEPLOY.md` 冒頭★の順）
 - 前提: ①api.morm.one `ADMIN_PASSWORD`=Yachida0024（済）②**payout口座(PLAY/DASH)を fund**（`agent-lane/deploy/fund-payouts.md`・Mac Mini L1操作・base=1整数MORM）③base=1統一。
