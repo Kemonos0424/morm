@@ -60,3 +60,12 @@ cast call <NEW_BRIDGE> "threshold()(uint256)" --rpc-url "$RPC_URL" # → 2
 ## 補足
 - 非緊急: relayer の dust ALERT で暫定緩和済。mainnet 化や他 bridge 変更とまとめて実施推奨。
 - SIGNER_A/B/C は **アドレス**（deploy script は `vm.envOr("SIGNER_A", …)` を address として読む）。
+
+---
+## ★実施結果（2026-08-29 deploy 済・Base Sepolia）
+- WMORM: `0x91FF1A51EEcCdBBC5d3A9ABD56E11352885667ed`
+- MORMExportBridge: `0x97a84556abe75391CC177204AeE0D2f4c569Ab8E`（**minExit=1e18 検証済**・threshold=2・token=新WMORM）
+- MockUSDC: `0xcC07858c6ba05A65eD47570233b9B010e2482Ea2`
+- 新WMORM.bridge = 新bridge（setBridge one-shot 済）。
+- 移行済: `.testnet-deploy.env`／`morm-market/{app,index}.html`／Mac Mini 再scp。relayer runbook の BRIDGE_ADDR も更新。
+- **残**: 新 wMORM/USDC の Uniswap v3 プール作成→`index.html` の POOL/POOL_BLOCK 更新／C-1 relayer を新 bridge で起動。

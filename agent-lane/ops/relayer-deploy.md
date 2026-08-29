@@ -29,7 +29,7 @@ scp -r morm-chain/out ts-mini:/Users/user/morm-relayer/abi   # bridge ABI（out/
 ```
 EVM_RPC=https://sepolia.base.org
 MORM_RPC=http://127.0.0.1:8900
-BRIDGE_ADDR=0xF7A4C27aC202638372540899dFf9D474Db10A818   # C-2後は新bridgeへ
+BRIDGE_ADDR=0x97a84556abe75391CC177204AeE0D2f4c569Ab8E   # C-2後の新bridge(minExit=1e18)
 CHAIN_ID=84532
 THRESHOLD=2
 EXPORT_TOKEN=MORM
