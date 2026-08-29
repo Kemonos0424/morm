@@ -11,7 +11,7 @@ ExecStart=/usr/bin/python3 /home/hpmini/morm-play-worker/mod_worker.py
 Restart=always
 RestartSec=5
 Environment=PLAY_URL=http://100.106.58.67:8791
-Environment=ADMIN_TOKEN=adm_1b378edd49741f4661bd
+Environment=ADMIN_TOKEN=__SET_ME__
 Environment=GATEWAY=http://127.0.0.1:8801
 Environment=MOD_MODEL=qwen2.5:32b
 Environment=VL_MODEL=qwen2.5vl:7b

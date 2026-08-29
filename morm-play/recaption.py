@@ -18,7 +18,7 @@ PLAY = os.environ.get("PLAY_URL", "http://100.106.58.67:8791")
 GATEWAY = os.environ.get("GATEWAY", "http://100.80.207.111:8801")
 VL_HOST = os.environ.get("VL_OLLAMA", "http://127.0.0.1:11434").split(",")[0]
 VL_MODEL = os.environ.get("VL_MODEL", "qwen2.5vl:7b")
-TOKEN = os.environ.get("ADMIN_TOKEN", "adm_1b378edd49741f4661bd")
+TOKEN = os.environ.get("ADMIN_TOKEN", "")  # ★必ず env で渡す(既定にtoken平文を置かない)
 CATS = ["music", "dance", "art", "gaming", "vlog", "comedy", "food", "travel",
         "fashion", "beauty", "tech", "education", "news", "sports", "pets",
         "nature", "asmr"]

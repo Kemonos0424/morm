@@ -122,7 +122,7 @@ payload形状の詳細は `tx.py:107-294` のファクトリ参照（各`*(sende
 ## 4. 触ってはいけない/注意
 - **relayer（Mac Mini常駐・EXPORT_TOKEN=MORM・2-of-3）と Base Sepolia 3コントラクト＋Uniswapプールは稼働中**（`reference_morm_usd_market`）。forward/exitはそれ前提。
 - treasury seed=`~/.morm-l1/producer.seed`（producer=treasury）。L1は127.0.0.1:8900 localhost限定（tailnet不可）。
-- **セキュリティ注意（要ローテ検討）**: `com.morm.play.plist` / `com.morm.play-modworker.plist` / `morm-modworker.service` に `ADMIN_TOKEN=adm_1b378edd49741f4661bd` が平文コミット。全 `/api/admin/*`（payout/stake）を守るトークン。共有時は必ずローテ。
+- **セキュリティ注意（★2026-08-29: 公開露出発覚→要即ローテ）**: 旧 `ADMIN_TOKEN`（`adm_1b3…`）が本リポ(PUBLIC)にコミット済＝**漏洩済**。全 `/api/admin/*`（payout/stake/settle/moderation）を守るトークンなので**本番plistでローテ必須**（token は plist の env のみに置き、コミットしない）。手順=`SECURITY-SECRET-ROTATION.md`。
 - 決済は実MORM。発生カウンタや閾値をいじる時は不正/二重支払いに注意（既存の dedup/idempotency 台帳を壊さない）。
 - LLM推論はMac Mini禁止・DGX使用（`feedback_llm_host_policy`）。
 

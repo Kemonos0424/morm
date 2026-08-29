@@ -6,6 +6,37 @@
 
 ---
 
+## 0. 🚨 play.morm.one `ADMIN_TOKEN` 公開露出（★CRITICAL・要即ローテ・並列レビューで発覚 2026-08-29）
+
+**実害**: 旧 `ADMIN_TOKEN=adm_1b378edd49741f4661bd` が git-tracked ファイル（`morm-modworker.service`・
+`recaption.py` の既定値・`L1_INTEGRATION_HANDOFF.md`）に平文コミット＝**PUBLIC で漏洩済**。かつ
+これが**本番 play.morm.one の生きた ADMIN_TOKEN**（確認: 公開token→200 / 誤token→403）。よって
+**全世界が `/api/admin/*`（payout=PLAY_PAYOUT送金 / points・challenge・referral settle / moderation
+decide 等）を叩ける＝treasury/payout drain・恣意的モデレーション可能**。
+
+**✅ エージェント実施済（コード側）**: tracked 3ファイルから token 除去（recaption 既定→""、service→
+`__SET_ME__`、doc→マスク）。commit 済。
+
+**★要ユーザー実行（本番ローテ・エージェントは分類器でブロック）**:
+1. **Play(Mac Mini)の token を新値へ→再起動**（これで公開 token が即無効）:
+   ```bash
+   ssh ts-mini 'NEW=$(openssl rand -hex 24)
+   PL=$HOME/Library/LaunchAgents/com.morm.play.plist
+   cp -p "$PL" "$PL.bak-TOKENROT"
+   /usr/libexec/PlistBuddy -c "Set :EnvironmentVariables:ADMIN_TOKEN $NEW" "$PL"
+   launchctl kickstart -k gui/501/com.morm.play; sleep 4
+   curl -s -o /dev/null -w "play health %{http_code}\n" http://127.0.0.1:8791/health
+   printf "OLD token now: "; curl -s -o /dev/null -w "%{http_code} (want 403)\n" \
+     -H "X-Admin-Token: adm_1b378edd49741f4661bd" http://127.0.0.1:8791/api/admin/moderation/queue
+   echo "NEW token(控える・共有しない): $NEW"'
+   ```
+2. **mod-worker(hpmini systemd) に同 NEW token を反映**（無いとモデレーションが 401 で停止）:
+   hpmini の `/etc/systemd/…/morm-modworker.service`（or 実体）の `ADMIN_TOKEN=` を NEW に→
+   `sudo systemctl daemon-reload && sudo systemctl restart morm-modworker`。recaption 実行時も `ADMIN_TOKEN` env に NEW。
+3. 履歴に残る旧 token は公開済＝ローテで無効化するのが唯一策（rewrite 不要）。
+
+---
+
 ## 1. `morm-aiservice/service-key.json`（✅解決 2026-08-29: 本番未登録＝ローテ不要）
 
 **結論（確定）**: 本番 Mac Mini L1（`ts-mini`・:8900・head_height=23 の実チェーン）で
