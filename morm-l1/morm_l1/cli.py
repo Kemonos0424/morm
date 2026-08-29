@@ -26,7 +26,13 @@ def cmd_keygen(args):
 
 
 def cmd_node(args):
-    seed = bytes.fromhex(args.producer_seed)
+    # Accept the producer seed from env (MORM_PRODUCER_SEED) so it need not
+    # appear in argv / `ps` output. --producer-seed still works and wins.
+    seed_hex = args.producer_seed or os.environ.get("MORM_PRODUCER_SEED", "")
+    if not seed_hex:
+        print("[fatal] provide --producer-seed or MORM_PRODUCER_SEED", file=sys.stderr)
+        return 2
+    seed = bytes.fromhex(seed_hex)
     treasury = args.treasury
     explicit_peers = [p.strip() for p in (args.peers or "").split(",") if p.strip()]
     # Phase 30c: when --peers is empty we fall back to the federation
@@ -168,7 +174,7 @@ def main(argv=None):
 
     n = sub.add_parser("node", help="run a producer + RPC")
     n.add_argument("--data-dir", required=True)
-    n.add_argument("--producer-seed", required=True, help="hex 32-byte ed25519 seed")
+    n.add_argument("--producer-seed", default=None, help="hex 32-byte ed25519 seed (or set MORM_PRODUCER_SEED)")
     n.add_argument("--treasury", required=True, help="address that collects fees + finalizes")
     n.add_argument("--host", default="127.0.0.1")
     n.add_argument("--port", type=int, default=8900)

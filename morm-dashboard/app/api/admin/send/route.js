@@ -3,7 +3,21 @@ import { dbRun } from '@/app/lib/db';
 import { mormL1Enabled, transferMorm } from '@/app/lib/morm-l1';
 
 export const dynamic = 'force-dynamic';
+
+// このルートは live 時に treasury から任意アドレスへ実MORMを送金する（＝資金流出面）。
+// 従来は無認証で、誰でもPOSTするだけでトレジャリーを抜けた。fail-closed で塞ぐ:
+// x-admin-key == ADMIN_PASSWORD のときだけ許可。ADMIN_PASSWORD 未設定なら常に拒否。
+function adminAuthed(request) {
+  const key = (request.headers.get('x-admin-key') || request.headers.get('x-admin-password') || '').trim();
+  const expect = (process.env.ADMIN_PASSWORD || '').trim();
+  if (!expect) return false;   // 未設定＝機能無効（既定 '1234' は撤廃）
+  return key === expect;
+}
+
 export async function POST(request) {
+  if (!adminAuthed(request)) {
+    return NextResponse.json({ error: 'unauthorized (set ADMIN_PASSWORD and send x-admin-key)' }, { status: 401 });
+  }
   const { recipients } = await request.json();
   if (!recipients || !Array.isArray(recipients) || recipients.length === 0) {
     return NextResponse.json({ error: 'recipients required' }, { status: 400 });

@@ -1,0 +1,185 @@
+<title>MORM — A / B / C</title>
+<style>
+  :root{
+    --paper:#F4F2EA; --card:#FBFAF4; --ink:#0C0C0E; --ink-soft:#4A4A4E; --line:#0C0C0E;
+    --blue:#1E37E6; --magenta:#EC1E79; --orange:#FF4A17; --green:#0EA24A; --yellow:#FFD11A; --violet:#6B2CE6;
+  }
+  @media(prefers-color-scheme:dark){:root{
+    --paper:#0C0C0E; --card:#151517; --ink:#F4F2EA; --ink-soft:#B7B7B0; --line:#F4F2EA;
+    --blue:#4A5CFF; --magenta:#FF3E93; --orange:#FF6A3D; --green:#22C466; --yellow:#FFDC3C; --violet:#9163FF;
+  }}
+  :root[data-theme="light"]{--paper:#F4F2EA;--card:#FBFAF4;--ink:#0C0C0E;--ink-soft:#4A4A4E;--line:#0C0C0E;
+    --blue:#1E37E6;--magenta:#EC1E79;--orange:#FF4A17;--green:#0EA24A;--yellow:#FFD11A;--violet:#6B2CE6}
+  :root[data-theme="dark"]{--paper:#0C0C0E;--card:#151517;--ink:#F4F2EA;--ink-soft:#B7B7B0;--line:#F4F2EA;
+    --blue:#4A5CFF;--magenta:#FF3E93;--orange:#FF6A3D;--green:#22C466;--yellow:#FFDC3C;--violet:#9163FF}
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:"Helvetica Neue",Helvetica,"Inter",Arial,"Hiragino Kaku Gothic ProN",sans-serif;
+    line-height:1.55;letter-spacing:-.003em}
+  .wrap{max-width:1080px;margin:0 auto;padding:clamp(24px,4.5vw,60px) clamp(18px,4.5vw,52px)}
+  .mono{font-family:ui-monospace,"SF Mono",Menlo,"Courier New",monospace}
+  .eyebrow{font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.28em;text-transform:uppercase}
+
+  header.mast{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;
+    border-top:3px solid var(--line);padding-top:12px;margin-bottom:8px}
+  .toggle{cursor:pointer;background:var(--ink);color:var(--paper);border:0;font-family:ui-monospace,monospace;
+    font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:7px 12px}
+  .toggle:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+  .lede{font-size:clamp(17px,2.2vw,20px);font-weight:500;max-width:64ch;margin:10px 0 0}
+
+  /* letter voices */
+  .g1{font-family:"Didot","Bodoni 72","Playfair Display",Georgia,serif;font-weight:700;letter-spacing:-.01em}
+  .g2{font-family:"Optima","Futura","Century Gothic","Palatino Linotype",sans-serif;font-weight:700}
+  .g3{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-weight:800;letter-spacing:-.05em}
+  .g4{font-family:ui-monospace,"SF Mono",Menlo,"Courier New",monospace;font-weight:700}
+  .grot{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-weight:800;letter-spacing:-.05em}
+
+  .opt{margin:clamp(26px,4vw,44px) 0;border:3px solid var(--line);background:var(--card)}
+  .opt .cap{display:flex;justify-content:space-between;align-items:baseline;gap:14px;flex-wrap:wrap;
+    padding:14px 18px;border-bottom:3px solid var(--line)}
+  .opt .cap .t{font-weight:800;font-size:clamp(18px,2.4vw,23px);letter-spacing:-.01em}
+  .opt .cap .t b{padding:2px 9px;margin-right:10px;color:#fff}
+  .opt .cap .d{font-size:14px;color:var(--ink-soft);max-width:52ch}
+  .opt .stageWrap{padding:clamp(20px,4vw,44px) clamp(14px,3vw,40px)}
+  .opt .foot{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;
+    border-top:2px solid var(--line);padding:12px 18px}
+  .opt .foot .mono{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
+  .use{font-size:13.5px} .use b{color:var(--ink)}
+
+  /* A — confident grid (Benetton) */
+  .A .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:3px solid var(--line);max-width:720px;margin:0 auto}
+  .A .tile{aspect-ratio:1/1.08;display:flex;align-items:center;justify-content:center;
+    border-right:3px solid var(--line);color:#fff}
+  .A .tile:last-child{border-right:0}
+  .A .tile span{font-size:clamp(52px,10vw,104px);line-height:1;color:#fff}
+  .A .lock{display:flex;justify-content:center;align-items:baseline;gap:.01em;margin-top:22px}
+  .A .lock span{font-size:clamp(40px,8vw,76px);line-height:1}
+
+  /* B — experimental deconstruction (Ray Gun / Carson) */
+  .B .stage{position:relative;height:clamp(240px,42vw,360px);overflow:hidden}
+  .B .stage span{position:absolute;line-height:.8}
+  .B .l1{left:2%;top:4%;font-size:clamp(120px,30vw,300px);color:var(--blue);transform:rotate(-8deg)}
+  .B .l2{left:38%;top:30%;font-size:clamp(78px,18vw,190px);color:var(--orange);transform:rotate(6deg);mix-blend-mode:multiply}
+  .B .l3{left:30%;top:-6%;font-size:clamp(150px,36vw,360px);color:var(--magenta);transform:rotate(-2deg);opacity:.92}
+  .B .l4{right:1%;bottom:-14%;font-size:clamp(130px,32vw,320px);color:var(--green);transform:rotate(4deg)}
+  @media(prefers-color-scheme:dark){.B .l2{mix-blend-mode:screen}}
+  :root[data-theme="dark"] .B .l2{mix-blend-mode:screen}
+  .B .ghost{position:absolute;right:4%;top:8%;font-family:ui-monospace,monospace;font-size:12px;
+    letter-spacing:.3em;color:var(--ink-soft);writing-mode:vertical-rl}
+
+  /* C — vessel, fixed form / infinite fills (MTV) */
+  .C .vgrid{display:grid;grid-template-columns:1fr;gap:0;border:3px solid var(--line)}
+  @media(min-width:620px){.C .vgrid{grid-template-columns:1fr 1fr}}
+  .C .cell{padding:26px 18px;border-right:3px solid var(--line);border-bottom:3px solid var(--line);
+    display:flex;flex-direction:column;align-items:center;gap:12px;background:var(--card)}
+  .C .word{font-size:clamp(58px,12vw,120px);line-height:.9;font-weight:800;
+    font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;letter-spacing:-.05em;
+    -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+  .C .fill1{background:var(--blue)}
+  .C .fill2{background:linear-gradient(90deg,var(--blue) 0 25%,var(--orange) 25% 50%,var(--magenta) 50% 75%,var(--green) 75% 100%)}
+  .C .fill3{background:radial-gradient(circle at center,var(--ink) 1.4px,transparent 1.6px) 0 0/9px 9px,var(--magenta)}
+  .C .fill4{background:conic-gradient(from 210deg,var(--magenta),var(--orange),var(--yellow),var(--green),var(--blue),var(--violet),var(--magenta))}
+  .C .flabel{font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+
+  /* choose */
+  .choose{margin:clamp(30px,5vw,52px) 0 6px;border:3px solid var(--line)}
+  .choose .h{background:var(--ink);color:var(--paper);font-family:ui-monospace,monospace;font-size:12px;
+    letter-spacing:.22em;text-transform:uppercase;padding:8px 14px;font-weight:700}
+  .choose .rows{display:grid;grid-template-columns:1fr}
+  @media(min-width:720px){.choose .rows{grid-template-columns:repeat(3,1fr)}}
+  .choose .r{padding:16px 16px;border-right:3px solid var(--line);border-top:3px solid var(--line)}
+  .choose .r .k{font-weight:800;margin-bottom:4px}
+  .choose .r ul{margin:6px 0 0;padding-left:1.05em;font-size:13.5px;color:var(--ink-soft)}
+  .choose .r li{margin:.18em 0}
+  footer{margin-top:26px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  footer .c{font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+</style>
+
+<div class="wrap">
+  <header class="mast">
+    <div>
+      <div class="eyebrow">MORM · Brand Direction № 02 — three routes</div>
+      <p class="lede">同じ思想（多様性を鮮烈なまま束ねる）を、<b>A＝整然 / B＝実験 / C＝器</b>の三つで組み比較。ワードマークは同じ四つの声（Didot / Optima / Grotesque / Mono）。</p>
+    </div>
+    <button class="toggle" id="tg" type="button">◑ theme</button>
+  </header>
+
+  <!-- A -->
+  <section class="opt A">
+    <div class="cap">
+      <div class="t"><b style="background:var(--blue)">A</b>整然 — Confident / Benetton</div>
+      <div class="d">鮮色ブロックにグリッド。広告的で強く、拡張と管理が容易。多様性は「色」で示す。</div>
+    </div>
+    <div class="stageWrap">
+      <div class="tiles">
+        <div class="tile" style="background:var(--blue)"><span class="g1">M</span></div>
+        <div class="tile" style="background:var(--orange)"><span class="g2">O</span></div>
+        <div class="tile" style="background:var(--magenta)"><span class="g3">R</span></div>
+        <div class="tile" style="background:var(--green)"><span class="g4">M</span></div>
+      </div>
+      <div class="lock">
+        <span class="g1" style="color:var(--blue)">M</span><span class="g2" style="color:var(--orange)">O</span><span class="g3" style="color:var(--magenta)">R</span><span class="g4" style="color:var(--green)">M</span>
+      </div>
+    </div>
+    <div class="foot"><div class="use"><b>向く：</b>アプリ・広告・大量展開。誰が使っても崩れない。</div><div class="mono">order · scalable · loud</div></div>
+  </section>
+
+  <!-- B -->
+  <section class="opt B">
+    <div class="cap">
+      <div class="t"><b style="background:var(--magenta)">B</b>実験 — Editorial / Ray Gun · Carson</div>
+      <div class="d">文字をずらし・重ね・欠けさせる。誌面的でエッジー。多様性の「カオスと勢い」を宿す。</div>
+    </div>
+    <div class="stageWrap">
+      <div class="stage" aria-label="MORM">
+        <span class="g3 l3">R</span>
+        <span class="g1 l1">M</span>
+        <span class="g2 l2">O</span>
+        <span class="g4 l4">M</span>
+        <span class="ghost">for every frame</span>
+      </div>
+    </div>
+    <div class="foot"><div class="use"><b>向く：</b>アート/カルチャー発信・ポスター・特集。強い一撃。</div><div class="mono">chaos · edgy · one-shot</div></div>
+  </section>
+
+  <!-- C -->
+  <section class="opt C">
+    <div class="cap">
+      <div class="t"><b style="background:var(--green)">C</b>器 — Vessel / MTV</div>
+      <div class="d">形は固定、<b>中身（色・柄・写真）を無限に差し替える</b>運用ロゴ。群れ＝一つの形に多様な中身、で思想に最も一致。</div>
+    </div>
+    <div class="stageWrap">
+      <div class="vgrid">
+        <div class="cell"><div class="word fill1">MORM</div><div class="flabel">solid — 基本</div></div>
+        <div class="cell"><div class="word fill2">MORM</div><div class="flabel">stripes — 四鮮色</div></div>
+        <div class="cell"><div class="word fill3">MORM</div><div class="flabel">halftone — 印刷/群れの粒</div></div>
+        <div class="cell"><div class="word fill4">MORM</div><div class="flabel">spectrum — 写真/映像で置換可</div></div>
+      </div>
+    </div>
+    <div class="foot"><div class="use"><b>向く：</b>プラットフォーム全体。イベント/クリエイターごとに中身が変わる。</div><div class="mono">system · infinite · on-brand</div></div>
+  </section>
+
+  <!-- choose -->
+  <div class="choose">
+    <div class="h">How to choose</div>
+    <div class="rows">
+      <div class="r"><div class="k" style="color:var(--blue)">A を選ぶなら</div><ul><li>まず"顔"を固めて量産したい</li><li>広告/アプリで即戦力</li><li>運用が一番ラク</li></ul></div>
+      <div class="r"><div class="k" style="color:var(--magenta)">B を選ぶなら</div><ul><li>カルチャー/アート性を最優先</li><li>一枚で刺す表現力</li><li>ガイドライン化はやや難</li></ul></div>
+      <div class="r"><div class="k" style="color:var(--green)">C を選ぶなら</div><ul><li>思想（多様性＝群れ）に忠実</li><li>固定マーク＋無限の中身</li><li>A/Bも"中身"として内包できる</li></ul></div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="c">MORM — the swarm for every frame</div>
+    <div class="c">A confident · B experimental · C vessel</div>
+  </footer>
+</div>
+
+<script>
+  (function(){var tg=document.getElementById('tg');tg.addEventListener('click',function(){
+    var cur=document.documentElement.getAttribute('data-theme');
+    var next=cur?(cur==='dark'?'light':'dark'):(matchMedia('(prefers-color-scheme:dark)').matches?'light':'dark');
+    document.documentElement.setAttribute('data-theme',next);});})();
+</script>

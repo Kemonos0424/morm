@@ -1,0 +1,222 @@
+<title>MORM — Brand Direction</title>
+<style>
+  :root{
+    /* light — 紙の白に、印刷インクの鮮烈 */
+    --paper:#F4F2EA; --card:#FBFAF4; --ink:#0C0C0E; --ink-soft:#4A4A4E; --line:#0C0C0E;
+    --blue:#1E37E6; --magenta:#EC1E79; --orange:#FF4A17; --green:#0EA24A; --yellow:#FFD11A; --violet:#6B2CE6;
+    --accent:var(--blue); --hair:1px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --paper:#0C0C0E; --card:#151517; --ink:#F4F2EA; --ink-soft:#B7B7B0; --line:#F4F2EA;
+      --blue:#4A5CFF; --magenta:#FF3E93; --orange:#FF6A3D; --green:#22C466; --yellow:#FFDC3C; --violet:#9163FF;
+    }
+  }
+  :root[data-theme="light"]{
+    --paper:#F4F2EA; --card:#FBFAF4; --ink:#0C0C0E; --ink-soft:#4A4A4E; --line:#0C0C0E;
+    --blue:#1E37E6; --magenta:#EC1E79; --orange:#FF4A17; --green:#0EA24A; --yellow:#FFD11A; --violet:#6B2CE6;
+  }
+  :root[data-theme="dark"]{
+    --paper:#0C0C0E; --card:#151517; --ink:#F4F2EA; --ink-soft:#B7B7B0; --line:#F4F2EA;
+    --blue:#4A5CFF; --magenta:#FF3E93; --orange:#FF6A3D; --green:#22C466; --yellow:#FFDC3C; --violet:#9163FF;
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:"Helvetica Neue",Helvetica,"Inter",Arial,"Hiragino Kaku Gothic ProN",sans-serif;
+    line-height:1.55; letter-spacing:-.003em; font-feature-settings:"kern" 1;
+  }
+  .wrap{max-width:1080px; margin:0 auto; padding:clamp(24px,4.5vw,64px) clamp(18px,4.5vw,52px)}
+  .mono{font-family:ui-monospace,"SF Mono",Menlo,"Courier New",monospace}
+  .eyebrow{font-family:ui-monospace,"SF Mono",Menlo,"Courier New",monospace;
+    font-size:11px; letter-spacing:.28em; text-transform:uppercase; color:var(--ink)}
+
+  /* masthead */
+  header.mast{display:flex; justify-content:space-between; align-items:flex-start; gap:20px;
+    flex-wrap:wrap; border-top:3px solid var(--line); padding-top:12px}
+  header.mast .catalog{font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-soft); text-align:right}
+  .toggle{cursor:pointer; background:var(--ink); color:var(--paper); border:0;
+    font-family:ui-monospace,monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; padding:7px 12px}
+  .toggle:focus-visible{outline:3px solid var(--blue); outline-offset:2px}
+
+  /* specimen plate — 多書体×多鮮色ワードマーク */
+  .plate{margin:clamp(22px,4vw,44px) 0 0; border:3px solid var(--line); background:var(--card)}
+  .plate .bar{display:flex; height:14px}
+  .plate .bar i{flex:1}
+  .plate .inner{padding:clamp(24px,6vw,72px) clamp(18px,5vw,52px) clamp(18px,3vw,30px)}
+  .plate .top{display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:6px}
+  .wordmark{display:flex; justify-content:center; align-items:baseline; gap:.01em; line-height:.86; margin:.05em 0 .2em}
+  .wordmark span{font-size:clamp(84px,21vw,234px); display:inline-block; line-height:.86}
+  .g1{font-family:"Didot","Bodoni 72","Playfair Display",Georgia,serif; font-weight:700; letter-spacing:-.01em; color:var(--blue)}
+  .g2{font-family:"Optima","Futura","Century Gothic","Palatino Linotype",sans-serif; font-weight:700; color:var(--orange); transform:translateY(-.01em)}
+  .g3{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif; font-weight:800; letter-spacing:-.05em; color:var(--magenta)}
+  .g4{font-family:ui-monospace,"SF Mono",Menlo,"Courier New",monospace; font-weight:700;
+    font-size:clamp(66px,16vw,184px); transform:translateY(-.05em); color:var(--green)}
+  .plate .cap{display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap;
+    border-top:2px solid var(--line); padding-top:12px; margin-top:6px}
+  .plate .cap .l{font-size:14.5px; color:var(--ink); max-width:56ch}
+  .plate .cap .r{font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-soft); align-self:flex-end; white-space:nowrap}
+
+  /* thesis */
+  .thesis{display:grid; grid-template-columns:1fr; gap:clamp(20px,3.5vw,36px); margin:clamp(30px,5vw,54px) 0}
+  @media(min-width:760px){ .thesis{grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr)} }
+  .thesis h1{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif; font-weight:800;
+    font-size:clamp(30px,5.4vw,54px); line-height:1.0; letter-spacing:-.02em; margin:.08em 0 0; text-wrap:balance}
+  .thesis h1 .mg{color:var(--magenta)} .thesis h1 .bl{color:var(--blue)}
+  .thesis p{margin:0 0 1em; max-width:62ch; font-size:16px}
+  .thesis .lede{font-size:clamp(17px,2.2vw,20px); font-weight:500}
+
+  section.block{margin:clamp(38px,6vw,72px) 0}
+  .head{display:flex; align-items:center; gap:14px; margin:0 0 20px}
+  .head h2{font-family:ui-monospace,monospace; font-weight:700; font-size:12px; letter-spacing:.22em;
+    text-transform:uppercase; margin:0; background:var(--ink); color:var(--paper); padding:5px 10px}
+  .head .hr{flex:1; height:3px; background:var(--line)}
+  .head .n{font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-soft)}
+
+  /* palette — solid vivid blocks */
+  .pal{display:grid; grid-template-columns:repeat(2,1fr); gap:0; border:3px solid var(--line)}
+  @media(min-width:640px){ .pal{grid-template-columns:repeat(3,1fr)} }
+  @media(min-width:900px){ .pal{grid-template-columns:repeat(6,1fr)} }
+  .sw{aspect-ratio:1/1.15; position:relative; border-right:3px solid var(--line); border-bottom:3px solid var(--line); padding:12px}
+  .sw .nm{font-family:ui-monospace,monospace; font-size:12px; font-weight:700; letter-spacing:.02em}
+  .sw .hex{position:absolute; left:12px; bottom:10px; font-family:ui-monospace,monospace; font-size:11px; letter-spacing:.04em}
+  .sw.on-dark{color:#fff} .sw.on-light{color:#0C0C0E}
+
+  /* type voices */
+  .voices{display:grid; grid-template-columns:1fr; gap:0; border:3px solid var(--line)}
+  @media(min-width:720px){ .voices{grid-template-columns:repeat(2,1fr)} }
+  @media(min-width:1000px){ .voices{grid-template-columns:repeat(4,1fr)} }
+  .voice{padding:20px 18px; border-right:3px solid var(--line); border-bottom:3px solid var(--line); display:flex; flex-direction:column; gap:5px; background:var(--card)}
+  .voice .glyph{font-size:82px; line-height:1}
+  .voice .role{font-family:ui-monospace,monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase; margin-top:8px; font-weight:700}
+  .voice .face{font-size:14px; font-weight:600}
+  .voice .desc{font-size:13px; color:var(--ink-soft)}
+
+  /* refs + guardrails */
+  .keys{display:flex; flex-wrap:wrap; gap:8px}
+  .keys span{border:2px solid var(--line); padding:6px 12px; font-size:13.5px; font-weight:600}
+  .keys span.b{background:var(--blue); color:#fff; border-color:var(--blue)}
+  .keys span.m{background:var(--magenta); color:#fff; border-color:var(--magenta)}
+  .keys span.o{background:var(--orange); color:#fff; border-color:var(--orange)}
+  .keys span.g{background:var(--green); color:#fff; border-color:var(--green)}
+  .keys span.y{background:var(--yellow); color:#0C0C0E; border-color:var(--yellow)}
+  .refs{margin-top:16px; display:grid; grid-template-columns:1fr; gap:0; border:3px solid var(--line)}
+  @media(min-width:640px){ .refs{grid-template-columns:1fr 1fr} }
+  .refs > div{padding:15px 16px; border-right:3px solid var(--line); border-bottom:3px solid var(--line)}
+  .refs .k{font-family:ui-monospace,monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase; font-weight:700; margin-bottom:7px}
+  .refs .yes .k{color:var(--green)} .refs .no .k{color:var(--magenta)}
+  .refs ul{margin:0; padding-left:1.05em} .refs li{margin:.22em 0; font-size:14px}
+
+  footer{margin:clamp(44px,7vw,80px) 0 6px; display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap;
+    border-top:3px solid var(--line); padding-top:12px}
+  footer .c{font-family:ui-monospace,monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-soft)}
+</style>
+
+<div class="wrap">
+  <header class="mast">
+    <div class="eyebrow">MORM · Brand Direction № 02 — vivid / '90s</div>
+    <div style="display:flex; gap:12px; align-items:flex-start">
+      <button class="toggle" id="tg" type="button">◑ theme</button>
+      <div class="catalog">Memory · Swarm · Momentum<br>solid ink — direction study</div>
+    </div>
+  </header>
+
+  <!-- specimen plate -->
+  <div class="plate">
+    <div class="bar"><i style="background:var(--blue)"></i><i style="background:var(--orange)"></i><i style="background:var(--magenta)"></i><i style="background:var(--green)"></i><i style="background:var(--yellow)"></i><i style="background:var(--violet)"></i></div>
+    <div class="inner">
+      <div class="top"><span class="eyebrow">one word</span><span class="eyebrow">four voices · four inks</span></div>
+      <div class="wordmark" aria-label="MORM">
+        <span class="g1">M</span><span class="g2">O</span><span class="g3">R</span><span class="g4">M</span>
+      </div>
+      <div class="cap">
+        <div class="l">書体も色も、それぞれ違う。彫られた過去、彫刻の古典、現代のグロテスク、機械の未来——異なる者が一語に共存する。<strong>多様性を、鮮やかなまま束ねる。</strong></div>
+        <div class="r">Didot / Optima / Grotesque / Mono</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- thesis -->
+  <div class="thesis">
+    <div>
+      <div class="eyebrow">The thesis</div>
+      <h1>多様性は、<span class="mg">鮮烈</span>で<span class="bl">硬い</span>まま束ねる。</h1>
+    </div>
+    <div>
+      <p class="lede">MORMは単一の顔を持たない。無数のノード（群れ）が動画と価値を運ぶように、ブランドも多くの声が寄り集まって一つの形をなす。</p>
+      <p>色は土に沈めない。<strong>印刷インクの鮮烈</strong>——ウルトラマリン、マゼンタ、バーミリオン、グラス。発光するネオンではなく、紙に刷られた平塗りの飽和。だからシャープで、ソリッドで、いま。90年代のエディトリアルが持っていた、多色を恐れない確信を土台にする。</p>
+      <p>書体は一つに縛らない。時代も出自も違う四つの声が、それぞれの色を持って肩を並べ、それでも一語として立つ。<strong>文化でありファッションであり、過去でも未来でもある</strong>——その緊張と調和こそ、MORMの造形。</p>
+    </div>
+  </div>
+
+  <!-- palette -->
+  <section class="block">
+    <div class="head"><h2>Inks</h2><span class="hr"></span><span class="n">solid — vivid — flat</span></div>
+    <div class="pal" id="pal"></div>
+  </section>
+
+  <!-- type voices -->
+  <section class="block">
+    <div class="head"><h2>The four voices</h2><span class="hr"></span><span class="n">M · O · R · M</span></div>
+    <div class="voices">
+      <div class="voice"><span class="glyph g1">M</span><span class="role" style="color:var(--blue)">past · fashion</span><span class="face">Didone（Didot / Bodoni）</span><span class="desc">高コントラストの誌面の書体。美と権威の記憶。</span></div>
+      <div class="voice"><span class="glyph g2">O</span><span class="role" style="color:var(--orange)">ancient · carved</span><span class="face">Humanist（Optima / Trajan）</span><span class="desc">石に刻まれた大文字。人の手の温度。</span></div>
+      <div class="voice"><span class="glyph g3">R</span><span class="role" style="color:var(--magenta)">present · modern</span><span class="face">Grotesque（Helvetica系）</span><span class="desc">中立で強い現代のサンセリフ。いま、を担う。</span></div>
+      <div class="voice"><span class="glyph g4">M</span><span class="role" style="color:var(--green)">future · machine</span><span class="face">Monospace（SF Mono系）</span><span class="desc">等幅の機械の文字。分散ネットワークの記号。</span></div>
+    </div>
+    <p class="mono" style="color:var(--ink-soft); font-size:12px; margin:14px 0 0; letter-spacing:.02em">※ 本ボードはシステム書体での近似。最終ロゴは各声を厳選したライセンス書体で作字・調律します。</p>
+  </section>
+
+  <!-- refs + guardrails -->
+  <section class="block">
+    <div class="head"><h2>Tone / '90s</h2><span class="hr"></span><span class="n">sharp · solid · now</span></div>
+    <div class="keys">
+      <span class="b">United Colors 的 多様性</span><span class="m">Ray Gun / David Carson</span><span class="o">The Face / Neville Brody</span><span class="g">MTV=同じマークに無限の中身</span><span class="y">Emigre / Riso</span>
+      <span>平塗り · Flat</span><span>硬いエッジ · Sharp</span><span>高コントラスト</span><span>多書体 · 多鮮色</span><span>群れ · Swarm</span>
+    </div>
+    <div class="refs">
+      <div class="yes"><div class="k">寄せる</div><ul>
+        <li>印刷インクの<strong>ビビッド平塗り</strong>（CMYK/リソ）</li>
+        <li>一語に複数書体×複数の鮮色＝多様性²</li>
+        <li>白 or 黒の地に、硬いエッジの色ブロック</li>
+        <li>太いグロテスク＋誌面グリッド＝現代の確信</li></ul></div>
+      <div class="no"><div class="k">避ける</div><ul>
+        <li>土色・ミュート（＝陥りがち／シャープさを殺す）</li>
+        <li>ネオン発光・サイバーのグラデ・ダーク一辺倒</li>
+        <li>にじみ・テクスチャ過多・グランジで濁す</li>
+        <li>角丸・中央揃え一辺倒・絵文字見出し</li></ul></div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="c">MORM — the swarm for every frame</div>
+    <div class="c">direction study № 02 · vivid / '90s</div>
+  </footer>
+</div>
+
+<script>
+  (function(){
+    var tg=document.getElementById('tg');
+    tg.addEventListener('click',function(){
+      var cur=document.documentElement.getAttribute('data-theme');
+      var next=cur?(cur==='dark'?'light':'dark'):(matchMedia('(prefers-color-scheme:dark)').matches?'light':'dark');
+      document.documentElement.setAttribute('data-theme',next);
+    });
+  })();
+  function hexOf(v){var e=document.createElement('i');e.style.color=v;document.body.appendChild(e);
+    var c=getComputedStyle(e).color;e.remove();var m=c.match(/\d+/g);if(!m)return v;
+    return '#'+m.slice(0,3).map(function(x){return('0'+(+x).toString(16)).slice(-2)}).join('').toUpperCase();}
+  var INKS=[
+    ['Ultramarine','var(--blue)','on-dark'],
+    ['Magenta','var(--magenta)','on-dark'],
+    ['Vermilion','var(--orange)','on-dark'],
+    ['Grass','var(--green)','on-dark'],
+    ['Acid Yellow','var(--yellow)','on-light'],
+    ['Violet','var(--violet)','on-dark']
+  ];
+  document.getElementById('pal').innerHTML=INKS.map(function(p){
+    return '<div class="sw '+p[2]+'" style="background:'+p[1]+'"><span class="nm">'+p[0]+'</span><span class="hex">'+hexOf(p[1])+'</span></div>';
+  }).join('');
+</script>
