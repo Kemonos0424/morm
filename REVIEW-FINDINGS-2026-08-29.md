@@ -16,21 +16,23 @@
 | H | MEDIUM | **lane/earn 予約残り**: 送金失敗で ref 恒久 unclaimable | `b19839e`：`releaseEarn` で失敗時解放(確定行は削除せず二重払い防止) |
 | — | 運用罠 | **launchd env は kickstart で再読込されない**(bootout+bootstrap 必須) | handoff 罠に記録。今回の play env 全変更を bootout で反映確定 |
 
-## ⚠️ 未対応（要判断/設計・ドキュメント化）
+## ✅ 追加修正（レビュー後・本番反映済 第2波）
 
-- **[HIGH] システム全体の発行上限なし**（register/faucet/lane-earn が DASH から無制限に引ける・sybil で供給インフレ）。
-  現状 **cash-out valve(fail-closed 化済)が fiat 出口を絞る**ため急性 drain は緩和されるが、内部供給インフレは残る。
-  **推奨**: register+faucet+lane-earn 共有の日次発行台帳＋上限(env 可変)を追加、faucet/lane を passkey 実証で gate、
-  register を IP レート制限(ip_hash は保存済で未チェック)。**上限値は経済判断＝ユーザー決定**。
-- **[MEDIUM] AGE_SECRET が ADMIN_TOKEN 由来**: ADMIN_TOKEN 未設定だと age cookie 偽造可（現在は token 設定済で不成立）。
-  独立の `AGE_SECRET_KEY` env にし、未設定なら R18 無効化/起動拒否が望ましい。
-- **[MEDIUM] payout() は atomic DB claim なし**（単一プロセスなら安全。多重プロセス/blue-green で二重払い）。
-  他3経路と同型の条件付き UPDATE + rowcount を入れるか、単一プロセス運用を明文化。
+| # | 重大度 | 内容 | commit |
+|---|---|---|---|
+| I | **HIGH** | **システム発行上限なし**→register/faucet/lane-earn 共有の日次発行上限(`app/lib/issuance.js`・morm_txs 24h合計・既定10000 MORM/env `MORM_DAILY_ISSUANCE_CAP`)。Vercel 反映 | `d04b08d` |
+| J | MEDIUM | **AGE_SECRET を ADMIN_TOKEN から独立化**(`AGE_SECRET_KEY`優先→無ければ token→空なら起動毎ランダム)。既知定数での age cookie 偽造を封鎖 | `3410efc` |
+| K | LOW-MED | **未承認メタ漏洩**: `/api/content/{id}` を status で 404 化(未承認はメタも隠す)。Play 反映 | `3410efc` |
+
+## ⚠️ 残（単一プロセスでは安全 or 設計変更・ドキュメント化）
+
+- **[MEDIUM] payout() は atomic DB claim なし**: 現状 **単一 ThreadingHTTPServer + `_payout_lock` で安全**。
+  多重プロセス/blue-green を導入する場合のみ、他3経路と同型の条件付き UPDATE(CAS)+rowcount を追加すること。
 - **[MEDIUM] 署名read が pub 秘匿依存**: earnings/mine/me は `?pub=` で認証。pub は署名POSTで広く送信されるため、
-  観測で漏れると他者の収益が読める。nonce+expiry の署名read に上げるのが理想。
-- **[LOW-MEDIUM] 未承認メタ漏洩**: `/api/content/{id}`・`/api/story`・`/api/comments` が status 無フィルタ。
-  owner/admin 用パスと分けて `status IN('approved','shadow')` を追加（owner が自分の pending を見る動線に注意）。
-- **[LOW] 署名replay(nonce/expiry なし)**／**pending マーカーの sweeper なし**／constant-time 比較／base=1↔1e6 の morm_txs.amount 表記。
+  観測で漏れると他者の収益が読める。nonce+expiry の**署名read**に上げるのが理想(設計変更)。
+- **[LOW] 署名replay(nonce/expiry なし)**: 状態変更は概ね冪等。厳密化には消費済 nonce 追跡が要る(設計変更)。
+- **[LOW] pending マーカーの sweeper なし**(reservation-first で残る 'pending' tx の照合バッチ)／
+  admin の constant-time 比較／base=1↔1e6 時の morm_txs.amount 表記／story/comments の status フィルタ。
 
 ## 参考
 - 詳細な再現・行番号は各レビュー結果（本セッション transcript）。secret ローテ=`SECURITY-SECRET-ROTATION.md`。
