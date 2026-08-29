@@ -11,8 +11,10 @@ export function getDb() {
       // Turso (production / Vercel)
       client = createClient({ url, authToken });
     } else {
-      // Local fallback: file-based SQLite
-      client = createClient({ url: 'file:db/dashboard.sqlite' });
+      // Local fallback: file-based SQLite. LOCAL_SQLITE_URL lets tests/dev point
+      // at an isolated db file (e.g. file:/tmp/x.sqlite) instead of the shared
+      // db/dashboard.sqlite; default is unchanged.
+      client = createClient({ url: process.env.LOCAL_SQLITE_URL || 'file:db/dashboard.sqlite' });
     }
   }
   return client;

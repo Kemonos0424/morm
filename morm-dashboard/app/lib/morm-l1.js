@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { mormToUnits } from '@/app/lib/morm-units';
 
 // MORM L1 client — builds, signs, and submits a native TRANSFER tx (kind=6)
 // to a MORM L1 node's HTTP RPC. This replaces the simulated txHash in
@@ -84,18 +85,32 @@ async function rpcPostTx(txDict) {
   return data; // { ok, tx_hash, mempool_size }
 }
 
-// Convert a display MORM amount to integer L1 base units.
+// Convert a display MORM amount to integer L1 base units (single source of
+// truth = app/lib/morm-units). Rejects non-positive amounts for a transfer.
 function toBaseUnits(mormAmount) {
-  const mult = Number(process.env.MORM_BASE_UNITS_PER_MORM || 1);
-  const units = Math.round(Number(mormAmount) * mult);
-  if (!Number.isFinite(units) || units <= 0) {
-    throw new Error(`invalid transfer amount: ${mormAmount}`);
-  }
+  const units = mormToUnits(mormAmount);
+  if (units <= 0) throw new Error(`invalid transfer amount: ${mormAmount}`);
   return units;
 }
 
-// Submit a real m0r TRANSFER from the treasury to `to`. Returns the L1 tx hash.
-export async function transferMorm({ to, mormAmount }) {
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Serialize every treasury-signed tx through one async chain. Treasury nonce is
+// read fresh per tx from /account, so two overlapping transfers would read the
+// SAME nonce and one would be dropped. The mutex + on-chain confirm below make
+// the next transfer read a nonce that has actually advanced. (Mirrors the
+// _l1_lock + landing-confirm in play_server.py's l1_transfer.)
+let _treasuryChain = Promise.resolve();
+
+// Submit a real m0r TRANSFER from the treasury to `to`. Serialized + confirmed.
+// Returns the L1 tx hash once the recipient balance has actually increased.
+export async function transferMorm(args) {
+  const run = _treasuryChain.then(() => _transferMormInner(args), () => _transferMormInner(args));
+  _treasuryChain = run.then(() => {}, () => {}); // keep the chain alive past failures
+  return run;
+}
+
+async function _transferMormInner({ to, mormAmount, confirm = true, confirmTimeoutMs = 25000 }) {
   const treasuryAddr = (process.env.MORM_TREASURY_ADDRESS || '').trim();
   if (!treasuryAddr) {
     throw new Error('MORM_TREASURY_ADDRESS required for nonce lookup');
@@ -105,7 +120,9 @@ export async function transferMorm({ to, mormAmount }) {
   const senderHex = rawPubkey(priv).toString('hex');
   const amount = toBaseUnits(mormAmount);
 
-  // Nonce = current account nonce (next expected). /account/{addr} returns it.
+  const before = Number((await rpcGet(`/account/${to}`)).balance || 0);
+  // Nonce = current account nonce (next expected). Read AFTER the previous
+  // transfer confirmed (mutex guarantees ordering), so it has advanced.
   const acct = await rpcGet(`/account/${treasuryAddr}`);
   const nonce = Number(acct.nonce || 0);
 
@@ -115,5 +132,45 @@ export async function transferMorm({ to, mormAmount }) {
 
   const txDict = { kind: TX_KIND_TRANSFER, sender: senderHex, nonce, payload, signature };
   const res = await rpcPostTx(txDict);
+
+  if (confirm) {
+    const deadline = Date.now() + confirmTimeoutMs;
+    while (Date.now() < deadline) {
+      await sleep(1200);
+      const b = Number((await rpcGet(`/account/${to}`)).balance || 0);
+      if (b >= before + amount) return { txHash: res.tx_hash, nonce, amount };
+    }
+    throw new Error('transfer not confirmed on-chain (recipient balance did not increase)');
+  }
   return { txHash: res.tx_hash, nonce, amount };
+}
+
+// Read an account's on-chain state from the L1 (balance / nonce / stake / locked).
+// Returns null when the L1 RPC is not configured. Callers treat null as
+// "chain not wired yet" and fall back to registry-only data.
+export async function getL1Account(address) {
+  if (!process.env.MORM_L1_RPC_URL) return null;
+  try {
+    return await rpcGet(`/account/${address}`);
+  } catch {
+    return null;
+  }
+}
+
+// True when the L1 RPC is reachable for read-only lookups (no treasury needed).
+export function mormL1ReadEnabled() {
+  return Boolean(process.env.MORM_L1_RPC_URL);
+}
+
+// Relay a fully-formed, CLIENT-signed tx dict straight to the L1 (the server
+// never signs it). The L1 verifies the signature + nonce; we only forward.
+// Used by the agent lane to submit REGISTER_CONTENT (kind 1). Throws on reject.
+export async function relayTx(txDict) {
+  return rpcPostTx(txDict); // { ok, tx_hash, mempool_size }
+}
+
+// Read a content record by 0x-hex content_id. null when absent / chain unwired.
+export async function getContent(cid) {
+  if (!process.env.MORM_L1_RPC_URL) return null;
+  try { return await rpcGet(`/content/${cid}`); } catch { return null; }
 }
