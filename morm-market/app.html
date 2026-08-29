@@ -80,7 +80,7 @@ input,select{width:100%;border:1px solid var(--line);background:var(--paper);col
       </div>
 
       <div class="panel">
-        <h3>スワップ <em>Uniswap v3 · 手数料0.3%</em></h3>
+        <h3>スワップ <em>Uniswap v3 · 手数料1%</em></h3>
         <div class="seg" id="swapDir">
           <button data-d="buy" class="on">USDC → wMORM</button>
           <button data-d="sell">wMORM → USDC</button>
@@ -149,9 +149,9 @@ const CHAIN_ID=84532, CHAIN_HEX="0x14a34";
 const WMORM="0x91FF1A51EEcCdBBC5d3A9ABD56E11352885667ed";
 const USDC ="0xcC07858c6ba05A65eD47570233b9B010e2482Ea2";
 const BRIDGE="0x97a84556abe75391CC177204AeE0D2f4c569Ab8E";
-const POOL ="0x9E62498516742EC84F3BC71cDB7b2a172dfA5789";
+const POOL ="0xcbC9fe1fA344036146949165e935cada066F9E45";
 const ROUTER="0x94cC0AaC535CCDB3C01d6787D6413C739ae12bc4"; // Uniswap SwapRouter02 (Base Sepolia)
-const FEE=3000;
+const FEE=10000;
 // native L1 API (bridge_burns are read by the relayer from the L1 node HTTP API).
 // Finalized against the live api.morm.one surface — see wiring below.
 const API_MORM="https://api.morm.one";
@@ -192,7 +192,7 @@ function validMorm(a){try{mormToBytes20(a);return true;}catch(e){return false;}}
 
 // ---------------- price (for swap estimate) ----------------
 // USDC(6dec)=token0, wMORM(18dec)=token1.  USDC per wMORM:
-function priceFromSqrt(sq){const r=Number(sq)/2**96;return (1e18/(r*r))/1e6;}
+function priceFromSqrt(sq){const r=Number(sq)/2**96;return (r*r)*1e12;}  // ★新順序: wMORM=token0 → USDC per wMORM = praw*1e12
 let usdcPerWm=0.01;
 async function loadPrice(){try{const p=new ethers.Contract(POOL,POOL_ABI,ro);const s=await p.slot0();
   usdcPerWm=priceFromSqrt(s[0]);estimate();}catch(e){}}

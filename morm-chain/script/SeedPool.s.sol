@@ -30,9 +30,10 @@ interface INPM {
 contract SeedPool is Script {
     // Base Sepolia Uniswap v3 NonfungiblePositionManager
     address constant NPM_DEFAULT = 0x27F971cb582BF9E50F397e4d29a5C7A34f11faA2;
-    uint24  constant FEE = 3000;            // 0.3% (tickSpacing 60)
-    int24   constant TL = -887220;          // full range aligned to spacing 60
-    int24   constant TU =  887220;
+    // ★fee=1%(tickSpacing 200)。新アドレスで token 順序が逆転し 0.3% プールを誤価格で init 済のため別 tier。
+    uint24  constant FEE = 10000;           // 1% (tickSpacing 200)
+    int24   constant TL = -887200;          // full range aligned to spacing 200
+    int24   constant TU =  887200;
 
     function run() external {
         uint256 pk    = vm.envUint("DEPLOYER_PK");
@@ -40,15 +41,18 @@ contract SeedPool is Script {
         address usdc  = vm.envAddress("USDC_ADDR");
         address npmA  = vm.envOr("NPM_ADDR", NPM_DEFAULT);
 
-        // token0 = lower address (USDC 0x2B.. < wMORM 0x5c.. here). price =
-        // token1/token0 raw. 1 wMORM = 0.01 USDC <=> raw 1e14; sqrt=1e7.
+        // token0 = lower address. ★順序で sqrtPriceX96 が変わる: 1 wMORM = 0.01 USDC。
+        //   USDC(6dec)=token0: price token1/token0 = 1e18/1e4 = 1e14 → sqrt=1e7 → 1e7*2^96。
+        //   wMORM(18dec)=token0: price = 1e4/1e18 = 1e-14 → sqrt=1e-7 → 2^96/1e7 = 7922816251426433759354。
         (address t0, address t1) = usdc < wmorm ? (usdc, wmorm) : (wmorm, usdc);
+        uint160 sqrtP = (t0 == wmorm)
+            ? uint160(uint256(7922816251426433759354))   // wMORM=token0(18dec)
+            : uint160(uint256(1e7) * (2 ** 96));          // USDC=token0(6dec)
 
         vm.startBroadcast(pk);
         IERC20(usdc).approve(npmA, type(uint256).max);
         IERC20(wmorm).approve(npmA, type(uint256).max);
-        address pool = INPM(npmA).createAndInitializePoolIfNecessary(
-            t0, t1, FEE, uint160(uint256(1e7) * (2 ** 96)));
+        address pool = INPM(npmA).createAndInitializePoolIfNecessary(t0, t1, FEE, sqrtP);
         _mint(npmA, t0, t1, vm.addr(pk));
         vm.stopBroadcast();
         console2.log("pool     :", pool);
