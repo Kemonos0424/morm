@@ -17,7 +17,10 @@ import urllib.request
 from moderation import moderate
 
 PLAY_URL = os.environ.get("PLAY_URL", "http://127.0.0.1:8791").rstrip("/")
-ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "")
+_tf = os.path.expanduser("~/.morm-worker-token")
+# ★token はファイル優先(env より前)。ローテは ~/.morm-worker-token に書いて worker を kill するだけ
+#   (systemd Restart=always が自動再起動)=root/sudo 不要。無ければ従来どおり env から。
+ADMIN_TOKEN = (open(_tf).read().strip() if os.path.exists(_tf) else os.environ.get("ADMIN_TOKEN", ""))
 POLL_EVERY = int(os.environ.get("POLL_EVERY", "3"))
 GATEWAY = os.environ.get("GATEWAY", "http://100.80.207.111:8801")  # フレーム取得元
 

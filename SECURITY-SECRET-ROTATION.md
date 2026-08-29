@@ -30,9 +30,17 @@ decide 等）を叩ける＝treasury/payout drain・恣意的モデレーショ�
      -H "X-Admin-Token: adm_1b378edd49741f4661bd" http://127.0.0.1:8791/api/admin/moderation/queue
    echo "NEW token(控える・共有しない): $NEW"'
    ```
-2. **mod-worker(hpmini systemd) に同 NEW token を反映**（無いとモデレーションが 401 で停止）:
-   hpmini の `/etc/systemd/…/morm-modworker.service`（or 実体）の `ADMIN_TOKEN=` を NEW に→
-   `sudo systemctl daemon-reload && sudo systemctl restart morm-modworker`。recaption 実行時も `ADMIN_TOKEN` env に NEW。
+2. **mod-worker(hpmini) に同 NEW token を反映**（無いとモデレーションが 403 で停止）:
+   ★**sudo 不要方式(2026-08-29 導入済)**: hpmini の `mod_worker.py` は `~/.morm-worker-token` を
+   env より優先して読む。ローテは **token ファイルを書いて worker を kill するだけ**(systemd
+   `Restart=always` が自動再起動):
+   ```bash
+   printf '%s' "<NEW_TOKEN>" | ssh hpmini@100.80.207.111 'umask 077; cat > ~/.morm-worker-token'
+   ssh hpmini@100.80.207.111 'kill $(systemctl show morm-modworker -p MainPID --value)'   # 5s で自動再起動
+   ssh hpmini@100.80.207.111 'journalctl -u morm-modworker --since "20s ago" --no-pager | grep -c 403'  # 0 なら復旧
+   ```
+   （systemd unit の inline `Environment=ADMIN_TOKEN=` は旧値のままでも token ファイルが勝つ。unit の
+   平文 token を掃除したい場合のみ sudo で編集）。recaption 実行時も `ADMIN_TOKEN` env に NEW。
 3. 履歴に残る旧 token は公開済＝ローテで無効化するのが唯一策（rewrite 不要）。
 
 ---
