@@ -58,8 +58,10 @@ MORM 4サーフェス（www/api/node/play.morm.one）を監査→**致命セキ�
 **残(api.morm.one=Vercel の段階ロールアウト・各段ユーザー承認/検証)**:
 - **E-4 DASH 配線(秘密更新＝ユーザー実行)**: Vercel morm-dashboard の `MORM_TREASURY_SEED`(現在22日前の旧値)を **dash_payout.seed** に、`MORM_TREASURY_ADDRESS` を `m0roshqbpskljwuj3drophhb7tth33qprzn` に更新→再デプロイ。※F/B の前に必須。
 - ✅**Phase C(換金バルブ) LIVE 2026-08-29**: `BRIDGE_VALVE=on` を Vercel production に設定→`vercel --prod`(deploy `pdy8vk0kg`・api.morm.one alias)→回帰なし(price/lane 200)。保護=system≤0.5%/日・acct≤$50/日・cooldown24h(他ノブは既定)。ロールバック=`BRIDGE_VALVE` unset+redeploy。
-- **残(発行フェーズ・要判断)**: **E-4 DASH 配線(秘密＝ユーザー実行)** → **F**(AD・ADMIN_PASSWORD済) → **B** `MORM_LANE_EARN=1`(+`MORM_LANE_EARN_DAILY_CAP`10) → **D**(Play側 `EMISSION_MODE=proportional`+`B_EPOCH_MORM`小・`VIEW_EARN`は署名watchクライアント改修後)。各段 env→redeploy→検証→ロールバック=flag戻す。**Phase E(node emission)は廃止**。
-  - E-4 コマンド(ユーザー): `cd ~/Desktop/MORM/morm-dashboard; vercel env rm MORM_TREASURY_SEED production -y; printf '%s' "$(cat ~/.morm-agentlane/dash_payout.seed)" | vercel env add MORM_TREASURY_SEED production; vercel env rm MORM_TREASURY_ADDRESS production -y; printf 'm0roshqbpskljwuj3drophhb7tth33qprzn' | vercel env add MORM_TREASURY_ADDRESS production` → その後エージェントが `vercel --prod` で反映。
+- ✅**E-4 DASH 配線完了 2026-08-29**: ユーザーが `MORM_TREASURY_SEED`→dash_payout・`MORM_TREASURY_ADDRESS`→`m0rosh…` を更新(seed導出=DASH一致を検証)→`vercel --prod`(deploy `elkqashi5`)→回帰なし・l1.morm.one 200(dashboard の L1 到達確認)。dashboard は DASH_PAYOUT(100000) から faucet/lane/AD を支払う。
+- ✅**Phase F(AD) ready**: 専用フラグ無し=`ADMIN_PASSWORD`(設定済)で admin-gated。no-auth→401(fail-closed)確認。発行外の再分配。
+- ✅**Phase B(lane earn) active**: `MORM_LANE_EARN`既定1・`MORM_LANE_EARN_DAILY_CAP`既定10。未署名→400"invalid m0r addr"(署名必須・開放なし)。DASH から支払い。
+- ⏳**Phase D(engagement) のみ残**: Play側 plist に `EMISSION_MODE=proportional`+`B_EPOCH_MORM`(1エポック発行予算・要値決定)+`EPOCH_ACCT_CAP_FRAC=0.005`。現状 fixed レートで安全稼働中=急ぎでない。`VIEW_EARN=on` は署名付きwatchのクライアント改修後(未改修は安全に無報酬)。ロールバック=`EMISSION_MODE`をfixedへ。**Phase E(node emission)は廃止**。
 - 詳細=`agent-lane/DEPLOY.md` 冒頭★。base=1(整数MORM)で初回・§G(1e6)は後日。
 
 ## 必要アクセス（新セッションで request）
