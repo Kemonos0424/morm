@@ -45,9 +45,13 @@ MORM 4サーフェス（www/api/node/play.morm.one）を監査→**致命セキ�
 - **morm-market → 【Mac Mini側デプロイ完了・DNS のみ残 2026-08-29】**: 自己参照を相対リンク化(commit 4222502)→scp `/Users/user/zoku-sites/morm-market/`(sha一致)→nginx vhost `/opt/homebrew/etc/nginx/servers/morm-market.conf`(listen8080・server_name market.morm.one・root同dir、morm-apex.conf に倣う)→`nginx -t`OK→reload。cloudflared `/Users/user/.cloudflared/config.yml` に `market.morm.one→http://localhost:8080` ingress 追加(catch-all直前)→validate OK→kickstart(一時530→即回復)。nginx は `curl -H "Host: market.morm.one" localhost:8080/` で 200 配信確認済。
   - **残(gated=要ユーザーの morm.one CFアカウント)**: **market.morm.one の DNS レコード作成**。morm.one ゾーンに **proxied CNAME `market.morm.one` → `f60ef43f-8ba5-45ee-946f-1c1f673df231.cfargotunnel.com`**(www/play と同方式)。※`cloudflared tunnel route dns` は tunnel既定ゾーン ctai.online に付くため不可(誤って `market.morm.one.ctai.online` を作成済→ユーザーが ctai.online ゾーンで削除推奨)。DNS 伝播後 https://market.morm.one/ が live。
 
-### E. Agent Lane 活性化（`agent-lane/DEPLOY.md` 冒頭★の順）
-- 前提: ①api.morm.one `ADMIN_PASSWORD`=Yachida0024（済）②**payout口座(PLAY/DASH)を fund**（`agent-lane/deploy/fund-payouts.md`・Mac Mini L1操作・base=1整数MORM）③base=1統一。
-- 順序: A(不活性・既載) → C(換金バルブ) → **F(AD・発行外で安全)** → B(lane・cap必須) → D(engagement・要C[play settle修正]先行)。**Phase E(node emission)は廃止**。
+### E. Agent Lane 活性化（`agent-lane/DEPLOY.md` 冒頭★の順）★ready-state検証済 2026-08-29
+**✅ 準備完了(確認済)**: Phase A コード live(api.morm.one `/api/lane/skill|feed`=200・Vercel)／play settle修正 live(本日デプロイ・Phase D前提クリア)／verify 9/9／`ADMIN_PASSWORD`=Yachida0024／**treasury `m0rzjtz…ctbc` balance≈1e18・nonce20**／payout口座 balance=0(未fund)。
+**❌ ユーザー実行が必要(機微・私は seed/実送金を扱わない)**、順に:
+1. **payout seed 配置**: seedは MacBook `~/.morm-agentlane/{play,dash}_payout.seed`(0600・addresses一致)に生成済だが**配布先に未配置**。①`play_payout.seed`→**Mac Mini** に置き Play `TREASURY_SEED_FILE` を向ける ②`dash_payout.seed`→**Vercel(morm-dashboard) env** `MORM_TREASURY_SEED`(+ADDRESS)。※Mac Mini `~/.morm-agentlane/` は現在不在。
+2. **fund(treasury→payout・実MORM送金＝ユーザー実行)**: Mac Mini で `python3 -m morm_l1.cli submit --rpc http://127.0.0.1:8900 --seed $(cat ~/.morm-l1/producer.seed) transfer --to <PLAY> --amount 100000` → 着金待ち → 同 `<DASH>`。PLAY=`m0r3pos24vwa5d3lq5vqaij75wo3tmyrv4t` DASH=`m0roshqbpskljwuj3drophhb7tth33qprzn`。手順=`agent-lane/deploy/fund-payouts.md`。
+3. **段階flag(既定offから)**: C(`BRIDGE_VALVE=on`ほか) → F(AD・要ADMIN_PASSWORD済) → B(`MORM_LANE_EARN=1`) → D(`EMISSION_MODE=proportional`+`B_EPOCH_MORM`小+`VIEW_EARN`はクライアント署名watch改修後)。各段ロールバック=flag戻すだけ。**Phase E(node emission)は廃止**。
+- 詳細=`agent-lane/DEPLOY.md` 冒頭★。base=1(整数MORM)で初回・§G(1e6)は後日。
 
 ## 必要アクセス（新セッションで request）
 - `~/Desktop/node-cluster/src/node-dashboard`（node.morm.one 編集/デプロイ）
