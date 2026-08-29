@@ -142,9 +142,10 @@ input,select{width:100%;border:1px solid var(--line);background:var(--paper);col
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<script src="rpc-config.js"></script>
 <script>
 // ---------------- config ----------------
-const RPC="https://mainnet.base.org";
+const RPC=(window.MORM_RPC)||"https://mainnet.base.org";  // Alchemy(rpc-config.js・git外) / fallback 公開RPC
 const CHAIN_ID=8453, CHAIN_HEX="0x2105";
 const WMORM="0x7fEf327a811e73F06cccF0De9db022e739d5076d";
 const USDC ="0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";

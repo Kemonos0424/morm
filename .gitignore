@@ -111,3 +111,4 @@ _archive/morm-node-shop/
 # Claude Code worktrees (transient)
 .claude/worktrees/
 **/.claude/worktrees/
+morm-market/rpc-config.js
