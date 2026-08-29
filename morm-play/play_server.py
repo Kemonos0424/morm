@@ -1111,19 +1111,44 @@ def settle_referrals(limit=25):
             conn = _db()
             rc = conn.execute("SELECT COUNT(*) FROM referrals WHERE referrer=? AND rewarded=1",
                               (referrer,)).fetchone()[0]
+            # ① 予約: 送金前に rewarded=1 を確定(rewarded=0 の時のみ=原子的クレーム)。
+            #    l1着地後・DB更新前にクラッシュしても次回再送(二重支払い)しない。
+            cur = conn.execute("UPDATE referrals SET rewarded=1, rewarded_at=?, "
+                               "reward_tx_referee='pending', reward_tx_referrer='pending' "
+                               "WHERE referee=? AND rewarded=0", (int(time.time()), referee))
+            conn.commit()
+            claimed = cur.rowcount
             conn.close()
+            if not claimed:
+                continue  # 既に他で確定済み(競合/再入)
             tx_e = tx_r = ""
+            # 被招待者レッグ: 未着地なら何も送っていない→全巻き戻し(rewarded=0で次回再試行)。
             try:
                 if REF_BONUS_REFEREE > 0:
                     tx_e = l1_transfer(referee, REF_BONUS_REFEREE) or ""
+            except Exception:
+                conn = _db()
+                conn.execute("UPDATE referrals SET rewarded=0, rewarded_at=0, "
+                             "reward_tx_referee='', reward_tx_referrer='' WHERE referee=?", (referee,))
+                conn.commit()
+                conn.close()
+                continue
+            # 招待者レッグ: ここで失敗しても被招待者は既に着地済み→巻き戻すと二重支払い。
+            # rewarded=1 を維持し被招待者txのみ記録、招待者は未払いマーカー('')で残す
+            # (payout()同様「最悪でも過少支払い=監査で回復可・二重支払いはしない」方針)。
+            try:
                 if rc < REF_CAP and REF_BONUS_REFERRER > 0:
                     tx_r = l1_transfer(referrer, REF_BONUS_REFERRER) or ""
             except Exception:
-                continue  # 未着地は次回 settle で再試行(rewarded=0のまま)
+                conn = _db()
+                conn.execute("UPDATE referrals SET reward_tx_referee=?, reward_tx_referrer='' "
+                             "WHERE referee=?", (tx_e, referee))
+                conn.commit()
+                conn.close()
+                continue
             conn = _db()
-            conn.execute("UPDATE referrals SET rewarded=1, rewarded_at=?, reward_tx_referee=?, "
-                         "reward_tx_referrer=? WHERE referee=?",
-                         (int(time.time()), tx_e, tx_r, referee))
+            conn.execute("UPDATE referrals SET reward_tx_referee=?, reward_tx_referrer=? WHERE referee=?",
+                         (tx_e, tx_r, referee))
             conn.commit()
             conn.close()
             paid += 1
@@ -1269,25 +1294,36 @@ def _settle_fixed():
         P = sum(r["points"] for r in rows)
         pr = conn.execute("SELECT carry_points FROM point_payouts WHERE account=?", (acct,)).fetchone()
         carry = pr["carry_points"] if pr else 0
-        conn.close()
         pool = P + carry
         morm = pool // POINT_PER_MORM
         if pool < POINT_MIN_SETTLE or morm < 1:
+            conn.close()
             continue  # 繰越(rows は settled=0 のまま・carry据え置き)
         remainder = pool - morm * POINT_PER_MORM
+        ids = [(r["id"],) for r in rows]
+        now = int(time.time())
+        # ① 予約: 送金前に台帳(settled=1)と配分記録(carry更新)を確定。着地後・記録前に
+        #    クラッシュしても再集計されず二重支払いしない(settle_referrals/payout と同型)。
+        conn.executemany("UPDATE point_ledger SET settled=1 WHERE id=?", ids)
+        conn.execute(
+            "INSERT INTO point_payouts(account,paid_points,paid_morm,carry_points,last_tx,updated) "
+            "VALUES(?,?,?,?,'pending',?) ON CONFLICT(account) DO UPDATE SET "
+            "paid_points=paid_points+?, paid_morm=paid_morm+?, carry_points=?, last_tx='pending', updated=?",
+            (acct, P, morm, remainder, now, P, morm, remainder, now))
+        conn.commit()
         try:
             txh = l1_transfer(acct, morm) or ""
         except Exception:
+            # ③ 送金失敗 → 予約を巻き戻し(settled=0・配分記録を減算・carryを元へ)
+            conn.executemany("UPDATE point_ledger SET settled=0 WHERE id=?", ids)
+            conn.execute("UPDATE point_payouts SET paid_points=paid_points-?, paid_morm=paid_morm-?, "
+                         "carry_points=?, last_tx='', updated=? WHERE account=?",
+                         (P, morm, carry, int(time.time()), acct))
+            conn.commit()
+            conn.close()
             continue  # 未着地=次回 settle で再試行
-        now = int(time.time())
-        conn = _db()
-        conn.executemany("UPDATE point_ledger SET settled=1 WHERE id=?",
-                         [(r["id"],) for r in rows])
-        conn.execute(
-            "INSERT INTO point_payouts(account,paid_points,paid_morm,carry_points,last_tx,updated) "
-            "VALUES(?,?,?,?,?,?) ON CONFLICT(account) DO UPDATE SET "
-            "paid_points=paid_points+?, paid_morm=paid_morm+?, carry_points=?, last_tx=?, updated=?",
-            (acct, P, morm, remainder, txh, now, P, morm, remainder, txh, now))
+        conn.execute("UPDATE point_payouts SET last_tx=?, updated=? WHERE account=?",
+                     (txh, int(time.time()), acct))
         conn.commit()
         conn.close()
         paid_accounts += 1
@@ -1327,19 +1363,31 @@ def _settle_proportional():
             share = cap_units                          # 反whale(超過は不払い)
         if share < 1:
             continue                                    # 端数=次回へ(settled=0据え置き)
+        ids = [(i,) for i in d["ids"]]
+        now = int(time.time())
+        conn = _db()
+        # ① 予約: 送金前に台帳(settled=1)と配分記録を確定(着地後クラッシュでも再送しない)。
+        # proportional では paid_morm 列に base units を積む(carry_points は据え置き=固定モード用)。
+        conn.executemany("UPDATE point_ledger SET settled=1 WHERE id=?", ids)
+        conn.execute(
+            "INSERT INTO point_payouts(account,paid_points,paid_morm,carry_points,last_tx,updated) "
+            "VALUES(?,?,?,?,'pending',?) ON CONFLICT(account) DO UPDATE SET "
+            "paid_points=paid_points+?, paid_morm=paid_morm+?, last_tx='pending', updated=?",
+            (acct, d["P"], share, 0, now, d["P"], share, now))
+        conn.commit()
         try:
             txh = l1_transfer(acct, share) or ""        # amount=生のL1整数(=base units)
         except Exception:
+            # ③ 送金失敗 → 予約を巻き戻し(settled=0・配分記録を減算)
+            conn.executemany("UPDATE point_ledger SET settled=0 WHERE id=?", ids)
+            conn.execute("UPDATE point_payouts SET paid_points=paid_points-?, paid_morm=paid_morm-?, "
+                         "last_tx='', updated=? WHERE account=?",
+                         (d["P"], share, int(time.time()), acct))
+            conn.commit()
+            conn.close()
             continue                                    # 未着地=次回再試行
-        now = int(time.time())
-        conn = _db()
-        conn.executemany("UPDATE point_ledger SET settled=1 WHERE id=?", [(i,) for i in d["ids"]])
-        # proportional では paid_morm 列に base units を積む(carry_points は据え置き=固定モード用)。
-        conn.execute(
-            "INSERT INTO point_payouts(account,paid_points,paid_morm,carry_points,last_tx,updated) "
-            "VALUES(?,?,?,?,?,?) ON CONFLICT(account) DO UPDATE SET "
-            "paid_points=paid_points+?, paid_morm=paid_morm+?, last_tx=?, updated=?",
-            (acct, d["P"], share, 0, txh, now, d["P"], share, txh, now))
+        conn.execute("UPDATE point_payouts SET last_tx=?, updated=? WHERE account=?",
+                     (txh, int(time.time()), acct))
         conn.commit()
         conn.close()
         paid_accounts += 1
@@ -1610,20 +1658,31 @@ def settle_challenge(slug, pool=None, top=3, weights=None):
             amt = int(pool * w[i] / wsum)
             if amt <= 0:
                 continue
+            # ① 予約: 送金前に award 行を確定(PK(slug,m0r)で原子的クレーム)。既存=授与
+            #    済み(または予約中)→skip。着地後・記録前クラッシュでも再授与(二重支払い)しない。
             conn = _db()
-            done = conn.execute("SELECT 1 FROM challenge_awards WHERE slug=? AND m0r=?", (slug, m0r)).fetchone()
-            conn.close()
-            if done:
+            try:
+                conn.execute("INSERT INTO challenge_awards(slug,m0r,rank,amount,tx,ts)"
+                             " VALUES(?,?,?,?,'pending',?)", (slug, m0r, i + 1, amt, int(time.time())))
+                conn.commit()
+            except Exception:
+                conn.close()
                 results.append({"m0r": m0r, "amount": amt, "skipped": "already"})
                 continue
+            conn.close()
             try:
                 tx = l1_transfer(m0r, amt) or ""
             except Exception as e:
+                # ③ 送金失敗 → 予約を巻き戻し(次回admin決裁で再試行可能に)
+                conn = _db()
+                conn.execute("DELETE FROM challenge_awards WHERE slug=? AND m0r=?", (slug, m0r))
+                conn.commit()
+                conn.close()
                 results.append({"m0r": m0r, "amount": amt, "error": str(e)})
                 continue
             conn = _db()
-            conn.execute("INSERT OR REPLACE INTO challenge_awards(slug,m0r,rank,amount,tx,ts)"
-                         " VALUES(?,?,?,?,?,?)", (slug, m0r, i + 1, amt, tx, int(time.time())))
+            conn.execute("UPDATE challenge_awards SET rank=?, amount=?, tx=?, ts=? WHERE slug=? AND m0r=?",
+                         (i + 1, amt, tx, int(time.time()), slug, m0r))
             conn.commit()
             conn.close()
             results.append({"m0r": m0r, "rank": i + 1, "amount": amt, "tx": tx})
