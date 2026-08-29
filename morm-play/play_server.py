@@ -645,6 +645,14 @@ def resolve_play_cid(cid):
         return None
     return r["play_cid"]
 
+
+def play_cid_any(cid):
+    """status を問わず play_cid を返す(admin審査プレビュー専用・公開経路では使わない)。"""
+    conn = _db()
+    r = conn.execute("SELECT play_cid FROM content WHERE id=?", (cid,)).fetchone()
+    conn.close()
+    return r["play_cid"] if r else None
+
 # --- accounts & hybrid gate --------------------------------------------------
 
 # tier → 制限。effective_tier = max(信頼スコア由来, ステーク由来)
@@ -1753,6 +1761,15 @@ def verify_signed(data, kind):
         return None, f"bad request: {e}"
 
 
+def pub_to_m0r(pub_hex):
+    """32byte ed25519 公開鍵(hex)から m0r を導出。空/不正長は例外。
+    ★私的read(earnings/mine/me)のIDOR封鎖: m0r=blake2b(pub) は一方向でアドレスから pub は逆算不可。"""
+    raw = bytes.fromhex(pub_hex or "")
+    if len(raw) != 32:
+        raise ValueError("pub must be 32 bytes")
+    return m0r_address(raw)
+
+
 def probe_encoded(play_cid, timeout=20):
     """エンコード後の実尺(EXTINF合計)と実解像度(master RESOLUTION)を gateway から取得。"""
     base = f"{GATEWAY}/api/video/{play_cid}"
@@ -2277,7 +2294,7 @@ $('go').onclick=async()=>{
   }catch(e){msg.className='msg err';msg.textContent='エラー: '+e;$('go').disabled=false;}
 };
 async function loadMine(){
-  if(!ME)return;const d=await fetch('/api/mine?m0r='+encodeURIComponent(ME.m0r)).then(r=>r.json());
+  if(!ME||!PUBHEX)return;const d=await fetch('/api/mine?pub='+PUBHEX).then(r=>r.json());
   if(!d.items||!d.items.length)return;
   $('mine').innerHTML=d.items.map(it=>`<div class="mi"><img src="${it.thumb}">
     <div><div style="font-weight:700">${it.title.replace(/</g,'&lt;')}</div>
@@ -2352,7 +2369,7 @@ async function decide(id,decision,btn){
 }
 async function load(){
   if(!TOK)return;
-  const d=await fetch('/api/admin/moderation/queue?token='+encodeURIComponent(TOK)).then(r=>r.json());
+  const d=await fetch('/api/admin/moderation/queue',{headers:{'X-Admin-Token':TOK}}).then(r=>r.json());
   if(d.error){grid.innerHTML='<div class="gate">認証失敗（トークンを確認）<br><input id="tok" type="password" placeholder="admin token"><button onclick="saveTok()">再試行</button></div>';return;}
   document.getElementById('stat').innerHTML=`人手待ち <b>${d.items.filter(i=>i.status==='pending_review').length}</b> ／ AI処理中 <b>${d.in_ai}</b>`;
   if(!d.items.length){grid.innerHTML='<div class="empty">✓ 審査待ちはありません（AI処理中: '+d.in_ai+'）</div>';return;}
@@ -2373,10 +2390,12 @@ async function load(){
       <button class="no" onclick="decide('${it.id}','rejected',this)">却下</button></div></div></div>`;
   }).join('');
   // lazy attach hls players
+  // ★admin審査プレビュー: X-Admin-Token を全HLSリクエストに付与(pending/未approvedも視聴可・token-in-URL回避)。
+  // 注: Safari native HLS(v.src)はヘッダ付与不可 → pending審査はhls.js対応ブラウザ(Chrome/FF)で。
+  const att=(v,src)=>{if(v._h)return;if(window.Hls&&Hls.isSupported()){const h=new Hls({xhrSetup:x=>x.setRequestHeader('X-Admin-Token',TOK)});v._h=h;h.loadSource(src);h.attachMedia(v);}else{v.src=src;}};
   d.items.forEach(it=>{const v=document.getElementById('v_'+it.id);if(!v)return;const src='/m/'+it.id+'/master.m3u8';
-    v.addEventListener('play',()=>{if(v._h)return;if(window.Hls&&Hls.isSupported()){const h=new Hls();v._h=h;h.loadSource(src);h.attachMedia(v);}else{v.src=src;}},{once:true});
-    // poster: click to load
-    v.addEventListener('click',()=>{if(v._h)return;if(window.Hls&&Hls.isSupported()){const h=new Hls();v._h=h;h.loadSource(src);h.attachMedia(v);}else v.src=src;},{once:true});
+    v.addEventListener('play',()=>att(v,src),{once:true});
+    v.addEventListener('click',()=>att(v,src),{once:true});
   });
 }
 if(TOK)load();
@@ -2487,7 +2506,12 @@ class H(BaseHTTPRequestHandler):
         if m:
             return self._json(200, {"items": list_comments(m.group(1))})
         if path == "/api/earnings":
-            return self._json(200, earnings(q.get("m0r", "")))
+            # ★IDOR封鎖: 生の m0r(公開アドレス)ではなく pubkey を要求(本人のみ閲覧可・/api/me と同型)。
+            try:
+                m0r = pub_to_m0r(q.get("pub", ""))
+            except Exception:
+                return self._json(400, {"error": "pub required (32-byte hex)"})
+            return self._json(200, earnings(m0r))
         m = re.match(r"^/api/content/([A-Za-z0-9]+)$", path)
         if m:
             # ★GETでは views を増やさない(有効再生=視聴ビーコンの閾値超えのみ計上)
@@ -2505,14 +2529,17 @@ class H(BaseHTTPRequestHandler):
             svg = thumb_svg(cid, c["title"] if c else "")
             return self._send(200, svg, "image/svg+xml", {"Cache-Control": "public,max-age=86400"})
         if path == "/api/me":
-            pub = q.get("pub", "")
             try:
-                m0r = m0r_address(bytes.fromhex(pub))
+                m0r = pub_to_m0r(q.get("pub", ""))
             except Exception:
-                return self._json(400, {"error": "pub required (hex)"})
+                return self._json(400, {"error": "pub required (32-byte hex)"})
             return self._json(200, account_public(ensure_account(m0r)))
         if path == "/api/mine":
-            m0r = q.get("m0r", "")
+            # ★IDOR封鎖: 自投稿(status/rating含む=非公開のモデレーション状態)は本人のみ(/api/me と同型)。
+            try:
+                m0r = pub_to_m0r(q.get("pub", ""))
+            except Exception:
+                return self._json(400, {"error": "pub required (32-byte hex)"})
             conn = _db()
             rows = conn.execute("SELECT * FROM content WHERE uploader=? AND status!='reserved'"
                                 " ORDER BY created_at DESC LIMIT 50", (m0r,)).fetchall()
@@ -2520,7 +2547,8 @@ class H(BaseHTTPRequestHandler):
             return self._json(200, {"items": [
                 {**_row_public(r), "status": r["status"], "rating": r["rating"]} for r in rows]})
         if path == "/api/admin/moderation/queue":
-            if not ADMIN_TOKEN or q.get("token") != ADMIN_TOKEN:
+            # token は X-Admin-Token ヘッダ優先(URL/ログ/Referer 露出回避)。q.get はfallback(後方互換)。
+            if not ADMIN_TOKEN or (self.headers.get("X-Admin-Token") or q.get("token")) != ADMIN_TOKEN:
                 return self._json(403, {"error": "forbidden"})
             conn = _db()
             rows = conn.execute("SELECT * FROM content WHERE status IN ('pending_review','pending')"
@@ -2539,11 +2567,13 @@ class H(BaseHTTPRequestHandler):
                         "duration": r["duration"], "uploader": r["uploader"], "category": cat}
             return self._json(200, {"items": [_q_item(r) for r in rows], "in_ai": npend})
         if path == "/api/mod/pull":  # worker用
-            if not ADMIN_TOKEN or q.get("token") != ADMIN_TOKEN:
+            # token は X-Admin-Token ヘッダ優先(URL/ログ/Referer 露出回避)。q.get はfallback(後方互換)。
+            if not ADMIN_TOKEN or (self.headers.get("X-Admin-Token") or q.get("token")) != ADMIN_TOKEN:
                 return self._json(403, {"error": "forbidden"})
             return self._json(200, {"items": pull_pending(int(q.get("limit", "1")))})
         if path == "/api/admin/catalog":  # 再キャプション等の一括処理用(play_cid込み)
-            if not ADMIN_TOKEN or q.get("token") != ADMIN_TOKEN:
+            # token は X-Admin-Token ヘッダ優先(URL/ログ/Referer 露出回避)。q.get はfallback(後方互換)。
+            if not ADMIN_TOKEN or (self.headers.get("X-Admin-Token") or q.get("token")) != ADMIN_TOKEN:
                 return self._json(403, {"error": "forbidden"})
             conn = _db()
             st = q.get("status", "approved")
@@ -2982,9 +3012,13 @@ class H(BaseHTTPRequestHandler):
     # --- proxy impl ---
     def _proxy(self, cid, rest):
         rating, status = content_rating(cid)
-        if rating == "r18" and not self._age_cookie_m0r():  # R18は年齢認証cookie必須
+        # ★admin(有効なX-Admin-Tokenヘッダ)は審査プレビューのため R18/未approved を配信可。
+        is_admin = bool(ADMIN_TOKEN and self.headers.get("X-Admin-Token") == ADMIN_TOKEN)
+        if rating == "r18" and not is_admin and not self._age_cookie_m0r():  # R18は年齢認証cookie必須
             return self._json(403, {"error": "age_verification_required", "adult": True})
         play_cid = resolve_play_cid(cid)
+        if not play_cid and is_admin:   # pending/pending_review/rejected も審査のため配信(公開は404据置)
+            play_cid = play_cid_any(cid)
         if not play_cid:
             return self._json(404, {"error": "not found"})
         is_playlist = rest.endswith(".m3u8")

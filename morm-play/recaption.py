@@ -33,8 +33,9 @@ for i, a in enumerate(sys.argv):
         ONLY = set(sys.argv[i + 1].split(","))
 
 
-def get_json(url, timeout=60):
-    return json.loads(urllib.request.urlopen(url, timeout=timeout).read())
+def get_json(url, timeout=60, headers=None):
+    req = urllib.request.Request(url, headers=headers or {})
+    return json.loads(urllib.request.urlopen(req, timeout=timeout).read())
 
 
 def post_json(url, obj, timeout=60):
@@ -70,7 +71,9 @@ def caption(frames):
 
 
 def main():
-    cat = get_json(f"{PLAY}/api/admin/catalog?token={TOKEN}&status=approved")["items"]
+    # ★token は X-Admin-Token ヘッダで送る(URL/ログ露出回避)。
+    cat = get_json(f"{PLAY}/api/admin/catalog?status=approved",
+                   headers={"X-Admin-Token": TOKEN})["items"]
     if ONLY:
         cat = [c for c in cat if c["id"] in ONLY]
     if LIMIT:

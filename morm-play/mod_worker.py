@@ -23,7 +23,9 @@ GATEWAY = os.environ.get("GATEWAY", "http://100.80.207.111:8801")  # フレー�
 
 
 def _get(path):
-    return json.loads(urllib.request.urlopen(PLAY_URL + path, timeout=30).read())
+    # ★token は URL ではなく X-Admin-Token ヘッダで送る(ログ/Referer 露出回避)。
+    req = urllib.request.Request(PLAY_URL + path, headers={"X-Admin-Token": ADMIN_TOKEN})
+    return json.loads(urllib.request.urlopen(req, timeout=30).read())
 
 
 def _post(path, obj):
@@ -39,7 +41,7 @@ def main():
     print(f"[mod-worker] play={PLAY_URL} model-host=DGX poll={POLL_EVERY}s", flush=True)
     while True:
         try:
-            items = _get(f"/api/mod/pull?token={ADMIN_TOKEN}&limit=1").get("items", [])
+            items = _get("/api/mod/pull?limit=1").get("items", [])
         except Exception as e:
             print(f"pull error: {e}", flush=True)
             time.sleep(POLL_EVERY)

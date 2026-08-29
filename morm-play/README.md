@@ -26,7 +26,8 @@
 ## API — 投稿(P1・m0r Ed25519署名必須)
 - `GET  /upload` — 投稿UI(WebCrypto Ed25519ウォレット内蔵)
 - `GET  /api/me?pub=<hex>` — 口座ensure＋tier/limits/stake
-- `GET  /api/mine?m0r=` — 自投稿一覧(status付き)
+- `GET  /api/mine?pub=<hex>` — 自投稿一覧(status付き)。★pubkey必須(IDOR封鎖: 公開アドレスm0rでは不可)
+- `GET  /api/earnings?pub=<hex>` — 収益(views/likes/earned/pending)。★pubkey必須(IDOR封鎖)
 - `POST /api/upload/init` `{kind:"upload.init",sender:<pubhex>,nonce,payload:{title,description,tags[],ar,duration,links[]},sig}` → 検証＋ゲート＋予約 `{id,token}`
 - `POST /api/upload/<id>/media?token=` (生バイト) → hpmini gatewayでHLSエンコード→bind→`{status:approved|pending_review}`
 - `POST /api/admin/ingest` `{token,play_cid,...}` — 実コンテンツ直投入(ADMIN_TOKEN)
