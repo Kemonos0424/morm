@@ -26,9 +26,10 @@ MORM 4サーフェス（www/api/node/play.morm.one）を監査→**致命セキ�
 ### A. push（外向き・要ユーザー承認）
 - `cd ~/Desktop/MORM && git push origin main`（MORM本体。node-dashboard main は push済）。ブランチ(`chore/*`)は任意。
 
-### B. secret ローテ（履歴混入・要無効化）
-- `morm-aiservice/service-key.json`（実ed25519 seed。untrack済だが履歴に残る）→ 鍵ローテ。
-- `.claude/launch.json` の `--treasury-seed`（anvil/dev用らしい）→ 確認して除去/ローテ。
+### B. secret ローテ（★既に PUBLIC 露出＝要ローテ判断。詳細=`SECURITY-SECRET-ROTATION.md`）
+- **重大**: リポは PUBLIC・`f82ea6e` は origin/main に push 済 → 両seedは既に GitHub 公開済み（恒久 compromised）。履歴rewriteは公開後は無効＝ローテ＋失効が唯一策。
+- ✅**[ローカル除去済 commit da4e1f8]** `.claude/launch.json` の `--treasury-seed` → anvil(31337)/dev専用・本番権限ゼロ・参照先archived(死設定)と確認。placeholder化で除去。本番 seed は `~/.morm-l1/producer.seed`（リポ外）で分離＝実害なし・ローテ不要。
+- **残(要判断/gated)** `morm-aiservice/service-key.json`（AIサービス attestation署名鍵・PoC・.gitignore済だが f82ea6e に seed 平文）: 旧pubkeyが**本番L1のパブリッシャ登録を持つか確認**→持てば L1 で失効＋新鍵生成/登録（`aiservice.py keygen`）。持たなければ実害低。
 
 ### C. 残セキュリティ（コード済/未・要ホスト反映）
 - ✅**[コード完了 commit bfc9309]** play_server.py 4 settle経路(settle_referrals/_settle_fixed/_settle_proportional/settle_challenge)を予約先行に統一(=`_points_loop`経由の自動配当も網羅)。回帰テスト`morm-play/test_settle_idempotency.py`で二重支払いゼロ/失敗ロールバック/2レッグ端ケース検証(28 assert PASS・実チェーン不要)。※`payout()`は既済。
