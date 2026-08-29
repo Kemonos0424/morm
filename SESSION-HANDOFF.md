@@ -57,7 +57,9 @@ MORM 4サーフェス（www/api/node/play.morm.one）を監査→**致命セキ�
 
 **残(api.morm.one=Vercel の段階ロールアウト・各段ユーザー承認/検証)**:
 - **E-4 DASH 配線(秘密更新＝ユーザー実行)**: Vercel morm-dashboard の `MORM_TREASURY_SEED`(現在22日前の旧値)を **dash_payout.seed** に、`MORM_TREASURY_ADDRESS` を `m0roshqbpskljwuj3drophhb7tth33qprzn` に更新→再デプロイ。※F/B の前に必須。
-- **段階flag(vercel env・既定offから)**: **C** `BRIDGE_VALVE=on`(他は既定: SYSTEM_DAILY_FRAC0.005/ACCT_DAILY_USD50/COOLDOWN86400・**発行前に先行推奨**) → **F**(AD・ADMIN_PASSWORD済) → **B** `MORM_LANE_EARN=1`(+`MORM_LANE_EARN_DAILY_CAP`) → **D**(Play側 `EMISSION_MODE=proportional`+`B_EPOCH_MORM`小・`VIEW_EARN`は署名watchクライアント改修後)。各段 env 変更→redeploy→検証→ロールバック=flag戻すだけ。**Phase E(node emission)は廃止**。
+- ✅**Phase C(換金バルブ) LIVE 2026-08-29**: `BRIDGE_VALVE=on` を Vercel production に設定→`vercel --prod`(deploy `pdy8vk0kg`・api.morm.one alias)→回帰なし(price/lane 200)。保護=system≤0.5%/日・acct≤$50/日・cooldown24h(他ノブは既定)。ロールバック=`BRIDGE_VALVE` unset+redeploy。
+- **残(発行フェーズ・要判断)**: **E-4 DASH 配線(秘密＝ユーザー実行)** → **F**(AD・ADMIN_PASSWORD済) → **B** `MORM_LANE_EARN=1`(+`MORM_LANE_EARN_DAILY_CAP`10) → **D**(Play側 `EMISSION_MODE=proportional`+`B_EPOCH_MORM`小・`VIEW_EARN`は署名watchクライアント改修後)。各段 env→redeploy→検証→ロールバック=flag戻す。**Phase E(node emission)は廃止**。
+  - E-4 コマンド(ユーザー): `cd ~/Desktop/MORM/morm-dashboard; vercel env rm MORM_TREASURY_SEED production -y; printf '%s' "$(cat ~/.morm-agentlane/dash_payout.seed)" | vercel env add MORM_TREASURY_SEED production; vercel env rm MORM_TREASURY_ADDRESS production -y; printf 'm0roshqbpskljwuj3drophhb7tth33qprzn' | vercel env add MORM_TREASURY_ADDRESS production` → その後エージェントが `vercel --prod` で反映。
 - 詳細=`agent-lane/DEPLOY.md` 冒頭★。base=1(整数MORM)で初回・§G(1e6)は後日。
 
 ## 必要アクセス（新セッションで request）
