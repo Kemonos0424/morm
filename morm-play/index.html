@@ -1,0 +1,888 @@
+<!doctype html><html lang="ja"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<title>MORM Play</title>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
+<style>
+:root{--bg:#0C0C0E;--ink:#F4F2EA;--soft:#9c9c96;--line:#26262b;--card:#151517;
+--blue:#4A5CFF;--magenta:#FF3E93;--orange:#FF6A3D;--green:#22C466;--yellow:#FFDC3C;
+--st:env(safe-area-inset-top);--sb:env(safe-area-inset-bottom)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);overflow:hidden;
+font-family:"Helvetica Neue",Helvetica,Arial,"Hiragino Kaku Gothic ProN",sans-serif;-webkit-font-smoothing:antialiased}
+button,input{font-family:inherit}
+svg{width:1em;height:1em;display:block}
+/* ── top bar ── */
+.top{position:fixed;top:0;left:0;right:0;z-index:30;display:grid;grid-template-columns:auto 1fr auto;
+align-items:center;gap:10px;padding:calc(var(--st) + 11px) 12px 11px;background:linear-gradient(var(--bg) 55%,#0c0c0ecc 80%,#0000)}
+.avatar{width:36px;height:36px;border-radius:50%;border:1.5px solid #ffffff33;cursor:pointer;display:grid;place-items:center;
+color:#fff;font-weight:800;font-size:15px;flex:none}
+.tabs{display:flex;gap:2px;justify-self:center;background:#ffffff10;border-radius:999px;padding:3px}
+.tab{border:0;background:transparent;color:var(--soft);font-size:14px;font-weight:700;padding:7px 16px;border-radius:999px;cursor:pointer;white-space:nowrap}
+.tab.on{background:var(--ink);color:var(--bg)}.tab.adult.on{background:var(--magenta);color:#fff}
+.tr{display:flex;gap:4px}
+.ic{width:40px;height:40px;border-radius:50%;border:0;background:#ffffff14;color:var(--ink);font-size:20px;cursor:pointer;display:grid;place-items:center}
+.ic:active{background:#ffffff28}
+.ic.post{background:linear-gradient(135deg,var(--magenta),var(--orange));color:#fff;font-size:22px}
+a.ic{text-decoration:none}
+/* ── home: pinterest grid ── */
+/* #home=スクロール担当(固定高さ)。#homeCol=多段組担当(高さ可変で下へ伸びる)。
+   これで全幅で「上下だけ」の縦スクロールmasonryになる(固定高さ+多段組の横溢れを回避)。 */
+#home{height:100dvh;overflow-y:auto;padding:calc(var(--st) + 64px) 7px calc(var(--sb) + 20px)}
+#homeCol{column-width:168px;column-gap:7px}
+/* スマホ(狭幅)は多段組を無効化して1カラムの縦ストリーム。広い画面は可変masonry。 */
+@media (max-width:520px){#home{padding-left:10px;padding-right:10px}#homeCol{columns:auto}}
+.gcard{break-inside:avoid;margin:0 0 7px;border-radius:15px;overflow:hidden;cursor:pointer;position:relative;background:var(--card);border:1px solid var(--line)}
+.gcard img,.gcard video{width:100%;display:block;background:#000}
+.gcard .gt{position:absolute;left:0;right:0;bottom:0;padding:26px 10px 9px;background:linear-gradient(#0000,#000d);color:#fff}
+.gcard .gtt{font-size:13px;font-weight:700;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.gcard .gmeta{display:flex;align-items:center;gap:4px;margin-top:5px;font-size:11px;font-weight:700;opacity:.9}
+.gcard .gmeta svg{font-size:13px}.gcard .gmeta .dot{opacity:.5;margin:0 2px}
+.gr{position:absolute;top:8px;left:8px;z-index:2;font-size:10px;font-weight:900;color:#fff;background:var(--magenta);border-radius:5px;padding:2px 6px}
+.sentinel{height:40px;column-span:all}
+.empty{position:fixed;inset:0;display:grid;place-items:center;color:var(--soft);z-index:5;text-align:center;padding:24px;font-size:14px;line-height:1.7}
+/* ── player (vertical feed) ── */
+#player{position:fixed;inset:0;z-index:40;background:#000;display:none}
+#player.on{display:block}
+#feed{height:100dvh;overflow-y:scroll;scroll-snap-type:y mandatory;scrollbar-width:none}
+#feed::-webkit-scrollbar{display:none}
+/* desktop: ステージを動画比率のまま上限つきで中央表示(全画面巨大化を防ぐ) */
+@media (min-width:768px){
+  #player{background:#000}
+  #player .stage{width:min(94vw, 900px, calc(100dvh * var(--ar,9/16)), calc(860px * var(--ar,9/16)));max-height:min(100dvh,860px);border-radius:14px;box-shadow:0 0 0 1px var(--line),0 30px 80px #000a}
+}
+/* row=縦フィードの1単位(=横スクロールで同カテゴリを見る). slide=その中の各セル */
+.row{height:100dvh;scroll-snap-align:start;scroll-snap-stop:always;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior:contain}
+.row::-webkit-scrollbar{display:none}
+.slide{position:relative;height:100dvh;flex:0 0 100%;width:100vw;scroll-snap-align:center;scroll-snap-stop:always;background:#000;display:grid;place-items:center;overflow:hidden}
+/* スワイプ送りの"ため"モーション: 非アクティブは少し縮小/減光→アクティブでスッと出る */
+.slide .stage{transition:transform .34s cubic-bezier(.2,.9,.25,1),opacity .3s ease}
+.slide:not(.act) .stage{transform:scale(.94);opacity:.6}
+/* 左右ナビ(desktop): 同カテゴリの前後へ */
+.hnav{position:fixed;top:50%;transform:translateY(-50%);z-index:44;width:44px;height:44px;border-radius:50%;background:#00000055;color:#fff;border:0;font-size:28px;line-height:1;display:none;place-items:center;cursor:pointer;backdrop-filter:blur(6px)}
+.hnav.prev{left:16px}.hnav.next{right:16px}
+@media (max-width:767px){.hnav{display:none!important}}
+.catpill{position:absolute;top:calc(var(--st) + 14px);left:50%;transform:translateX(-50%);z-index:43;background:#000a;color:#fff;font-size:12px;font-weight:700;padding:6px 13px;border-radius:999px;backdrop-filter:blur(6px);opacity:0;transition:opacity .25s;pointer-events:none}
+.catpill.show{opacity:1}
+.slide .pv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(34px) brightness(.42);transform:scale(1.15);z-index:0}
+/* stage=動画の実アスペクト比でフィットする中央ボックス(縦/横/正方形いずれにも対応) */
+.stage{position:relative;z-index:1;aspect-ratio:var(--ar,9/16);width:min(100vw, calc(100dvh * var(--ar,9/16)));max-height:100dvh;overflow:hidden}
+.slide video.sv{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.tap{position:absolute;inset:0;z-index:2}
+.scrim{position:absolute;left:0;right:0;bottom:0;height:44%;z-index:3;pointer-events:none;background:linear-gradient(#0000,#000a 62%,#000d)}
+.pausei{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:4;color:#fff9;opacity:0;transition:opacity .15s;pointer-events:none;font-size:64px}
+.slide.paused .pausei{opacity:1}
+.pback{position:fixed;top:calc(var(--st) + 12px);left:12px;z-index:44;width:42px;height:42px;border-radius:50%;background:#00000055;color:#fff;border:0;font-size:22px;display:grid;place-items:center;cursor:pointer;backdrop-filter:blur(6px)}
+.rail{position:absolute;right:9px;bottom:calc(var(--sb) + 26px);z-index:6;display:flex;flex-direction:column;gap:19px;align-items:center;opacity:0;transform:translateX(10px);pointer-events:none;transition:opacity .22s ease,transform .22s ease}
+#player.railon .rail{opacity:1;transform:none;pointer-events:auto}
+.rb{display:flex;flex-direction:column;align-items:center;gap:4px;color:#fff;background:0;border:0;cursor:pointer;font-size:11px;font-weight:700;text-shadow:0 1px 4px #000b}
+.rb .g{width:50px;height:50px;border-radius:50%;background:#ffffff1c;display:grid;place-items:center;font-size:25px;backdrop-filter:blur(6px);transition:transform .12s}
+.rb:active .g{transform:scale(.86)}.rb.on{color:var(--magenta)}
+.info{position:absolute;left:16px;right:82px;bottom:calc(var(--sb) + 26px);z-index:6;text-shadow:0 1px 5px #000c}
+.info .u{font-family:ui-monospace,monospace;font-size:12px;color:#fff;opacity:.9;font-weight:600}
+.info .t{font-weight:700;font-size:16px;margin:6px 0;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.info .tg span{font-size:13px;color:#fff;opacity:.85;font-weight:600;margin-right:8px}
+.r18b{display:inline-block;font-size:10px;font-weight:900;color:#fff;background:var(--magenta);border-radius:5px;padding:2px 6px;vertical-align:middle;margin-left:7px}
+.hint{position:absolute;bottom:calc(var(--sb) + 108px);left:50%;transform:translateX(-50%);z-index:7;background:#000b;color:#fff;font-size:12px;padding:8px 15px;border-radius:999px;backdrop-filter:blur(6px)}
+/* ── search ── */
+.search{position:fixed;top:0;left:0;right:0;z-index:45;background:var(--bg);border-bottom:1px solid var(--line);padding:calc(var(--st) + 12px) 14px 12px;transform:translateY(-130%);transition:transform .24s}
+.search.on{transform:none}.search .row{display:flex;gap:8px;align-items:center}
+.search input{flex:1;border:1px solid var(--line);border-radius:999px;padding:12px 17px;background:var(--card);color:var(--ink);font:inherit;font-size:15px;outline:0}
+.chips{display:flex;gap:7px;overflow-x:auto;margin-top:11px;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}
+.chip{white-space:nowrap;font-size:13px;font-weight:600;border:1px solid var(--line);border-radius:999px;padding:7px 14px;cursor:pointer;background:var(--card);color:var(--ink)}
+.chip.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+/* ── sheets ── */
+.ov{position:fixed;inset:0;z-index:50;background:#000a;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px)}
+.ov.on{display:flex}
+.sheet{background:var(--bg);border:1px solid var(--line);border-bottom:0;border-radius:20px 20px 0 0;width:100%;max-width:540px;max-height:82dvh;overflow-y:auto;padding:22px 20px calc(var(--sb) + 24px);animation:up .22s;position:relative}
+@keyframes up{from{transform:translateY(100%)}}
+.sheet h3{margin:0 0 4px;font-size:19px;font-weight:800}
+.sheet .x{position:absolute;top:15px;right:16px;font-size:20px;color:var(--soft);background:0;border:0;cursor:pointer;width:28px;height:28px}
+.acctTop{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.acctTop .avatar{width:52px;height:52px;font-size:22px;border-width:2px}
+.addr{font-family:ui-monospace,monospace;font-size:11px;color:var(--soft);word-break:break-all}
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;border-radius:999px;padding:4px 11px}
+.badge.no{background:#ff6a3d22;color:var(--orange)}.badge.yes{background:#22c46622;color:var(--green)}
+.earn{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin:14px 0}
+.earn .big{font-size:30px;font-weight:900;letter-spacing:-.02em;display:flex;align-items:baseline;gap:7px}
+.earn .big small{font-size:14px;color:var(--soft);font-weight:700}
+.earn .sub{color:var(--soft);font-size:12.5px;margin-top:7px;line-height:1.6}
+.earn .rowl{display:flex;gap:14px;margin-top:12px}
+.earn .rowl div{flex:1;text-align:center;background:#ffffff08;border-radius:11px;padding:9px}
+.earn .rowl b{display:block;font-size:17px;font-weight:800}.earn .rowl span{font-size:11px;color:var(--soft)}
+.field{margin:12px 0}.field label{display:block;font-size:13px;font-weight:700;margin-bottom:7px}
+.field select{width:100%;border:1px solid var(--line);border-radius:11px;padding:13px;background:var(--card);color:var(--ink);font:inherit;font-size:16px}
+.chk{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;color:var(--soft);margin:14px 0;line-height:1.5}
+.chk input{margin-top:2px;width:20px;height:20px;accent-color:var(--magenta)}
+.btn{display:block;width:100%;border:0;border-radius:999px;padding:15px;font-weight:800;font-size:16px;cursor:pointer;margin-top:8px;text-align:center;text-decoration:none}
+.btn.pri{background:var(--magenta);color:#fff}.btn.pri:disabled{opacity:.45}
+.btn.sec{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+.msg{font-size:13px;margin-top:12px;min-height:18px}.msg.err{color:var(--magenta)}.msg.ok{color:var(--green)}
+/* grid choice (分岐ストーリー) */
+.gcstage{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:8px;width:100%;max-width:420px;margin:0 auto;aspect-ratio:1/1}
+.gccell{display:flex;align-items:center;justify-content:center;min-width:0;min-height:0}
+.gccell.gcnode{grid-column:2;grid-row:2}
+.gcnode .card{width:100%;height:100%;border-radius:16px;overflow:hidden;position:relative;border:2px solid var(--yellow);background:var(--card)}
+.gcnode .card img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.gcnode .gcnlbl{position:absolute;left:0;right:0;bottom:0;z-index:1;background:linear-gradient(#0000,#000c);color:#fff;font-size:11px;font-weight:800;padding:14px 6px 5px;text-align:center;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gcchoice{cursor:pointer;border-radius:14px;overflow:hidden;position:relative;width:100%;height:100%;background:#ffffff0d;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;transition:transform .12s,border-color .12s}
+.gcchoice:hover{border-color:var(--magenta);transform:scale(1.04)}
+.gcchoice img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;opacity:.72}
+.gcchoice .lbl{position:relative;z-index:1;background:#000000b0;color:#fff;font-size:11.5px;font-weight:700;padding:4px 7px;border-radius:8px;max-width:90%;text-align:center;line-height:1.22}
+.gcchoice .cost{position:absolute;top:5px;right:5px;z-index:2;background:var(--yellow);color:#000;font-size:10px;font-weight:800;padding:2px 6px;border-radius:999px}
+.gcbar{display:flex;gap:8px;margin-top:16px}
+.gcbtn{flex:1;margin-top:0;padding:13px;font-size:14px}
+/* comments */
+.clist{margin:6px 0 12px}
+.citem{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.citem .av{width:34px;height:34px;border-radius:50%;flex:none;display:grid;place-items:center;color:#fff;font-weight:800;font-size:14px}
+.citem .cb .cu{font-family:ui-monospace,monospace;font-size:11px;color:var(--soft)}
+.citem .cb .ct{font-size:14px;margin-top:3px;line-height:1.45;white-space:pre-wrap;word-break:break-word}
+.cinput{display:flex;gap:8px;align-items:center;position:sticky;bottom:0;background:var(--bg);padding-top:8px}
+.cinput input{flex:1;border:1px solid var(--line);border-radius:999px;padding:12px 16px;background:var(--card);color:var(--ink);font:inherit;font-size:15px;outline:0}
+.cinput button{width:46px;height:46px;border-radius:50%;border:0;background:var(--magenta);color:#fff;font-size:20px;cursor:pointer;display:grid;place-items:center;flex:none}
+/* profile */
+.pfstats{display:flex;gap:8px}
+.pfstats div{flex:1;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 4px}
+.pfstats b{display:block;font-size:17px;font-weight:800}.pfstats span{font-size:10.5px;color:var(--soft)}
+.pfgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}
+.pfgrid .pc{position:relative;border-radius:10px;overflow:hidden;aspect-ratio:3/4;background:var(--card);cursor:pointer}
+.pfgrid .pc img{width:100%;height:100%;object-fit:cover;display:block}
+.pfgrid .pc .pcl{position:absolute;left:0;right:0;bottom:0;padding:14px 6px 5px;background:linear-gradient(#0000,#000c);font-size:10px;font-weight:700;color:#fff;display:flex;align-items:center;gap:3px}
+.rb .fl{font-size:11px;font-weight:700}.info .u{cursor:pointer}
+/* remix/challenge chips on player */
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.mchip{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:#fff;background:#ffffff26;border:1px solid #ffffff33;border-radius:999px;padding:5px 10px;cursor:pointer;text-shadow:none;max-width:70vw;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.mchip.ch{background:var(--magenta);border-color:transparent}
+.mchip svg{width:14px;height:14px;flex:none}
+/* challenge list / detail */
+.chalcard{display:flex;gap:12px;align-items:center;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:10px;cursor:pointer;margin-bottom:10px}
+.chalcard>img,.chalcard>.ph{width:56px;height:72px;border-radius:9px;object-fit:cover;flex:none;background:linear-gradient(135deg,var(--blue),var(--magenta))}
+.chalcard .cc{min-width:0;flex:1}
+.chalcard .ct2{font-weight:800;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chalcard .cm{font-size:12px;color:var(--soft);margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.poolb{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;color:#5a3d00;background:var(--yellow);border-radius:999px;padding:3px 9px}
+.closedb{font-size:11px;font-weight:700;color:var(--soft);border:1px solid var(--line);border-radius:999px;padding:2px 8px}
+.lb{display:flex;flex-direction:column;gap:7px;margin:6px 0 4px}
+.lb .li{display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer}
+.lb .rk{width:22px;height:22px;border-radius:50%;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;font-weight:800;font-size:11px;flex:none}
+.lb .li .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb .li b{margin-left:auto;color:var(--magenta);flex:none}
+.chalhero{border-radius:14px;overflow:hidden;position:relative;margin-bottom:12px;aspect-ratio:16/9;background:linear-gradient(135deg,var(--blue),var(--magenta))}
+.chalhero img{width:100%;height:100%;object-fit:cover}
+.sech{font-size:12px;color:var(--soft);font-weight:700;letter-spacing:.04em;margin:16px 0 8px}
+/* invite */
+.invite{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin:14px 0}
+.invite .ih{font-size:12px;color:var(--soft);font-weight:700;letter-spacing:.04em}
+.invite .id{font-size:12.5px;color:var(--soft);line-height:1.6;margin:7px 0 11px}
+.reflink{display:flex;gap:8px}
+.reflink input{flex:1;min-width:0;border:1px solid var(--line);border-radius:11px;padding:11px 12px;background:#ffffff08;color:var(--ink);font:inherit;font-size:12px;outline:0;font-family:ui-monospace,monospace}
+.reflink button{border:0;border-radius:11px;padding:0 15px;font-weight:800;font-size:13px;cursor:pointer;background:var(--magenta);color:#fff;flex:none}
+#refStats{display:flex;gap:10px;margin-top:12px}
+#refStats div{flex:1;text-align:center;background:#ffffff08;border-radius:11px;padding:9px}
+#refStats b{display:block;font-size:17px;font-weight:800}#refStats span{font-size:11px;color:var(--soft)}
+.refby{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;border-radius:999px;padding:4px 11px;background:#4a5cff22;color:var(--blue);margin-top:8px}
+.toast{position:fixed;bottom:calc(var(--sb) + 84px);left:50%;transform:translateX(-50%);background:#fff;color:#000;padding:11px 20px;border-radius:999px;font-size:13px;font-weight:600;opacity:0;transition:opacity .2s;z-index:60;pointer-events:none}
+.toast.on{opacity:1}
+</style></head><body>
+<div class="top">
+  <div class="avatar" id="btnAvatar">M</div>
+  <div class="tabs"><button class="tab on" data-zone="sfw">おすすめ</button><button class="tab" data-zone="following">フォロー中</button><button class="tab adult" data-zone="adult">18+</button></div>
+  <div class="tr"><button class="ic" id="btnChal"></button><button class="ic" id="btnSearch"></button><a class="ic post" href="/upload" id="btnPost"></a></div>
+</div>
+<div class="search" id="searchBar"><div class="row"><input id="q" placeholder="作品・タグを検索" autocomplete="off"><button class="ic" id="btnCloseSearch"></button></div><div class="chips" id="chips"></div></div>
+
+<div id="home"><div id="homeCol"><div class="sentinel" id="sentinel"></div></div></div>
+<div class="empty" id="empty" style="display:none">読み込み中…</div>
+
+<div id="player"><button class="pback" id="pback"></button><div class="catpill" id="catpill"></div><button class="hnav prev" id="hprev">‹</button><button class="hnav next" id="hnext">›</button><div id="feed"></div></div>
+
+<div class="toast" id="toast"></div>
+
+<!-- account -->
+<div class="ov" id="ovAcct"><div class="sheet"><button class="x" data-close></button>
+  <div class="acctTop"><div class="avatar" id="acctAv">M</div><div style="min-width:0"><div id="acctName" style="font-weight:800;font-size:15px">マイアカウント</div><div class="addr" id="acctAddr">…</div><div id="acctFollow" style="font-size:12px;color:var(--soft);margin-top:3px"></div></div></div>
+  <div id="acctAge"></div>
+  <div class="earn"><div style="font-size:12px;color:var(--soft);font-weight:700;letter-spacing:.04em">獲得MORM（再生・いいねから）</div>
+    <div class="big" id="earnBig">0 <small>MORM</small></div>
+    <div class="rowl"><div><b id="eV">0</b><span>再生</span></div><div><b id="eL">0</b><span>いいね</span></div><div><b id="eP">0</b><span>投稿</span></div></div>
+    <div class="sub" id="earnSub"></div>
+    <div class="sub" id="l1Bal" style="margin-top:6px"></div>
+    <div class="sub" id="ptBal" style="margin-top:6px"></div>
+    <button class="btn pri" id="claimBtn" style="margin-top:14px;display:none">受け取る（配分）</button></div>
+  <a class="btn sec" href="/upload">投稿する</a>
+  <button class="btn sec" id="acctEditP" style="margin-top:8px">プロフィールを編集</button>
+  <button class="btn sec" id="acctViewP" style="margin-top:8px">公開プロフィールを見る</button>
+  <div class="invite" id="inviteBox">
+    <div class="ih">友達を招待</div>
+    <div class="id">招待した友達が<b style="color:var(--ink)">動画を投稿して承認される</b>と、<b style="color:var(--ink)"><span id="refBonus">10</span> MORM</b>ずつ二人に。1人あたり上限あり・多段なし。</div>
+    <div id="refbyNote"></div>
+    <div class="reflink"><input id="refLink" readonly value=""><button id="refCopy">コピー</button><button id="refShare" style="background:var(--card);color:var(--ink);border:1px solid var(--line)">共有</button></div>
+    <div id="refStats"></div>
+  </div>
+  <button class="btn sec" id="acctVerify" style="margin-top:8px">年齢認証する（18+）</button>
+  <details style="margin-top:14px"><summary style="color:var(--soft);font-size:12px;cursor:pointer">運営（管理者）</summary>
+    <div class="field" style="margin-top:10px"><input id="admTok" type="password" placeholder="admin token" style="width:100%;border:1px solid var(--line);border-radius:11px;padding:12px;background:var(--card);color:var(--ink);font:inherit">
+    <button class="btn sec" id="admSave" style="margin-top:8px">保存（サムネ設定を全作品で有効化）</button>
+    <div class="msg" id="admMsg"></div></div></details>
+</div></div>
+
+<!-- profile -->
+<div class="ov" id="ovProfile"><div class="sheet"><button class="x" data-close></button>
+  <div class="acctTop"><div class="avatar" id="pfAv" style="width:60px;height:60px;font-size:24px;border-width:2px"></div>
+    <div style="flex:1;min-width:0"><div id="pfName" style="font-weight:800;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">…</div>
+      <div class="addr" id="pfAddr"></div></div></div>
+  <div id="pfBio" style="font-size:13.5px;line-height:1.55;margin:2px 0 12px;white-space:pre-wrap;word-break:break-word"></div>
+  <div class="pfstats" id="pfStats"></div>
+  <button class="btn pri" id="pfFollow" style="margin-top:14px">フォロー</button>
+  <div class="pfgrid" id="pfGrid" style="margin-top:16px"></div>
+</div></div>
+
+<!-- edit profile -->
+<div class="ov" id="ovEditP"><div class="sheet"><button class="x" data-close></button>
+  <h3>プロフィールを編集</h3>
+  <div class="field"><label>表示名</label><input id="epName" maxlength="40" placeholder="表示名（40字まで）" style="width:100%;border:1px solid var(--line);border-radius:11px;padding:13px;background:var(--card);color:var(--ink);font:inherit;font-size:16px;outline:0"></div>
+  <div class="field"><label>自己紹介</label><textarea id="epBio" maxlength="200" rows="3" placeholder="自己紹介（200字まで）" style="width:100%;border:1px solid var(--line);border-radius:11px;padding:13px;background:var(--card);color:var(--ink);font:inherit;font-size:15px;outline:0;resize:vertical"></textarea></div>
+  <button class="btn pri" id="epSave">保存</button><div class="msg" id="epMsg"></div>
+</div></div>
+
+<!-- comments -->
+<div class="ov" id="ovCom"><div class="sheet"><button class="x" data-close></button>
+  <h3 id="comTitle">コメント</h3>
+  <div class="clist" id="clist"></div>
+  <div class="cinput"><input id="cText" maxlength="300" placeholder="コメントを追加…"><button id="cSend"></button></div>
+</div></div>
+
+<!-- cover picker -->
+<div class="ov" id="ovCover"><div class="sheet"><button class="x" data-close></button>
+  <h3>サムネのカット選択</h3><p style="color:var(--soft);font-size:13px;margin:6px 0 12px">スライドで動画をスクラブし、サムネにするコマを選びます。決定するまではループ表示です。</p>
+  <video id="covVid" muted playsinline style="width:100%;border-radius:14px;background:#000;max-height:44dvh;aspect-ratio:9/16;object-fit:contain"></video>
+  <input type="range" id="covScrub" min="0" max="100" value="0" step="0.1" style="width:100%;margin:14px 0;accent-color:var(--magenta)">
+  <button class="btn pri" id="covSet">このコマに決定</button>
+  <button class="btn sec" id="covReset" style="margin-top:8px;display:none">ループに戻す（カット解除）</button>
+  <div class="msg" id="covMsg"></div>
+</div></div>
+
+<!-- age verify -->
+<div class="ov" id="ovAge"><div class="sheet"><button class="x" data-close></button>
+  <h3>年齢確認</h3><p style="color:var(--soft);font-size:13.5px;line-height:1.6;margin:6px 0 14px">18+（成人向け）を表示・再生するには年齢確認が必要です。生年を選択してください。端末の鍵で署名され、生年月日そのものは公開されません。</p>
+  <div class="field"><label>生まれた年</label><select id="birthYear"></select></div>
+  <label class="chk"><input type="checkbox" id="age18"><span>私は18歳以上であり、成人向けコンテンツの表示に同意します。</span></label>
+  <button class="btn pri" id="ageGo" disabled>確認して解錠</button><div class="msg" id="ageMsg"></div>
+</div></div>
+
+<!-- challenge list -->
+<div class="ov" id="ovChal"><div class="sheet"><button class="x" data-close></button>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+    <h3 style="margin:0">チャレンジ</h3>
+    <button class="btn pri" id="chalNewBtn" style="width:auto;margin:0 0 0 auto;padding:9px 16px;font-size:14px">＋ 作る</button></div>
+  <p style="color:var(--soft);font-size:13px;margin:2px 0 14px">お題に参加して作品を投稿。上位には報酬プールが配分されることも。</p>
+  <div id="chalList"></div>
+</div></div>
+
+<!-- challenge detail -->
+<div class="ov" id="ovChalD"><div class="sheet"><button class="x" data-close></button>
+  <div class="chalhero" id="cdHero"></div>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h3 id="cdTitle" style="margin:0">…</h3><span id="cdStatus"></span></div>
+  <div id="cdMeta" style="font-size:12px;color:var(--soft);margin:6px 0"></div>
+  <div id="cdDesc" style="font-size:13.5px;line-height:1.55;margin:6px 0 4px;white-space:pre-wrap;word-break:break-word"></div>
+  <button class="btn pri" id="cdJoin" style="margin-top:12px">この お題 に参加する</button>
+  <div id="cdBoardWrap" style="display:none"><div class="sech">ランキング</div><div class="lb" id="cdBoard"></div></div>
+  <div class="sech">参加作品 <span id="cdCount"></span></div>
+  <div class="pfgrid" id="cdGrid"></div>
+</div></div>
+
+<!-- challenge create -->
+<div class="ov" id="ovChalNew"><div class="sheet"><button class="x" data-close></button>
+  <h3>チャレンジを作る</h3>
+  <p style="color:var(--soft);font-size:13px;margin:6px 0 12px">お題を立てて、みんなの投稿を集めよう。作成には信頼レベルが必要です。</p>
+  <div class="field"><label>タイトル</label><input id="cnTitle" maxlength="60" placeholder="例：夏の光チャレンジ" style="width:100%;border:1px solid var(--line);border-radius:11px;padding:13px;background:var(--card);color:var(--ink);font:inherit;font-size:16px;outline:0"></div>
+  <div class="field"><label>説明（任意）</label><textarea id="cnDesc" maxlength="600" rows="3" placeholder="どんな作品を募集する？" style="width:100%;border:1px solid var(--line);border-radius:11px;padding:13px;background:var(--card);color:var(--ink);font:inherit;font-size:15px;outline:0;resize:vertical"></textarea></div>
+  <div class="field"><label>期間</label><select id="cnEnds" style="width:100%;border:1px solid var(--line);border-radius:11px;padding:13px;background:var(--card);color:var(--ink);font:inherit;font-size:15px">
+    <option value="0">無期限</option><option value="3">3日間</option><option value="7" selected>7日間</option><option value="14">14日間</option><option value="30">30日間</option></select></div>
+  <button class="btn pri" id="cnGo">作成する</button><div class="msg" id="cnMsg"></div>
+</div></div>
+
+<!-- remix list -->
+<div class="ov" id="ovRemix"><div class="sheet"><button class="x" data-close></button>
+  <h3 id="rxTitle">リミックス</h3>
+  <div id="rxParent" style="font-size:13px;color:var(--soft);margin:6px 0 12px"></div>
+  <div class="pfgrid" id="rxGrid"></div>
+</div></div>
+
+<div class="ov" id="ovGrid"><div class="sheet" style="max-width:560px"><button class="x" data-close></button>
+  <h3 style="margin-bottom:2px">🕸 グリッドチョイス</h3>
+  <div id="gcCrumb" style="font-size:12px;color:var(--soft);margin:2px 0 12px"></div>
+  <div id="gcStage" class="gcstage"></div>
+  <div class="gcbar">
+    <button class="btn sec gcbtn" id="gcBack">↩ 戻る</button>
+    <button class="btn sec gcbtn" id="gcAuto">▶ オート</button>
+    <button class="btn pri gcbtn" id="gcPlay">▶ 再生</button>
+  </div>
+</div></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const hex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+const esc=s=>{const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;};
+const nf=n=>n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'k':(n||0);
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),1600);}
+function canon(v){if(v===null)return'null';if(Array.isArray(v))return'['+v.map(canon).join(',')+']';
+  if(typeof v==='object')return'{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+canon(v[k])).join(',')+'}';return JSON.stringify(v);}
+/* SVG icons */
+const IC={
+ like:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20.5C12 20.5 3.5 15.4 3.5 9.2 3.5 6.5 5.6 4.8 7.9 4.8 9.6 4.8 11.1 5.8 12 7.3 12.9 5.8 14.4 4.8 16.1 4.8 18.4 4.8 20.5 6.5 20.5 9.2 20.5 15.4 12 20.5 12 20.5Z"/></svg>',
+ likeO:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20C12 20 4 15 4 9.3 4 6.7 6 5.1 8 5.1 9.7 5.1 11 6 12 7.5 13 6 14.3 5.1 16 5.1 18 5.1 20 6.7 20 9.3 20 15 12 20 12 20Z"/></svg>',
+ comment:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h16v10H9l-5 4V5Z"/></svg>',
+ share:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7h16v-7"/><path d="M12 3v13"/><path d="M7 8l5-5 5 5"/></svg>',
+ sound:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 9v6h4l5 4V5L8 9H4Z"/></svg><svg viewBox="0 0 24 24" style="position:absolute;opacity:0"></svg>',
+ mute:'<svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4Z" fill="currentColor"/><path d="M16 9.5l5 5M21 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+ soundOn:'<svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4Z" fill="currentColor"/><path d="M16 8.5a4.5 4.5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+ search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>',
+ plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+ back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+ close:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+ send:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 10.9 20 3.4 12.6 20l-2-6.6-7.2-2.5Z"/></svg>',
+ cover:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="8.5" cy="10" r="1.5"/><path d="M4 17l4.5-4 3.5 2.5 3-2.5 5 4.5"/></svg>',
+ check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 6.5"/></svg>',
+ trophy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3"/><path d="M9 19h6M12 14v5"/></svg>',
+ remix:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h11l-2.5-2.5M20 16H9l2.5 2.5"/><path d="M17 5l3 3-3 3M7 13l-3 3 3 3"/></svg>',
+};
+let adminMode=!!localStorage.getItem('morm_admin');
+$('btnSearch').innerHTML=IC.search;$('btnPost').innerHTML=IC.plus;$('btnCloseSearch').innerHTML=IC.close;$('btnChal').innerHTML=IC.trophy;
+$('pback').innerHTML=IC.back;$('cSend').innerHTML=IC.send;
+document.querySelectorAll('[data-close]').forEach(b=>b.innerHTML=IC.close);
+/* avatar gradient from m0r */
+const PAL=['#4A5CFF','#FF3E93','#FF6A3D','#22C466','#FFDC3C','#9163FF'];
+function avatarFor(el,m0r){const s=m0r||'m';let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))>>>0;
+  const a=PAL[h%6],b=PAL[(h>>3)%6];el.style.background=`linear-gradient(135deg,${a},${b===a?PAL[(h>>3)%6+1]||'#FF6A3D':b})`;el.textContent=(s.replace('m0r','')[0]||'M').toUpperCase();}
+
+/* wallet */
+function idb(){return new Promise(res=>{const r=indexedDB.open('morm-play-wallet',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>res(null);});}
+async function kvGet(k){const d=await idb();if(!d)return null;return new Promise(res=>{const t=d.transaction('kv').objectStore('kv').get(k);t.onsuccess=()=>res(t.result);t.onerror=()=>res(null);});}
+async function kvSet(k,v){const d=await idb();if(!d)return;return new Promise(res=>{const t=d.transaction('kv','readwrite').objectStore('kv').put(v,k);t.onsuccess=()=>res();});}
+let KEY=null,PUBHEX=null,ME=null;
+let MORM_USD=0.01;  // wMORM/USDC 実価格(Base Sepolia)。api.morm.one/api/price から更新。失敗時は発行基準$0.01。
+async function refreshPrice(){try{
+  const p=await fetch('https://api.morm.one/api/price',{cache:'no-store'}).then(r=>r.json());
+  const v=Number(p&&p.usdPerMorm);
+  if(isFinite(v)&&v>0){MORM_USD=v;
+    if($('ovAcct')&&$('ovAcct').classList.contains('on'))renderAcct();}
+}catch(e){}}
+async function wallet(){try{
+  let pk=await kvGet('pkcs8'),pub=await kvGet('pubraw');
+  if(!pk||!pub){const kp=await crypto.subtle.generateKey({name:'Ed25519'},true,['sign','verify']);
+    pk=await crypto.subtle.exportKey('pkcs8',kp.privateKey);pub=new Uint8Array(await crypto.subtle.exportKey('raw',kp.publicKey));await kvSet('pkcs8',pk);await kvSet('pubraw',pub);}
+  KEY=await crypto.subtle.importKey('pkcs8',pk,{name:'Ed25519'},false,['sign']);PUBHEX=hex(pub);
+  ME=await fetch('/api/me?pub='+PUBHEX).then(r=>r.json());localStorage.setItem('morm_m0r',ME.m0r);
+  avatarFor($('btnAvatar'),ME.m0r);
+  await attachRefIfPending();
+}catch(e){ME=null;}}
+async function attachRefIfPending(){
+  try{const rc=localStorage.getItem('morm_ref');
+    if(!rc||!KEY||!ME||ME.referred_by||rc===ME.ref_code)return;
+    const payload={code:rc};const env={kind:'referral.attach',sender:PUBHEX,nonce:Date.now()+'-'+Math.random().toString(36).slice(2,6),payload};
+    const sig=hex(await sign(new TextEncoder().encode(canon(env))));
+    const r=await fetch('/api/referral/attach',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...env,sig})}).then(r=>r.json());
+    localStorage.removeItem('morm_ref');   // 成否問わずコード消費(重複防止)
+    if(r.ok){ME=await fetch('/api/me?pub='+PUBHEX).then(r=>r.json());toast('招待コードを適用しました');}
+  }catch(e){}
+}
+async function sign(bytes){return new Uint8Array(await crypto.subtle.sign({name:'Ed25519'},KEY,bytes));}
+function uid(){return (ME&&ME.m0r)||localStorage.getItem('morm_m0r')||(()=>{let u='m0r'+Math.random().toString(36).slice(2,12);localStorage.setItem('morm_m0r',u);return u;})();}
+
+/* ── HOME grid (pinterest · loop thumb) ── */
+const home=$('home');let sort='hot',zone='sfw',q='',tag='',offset=0,loading=false,done=false,seen=new Set();
+function feedURL(off,lim){const u=encodeURIComponent(uid());
+  if(zone==='following')return `/api/feed?sort=new&zone=sfw&follow=${u}&offset=${off}&limit=${lim}&uid=${u}`;
+  return `/api/feed?sort=${sort}&zone=${zone}&q=${encodeURIComponent(q)}&tag=${encodeURIComponent(tag)}&offset=${off}&limit=${lim}&uid=${u}`;}
+const gAttach=v=>{if(v._on)return;v._on=1;const src='/m/'+v.dataset.id+'/master.m3u8';
+  if(window.Hls&&Hls.isSupported()){const h=new Hls({maxBufferLength:4,capLevelToPlayerSize:true});v._hls=h;h.loadSource(src);h.attachMedia(v);h.on(Hls.Events.MANIFEST_PARSED,()=>v.play().catch(()=>{}));}else{v.src=src;v.play().catch(()=>{});}};
+const gDetach=v=>{if(!v._on)return;v._on=0;try{v.pause();}catch(e){}if(v._hls){v._hls.destroy();v._hls=null;}v.removeAttribute('src');try{v.load();}catch(e){}};
+const gio=new IntersectionObserver(es=>es.forEach(e=>{e.isIntersecting?gAttach(e.target):gDetach(e.target);}),{rootMargin:'250px',threshold:0.1});
+function gcard(it){
+  const ar={portrait:'3/4',square:'1/1',landscape:'16/9'}[it.ar]||'3/4';
+  const c=document.createElement('div');c.className='gcard';c.dataset.id=it.id;
+  c.innerHTML=(it.rating==='r18'?'<span class="gr">R18</span>':'')+
+    (it.cover?`<img loading="lazy" style="aspect-ratio:${ar}" src="${it.cover}">`
+             :`<video class="gv" data-id="${it.id}" muted loop playsinline preload="none" poster="${it.thumb}" style="aspect-ratio:${ar}"></video>`)+
+    `<div class="gt"><div class="gtt">${esc(it.title)}</div><div class="gmeta">${IC.like}${nf(it.likes)}${it.comments?`<span class="dot">·</span>${IC.comment}${nf(it.comments)}`:''}</div></div>`;
+  c.onclick=()=>openPlayer(it.id);
+  const v=c.querySelector('.gv');if(v)gio.observe(v);
+  return c;
+}
+async function loadHome(){
+  if(loading||done)return;loading=true;
+  const r=await fetch(feedURL(offset,20));
+  if(r.status===403){loading=false;done=true;$('empty').style.display='grid';$('empty').innerHTML='18+コンテンツを表示するには<br>年齢認証が必要です';openAge();return;}
+  const d=await r.json();const sen=$('sentinel');const col=$('homeCol');
+  for(const it of d.items){if(seen.has(it.id))continue;seen.add(it.id);col.insertBefore(gcard(it),sen);}
+  if(d.next==null)done=true;else offset=d.next;loading=false;
+  const has=home.querySelectorAll('.gcard').length>0;$('empty').style.display=has?'none':'grid';
+  if(!has)$('empty').innerHTML=(zone==='following'?'フォロー中のクリエイターの<br>作品がここに表示されます':zone==='adult'?'18+の作品はまだありません':'作品がまだありません');
+}
+async function resetHome(){offset=0;done=false;seen=new Set();home.querySelectorAll('.gcard').forEach(c=>c.remove());$('empty').style.display='none';home.scrollTo(0,0);await loadHome();}
+new IntersectionObserver(es=>{if(es[0].isIntersecting)loadHome();},{rootMargin:'400px'}).observe($('sentinel'));
+
+/* ── PLAYER (vertical feed) ── */
+const player=$('player'),feed=$('feed');let pActive=null,soundOn=false,pOff=0,pDone=false,pSeen=new Set(),pLoading=false;
+/* rail(右アイコン列)は既定非表示。マウス/指が右側に来たら出現。 */
+let railHideT=null;
+function railShow(auto){player.classList.add('railon');if(railHideT){clearTimeout(railHideT);railHideT=null;}if(auto)railHideT=setTimeout(()=>player.classList.remove('railon'),2600);}
+function railHideSoon(d){if(railHideT)clearTimeout(railHideT);railHideT=setTimeout(()=>player.classList.remove('railon'),d);}
+function inRightZone(x){const st=pActive&&pActive.querySelector('.stage');const r=(st||feed).getBoundingClientRect();return x>=r.left+r.width*0.58;}
+player.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse')return;if(inRightZone(e.clientX))railShow(false);else railHideSoon(500);});
+player.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse')railHideSoon(250);});
+function slideEl(it){
+  const s=document.createElement('div');s.className='slide';s.dataset.id=it.id;s.dataset.likes=it.likes;s.dataset.liked=it.liked?1:'';s.dataset.title=it.title;s.dataset.comments=it.comments||0;s.dataset.up=it.uploader||'';s.dataset.cat=(it.tags&&it.tags[0])||'';
+  const r18=it.rating==='r18'?'<span class="r18b">R18</span>':'';
+  const self=it.is_self||(ME&&ME.m0r===it.uploader);
+  const uname=it.uname?esc(it.uname):('@'+esc(it.uploader||'').slice(0,14));
+  s.style.setProperty('--ar',{portrait:'9/16',square:'1/1',landscape:'16/9'}[it.ar]||'9/16');
+  s.innerHTML=`<img class="pv" src="${it.thumb}"><div class="stage"><video class="sv" muted loop playsinline preload="none" poster="${it.thumb}"></video>
+  <div class="tap"></div><div class="scrim"></div><div class="pausei">▶</div>
+  <div class="rail">
+    <button class="rb like ${it.liked?'on':''}"><span class="g">${it.liked?IC.like:IC.likeO}</span><span class="n">${nf(it.likes)}</span></button>
+    <button class="rb comment"><span class="g">${IC.comment}</span><span class="cn">${nf(it.comments||0)}</span></button>
+    ${self?'':`<button class="rb follow ${it.following?'on':''}"><span class="g">${it.following?IC.check:IC.plus}</span><span class="fl">${it.following?'フォロー中':'フォロー'}</span></button>`}
+    <button class="rb share"><span class="g">${IC.share}</span>共有</button>
+    <button class="rb remix"><span class="g">${IC.remix}</span>リミックス</button>
+    ${(self||adminMode)?`<button class="rb cover"><span class="g">${IC.cover}</span>サムネ</button>`:''}
+    <button class="rb sound"><span class="g snd">${IC.mute}</span>音声</button></div>
+  <div class="info"><div class="u">${uname}</div><div class="t">${esc(it.title)}${r18}</div>
+    <div class="tg">${(it.tags||[]).slice(0,4).map(t=>`<span>#${esc(t)}</span>`).join('')}</div>${metaChips(it)}</div></div>`;
+  const v=s.querySelector('video');
+  const capBg=()=>{if(s._bg||!v.videoWidth)return;try{const cv=document.createElement('canvas');cv.width=72;cv.height=Math.max(1,Math.round(72*v.videoHeight/v.videoWidth));cv.getContext('2d').drawImage(v,0,0,cv.width,cv.height);const pv=s.querySelector('.pv');if(pv)pv.src=cv.toDataURL('image/jpeg',0.6);s._bg=1;}catch(e){}};
+  v.addEventListener('loadedmetadata',()=>{if(v.videoWidth&&v.videoHeight)s.style.setProperty('--ar',v.videoWidth+'/'+v.videoHeight);});
+  v.addEventListener('loadeddata',capBg);
+  v.addEventListener('timeupdate',()=>{s._mw=Math.max(s._mw||0,v.currentTime||0);if(!s._bg)capBg();if(v.duration&&v.currentTime/v.duration>=0.9)s._cp=1;});
+  s.querySelector('.tap').onclick=(e)=>{if(inRightZone(e.clientX)){railShow(true);return;}if(v.paused){v.play();s.classList.remove('paused');}else{v.pause();s.classList.add('paused');}};
+  s.querySelector('.like').onclick=e=>{e.stopPropagation();likeIt(it.id,s);};
+  s.querySelector('.comment').onclick=e=>{e.stopPropagation();openComments(it.id,s);};
+  s.querySelector('.share').onclick=e=>{e.stopPropagation();share(it.id,it.title);};
+  s.querySelector('.sound').onclick=e=>{e.stopPropagation();soundOn=!soundOn;applySound();};
+  const cb=s.querySelector('.cover');if(cb)cb.onclick=e=>{e.stopPropagation();openCover(it.id);};
+  const fb=s.querySelector('.follow');if(fb)fb.onclick=e=>{e.stopPropagation();doFollow(it.uploader,s);};
+  const rx=s.querySelector('.remix');if(rx)rx.onclick=e=>{e.stopPropagation();remixThis(it);};
+  s.querySelectorAll('.mchip').forEach(ch=>ch.onclick=e=>{e.stopPropagation();
+    if(ch.dataset.rxParent){beaconWatch(pActive);openPlayer(ch.dataset.rxParent);}
+    else if(ch.dataset.rxList){openRemixes(ch.dataset.rxList,it.title);}
+    else if(ch.dataset.story){beaconWatch(pActive);openGrid(ch.dataset.story);}
+    else if(ch.dataset.chal){openChallenge(ch.dataset.chal);}});
+  s.querySelector('.u').onclick=e=>{e.stopPropagation();if(it.uploader)openProfile(it.uploader);};
+  return s;
+}
+function applySound(){document.querySelectorAll('.slide').forEach(s=>{const v=s.querySelector('video');v.muted=!soundOn;
+  const b=s.querySelector('.snd');if(b)b.innerHTML=soundOn?IC.soundOn:IC.mute;});const h=document.querySelector('.hint');if(h&&soundOn)h.remove();}
+function pAttach(s){const v=s.querySelector('video');if(s._on)return;s._on=1;const src='/m/'+s.dataset.id+'/master.m3u8';
+  if(window.Hls&&Hls.isSupported()){const h=new Hls({maxBufferLength:12});s._hls=h;h.loadSource(src);h.attachMedia(v);}else v.src=src;}
+function pDetach(s){if(!s._on)return;s._on=0;const v=s.querySelector('video');try{v.pause();}catch(e){}if(s._hls){s._hls.destroy();s._hls=null;}v.removeAttribute('src');try{v.load();}catch(e){}}
+const viewed=new Set();
+function beaconWatch(s,opts){if(!s||s._sent||!s._mw)return;s._sent=1;
+  const id=s.dataset.id,watched=+(s._mw||0).toFixed(1),completed=!!s._cp;
+  const post=b=>{try{fetch('/api/watch',{method:'POST',keepalive:true,headers:{'content-type':'application/json'},body:JSON.stringify(b)});}catch(e){}};
+  // 署名付き視聴(ウォレット有・非unload時)=view_by_other報酬の対象。未署名は従来通りview計数のみ(無報酬)。
+  // uid()==ME.m0r==署名者m0r なので、サーバの (cid,viewer) dedup で二重計上にならない。
+  if(KEY&&PUBHEX&&!(opts&&opts.sync)){
+    // watched は整数秒(署名payloadの数値はJS/Python間で常に一致させるため)。閾値判定は秒で十分。
+    const payload={id,watched:Math.max(0,Math.round(watched)),completed};
+    const env={kind:'watch',sender:PUBHEX,nonce:Date.now()+'-'+Math.random().toString(36).slice(2,6),payload};
+    sign(new TextEncoder().encode(canon(env)))
+      .then(sg=>post({kind:'watch',sender:PUBHEX,nonce:env.nonce,payload,sig:hex(sg)}))
+      .catch(()=>post({id,watched,completed,uid:uid()}));
+  }else{
+    post({id,watched,completed,uid:uid()});  // unload時など=同期・未署名(確実にview計数)
+  }}
+/* pActive は現在再生中の「セル(.slide)」。縦=row間(おすすめ/フォロー)、横=row内(同カテゴリ)。 */
+const CAT_LABEL={asmr:'ASMR',nature:'自然',pets:'動物',sports:'スポーツ',news:'ニュース',education:'学び',tech:'テック',beauty:'ビューティー',fashion:'ファッション',travel:'旅',food:'グルメ',comedy:'コメディ',vlog:'Vlog',gaming:'ゲーム',art:'アート',dance:'ダンス',music:'ミュージック'};
+function setActive(cell){if(pActive===cell)return;const prev=pActive;pActive=cell;beaconWatch(prev);
+  const row=cell.closest('.row');if(row)row._cur=cell;
+  const keep=new Set([cell]);
+  if(row){const cs=[...row.querySelectorAll('.slide')];const ci=cs.indexOf(cell);
+    [cs[ci-1],cs[ci+1]].forEach(c=>c&&keep.add(c));
+    const rows=[...feed.querySelectorAll('.row')];const ri=rows.indexOf(row);
+    [rows[ri-1],rows[ri+1]].forEach(r=>{if(r){const c=r._cur||r.querySelector('.slide');c&&keep.add(c);}});}
+  feed.querySelectorAll('.slide').forEach(c=>{keep.has(c)?pAttach(c):pDetach(c);
+    if(c!==cell){const vv=c.querySelector('video');if(vv)vv.pause();c.classList.remove('paused','act');}});
+  cell.classList.add('act');
+  const v=cell.querySelector('video');v.muted=!soundOn;v.play().catch(()=>{});cell.classList.remove('paused');
+  const id=cell.dataset.id;if(!viewed.has(id)){viewed.add(id);fetch('/api/content/'+id+'?uid='+encodeURIComponent(uid())).catch(()=>{});}
+  if(row){ensureRowCategory(row);updateNav(row,cell);
+    const rows=[...feed.querySelectorAll('.row')];if(rows.length-rows.indexOf(row)<=3)loadPlayer();}}
+/* nested scroll(縦=feed/横=row)ではIOが発火しないので、スクロール位置から中央のセルを判定 */
+let _aT=0;
+function scheduleActive(){const now=(window.performance&&performance.now)?performance.now():Date.now();if(now-_aT<70)return;_aT=now;computeActive();}
+function computeActive(){if(!player.classList.contains('on'))return;
+  const cx=innerWidth/2,cy=innerHeight/2;let arow=null;
+  for(const r of feed.querySelectorAll('.row')){const rc=r.getBoundingClientRect();if(rc.top-1<=cy&&rc.bottom>cy){arow=r;break;}}
+  if(!arow)return;let acell=arow.querySelector('.slide');
+  for(const c of arow.querySelectorAll('.slide')){const cc=c.getBoundingClientRect();if(cc.left-1<=cx&&cc.right>cx){acell=c;break;}}
+  if(acell)setActive(acell);}
+feed.addEventListener('scroll',scheduleActive,{passive:true});   // 縦
+/* scroll/IOが不安定な環境向けに、プレイヤー表示中は軽量ポーリングで中央セルを追従 */
+let _aLoop=0;
+function startActiveLoop(){stopActiveLoop();_aLoop=setInterval(computeActive,160);}
+function stopActiveLoop(){if(_aLoop){clearInterval(_aLoop);_aLoop=0;}}
+function rowEl(it){const row=document.createElement('div');row.className='row';const c=slideEl(it);row.appendChild(c);
+  row.addEventListener('scroll',scheduleActive,{passive:true});   // 横(同カテゴリ)
+  return row;}
+async function ensureRowCategory(row){if(row._catLoaded||row._catLoading)return;row._catLoading=true;
+  const prim=row.querySelector('.slide');const cat=prim.dataset.cat||'';
+  if(!cat){row._catLoaded=true;row._catLoading=false;return;}
+  try{const d=await fetch(`/api/feed?sort=hot&zone=${zone==='adult'?'adult':'sfw'}&tag=${encodeURIComponent(cat)}&limit=14&uid=${encodeURIComponent(uid())}`).then(r=>r.json());
+    const seenC=new Set([prim.dataset.id]);
+    for(const it of (d.items||[])){if(seenC.has(it.id))continue;seenC.add(it.id);const c=slideEl(it);row.appendChild(c);}
+  }catch(e){}
+  row._catLoaded=true;row._catLoading=false;updateNav(row,row._cur||prim);}
+async function loadPlayer(){if(pLoading||pDone)return;pLoading=true;
+  const r=await fetch(feedURL(pOff,8));
+  if(r.status===403){pLoading=false;pDone=true;return;}
+  const d=await r.json();
+  for(const it of d.items){if(pSeen.has(it.id))continue;pSeen.add(it.id);feed.appendChild(rowEl(it));}
+  if(d.next==null)pDone=true;else pOff=d.next;pLoading=false;}
+/* 左右ナビ(同カテゴリ)+カテゴリピル */
+function updateNav(row,cell){const cells=[...row.querySelectorAll('.slide')];const i=cells.indexOf(cell);const multi=cells.length>1;
+  $('hprev').style.display=(multi&&i>0)?'grid':'none';$('hnext').style.display=(multi&&i<cells.length-1)?'grid':'none';
+  const cat=cell.dataset.cat||'';const cp=$('catpill');
+  if(multi&&cat){cp.textContent=(CAT_LABEL[cat]||('#'+cat))+`  ${i+1}/${cells.length}`;cp.classList.add('show');
+    clearTimeout(cp._t);cp._t=setTimeout(()=>cp.classList.remove('show'),1800);}else{cp.classList.remove('show');}}
+function hideNav(){$('hprev').style.display='none';$('hnext').style.display='none';$('catpill').classList.remove('show');}
+function hstep(dir){if(!pActive)return;const row=pActive.closest('.row');if(row)row.scrollBy({left:dir*row.clientWidth,behavior:'smooth'});}
+$('hprev').onclick=()=>hstep(-1);$('hnext').onclick=()=>hstep(1);
+async function openPlayer(id){
+  const it=await fetch('/api/content/'+id+'?uid='+encodeURIComponent(uid())).then(r=>r.json());
+  if(it.error){toast('読み込めません');return;}
+  if(it.rating==='r18'&&!(ME&&ME.age_verified)){openAge();return;}
+  feed.innerHTML='';pActive=null;pOff=0;pDone=false;pSeen=new Set([id]);pLoading=false;hideNav();
+  const row=rowEl(it);feed.appendChild(row);
+  player.classList.add('on');feed.scrollTo(0,0);setActive(row.querySelector('.slide'));railShow(true);startActiveLoop();
+  loadPlayer();
+  if(!localStorage.getItem('hint2')){localStorage.setItem('hint2','1');
+    const h=document.createElement('div');h.className='hint';h.textContent='上下=おすすめ / 左右=同じカテゴリ';player.appendChild(h);setTimeout(()=>h&&h.remove(),4200);}
+}
+function closePlayer(){beaconWatch(pActive);stopActiveLoop();player.classList.remove('on','railon');if(railHideT){clearTimeout(railHideT);railHideT=null;}
+  feed.querySelectorAll('.slide').forEach(pDetach);feed.innerHTML='';pActive=null;hideNav();}
+$('pback').onclick=closePlayer;
+document.addEventListener('keydown',e=>{if(!player.classList.contains('on'))return;
+  if(e.key==='ArrowLeft')hstep(-1);else if(e.key==='ArrowRight')hstep(1);
+  else if(e.key==='ArrowDown')feed.scrollBy({top:feed.clientHeight,behavior:'smooth'});
+  else if(e.key==='ArrowUp')feed.scrollBy({top:-feed.clientHeight,behavior:'smooth'});
+  else if(e.key==='Escape')closePlayer();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)beaconWatch(pActive,{sync:true});});
+window.addEventListener('pagehide',()=>beaconWatch(pActive,{sync:true}));
+async function likeIt(id,s){
+  if(!KEY){toast('この端末はいいねに未対応です');return;}
+  const payload={id};const env={kind:'like',sender:PUBHEX,nonce:Date.now()+'-'+Math.random().toString(36).slice(2,6),payload};
+  const sig=hex(await sign(new TextEncoder().encode(canon(env))));
+  const d=await fetch('/api/like',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...env,sig})}).then(r=>r.json());
+  if(d.error)return;const b=s.querySelector('.like');b.classList.toggle('on',d.liked);b.querySelector('.g').innerHTML=d.liked?IC.like:IC.likeO;b.querySelector('.n').textContent=nf(d.likes);
+  if(d.awarded_points>0)awardToast(d.awarded_points);}
+function awardToast(pts){toast(`+${pts}pt 獲得（72時間毎にMORMへ配分）`);refreshMe();}
+async function refreshMe(){if(PUBHEX){try{ME=await fetch('/api/me?pub='+PUBHEX).then(r=>r.json());}catch(e){}}}
+async function claimShare(id){       // シェア報酬(署名付き・(口座,share,作品)恒久1回)
+  if(!KEY)return;
+  try{const payload={id};const env={kind:'share',sender:PUBHEX,nonce:Date.now()+'-'+Math.random().toString(36).slice(2,6),payload};
+    const sig=hex(await sign(new TextEncoder().encode(canon(env))));
+    const d=await fetch('/api/share',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...env,sig})}).then(r=>r.json());
+    if(d&&d.awarded_points>0)awardToast(d.awarded_points);
+  }catch(e){}}
+function share(id,title){const url=location.origin+'/watch?id='+id;
+  if(navigator.share)navigator.share({title:'MORM Play — '+title,url}).then(()=>claimShare(id)).catch(()=>{});
+  else navigator.clipboard.writeText(url).then(()=>{toast('リンクをコピーしました');claimShare(id);});}
+
+/* ── follow / profile ── */
+async function followReq(up,op){const payload={to:up,op};
+  const env={kind:'follow',sender:PUBHEX,nonce:Date.now()+'-'+Math.random().toString(36).slice(2,6),payload};
+  const sig=hex(await sign(new TextEncoder().encode(canon(env))));
+  return fetch('/api/follow',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...env,sig})}).then(r=>r.json());}
+function setFollowUI(up,following){document.querySelectorAll('.slide').forEach(s=>{if(s.dataset.up===up){const b=s.querySelector('.follow');
+  if(b){b.classList.toggle('on',following);b.querySelector('.g').innerHTML=following?IC.check:IC.plus;b.querySelector('.fl').textContent=following?'フォロー中':'フォロー';}}});}
+async function doFollow(up,s){if(!KEY){toast('この端末はウォレット非対応です');return;}
+  if(ME&&ME.m0r===up){toast('自分自身はフォローできません');return;}
+  const btn=s.querySelector('.follow');const op=btn.classList.contains('on')?'unfollow':'follow';
+  const r=await followReq(up,op);if(r.error){toast(r.error);return;}
+  setFollowUI(up,r.following);if(pfM0r===up)setPfFollowBtn(r.following);
+  toast(r.following?'フォローしました':'フォロー解除しました');}
+let pfM0r=null;
+async function openProfile(m0r){pfM0r=m0r;$('ovProfile').classList.add('on');
+  $('pfGrid').innerHTML='<div style="grid-column:1/-1;color:var(--soft);text-align:center;padding:20px">読み込み中…</div>';
+  $('pfBio').style.display='none';$('pfStats').innerHTML='';
+  const p=await fetch('/api/profile/'+encodeURIComponent(m0r)+'?viewer='+encodeURIComponent(uid())).then(r=>r.json()).catch(()=>null);
+  if(!p||p.error){toast('プロフィールを取得できません');$('ovProfile').classList.remove('on');return;}
+  avatarFor($('pfAv'),m0r);
+  $('pfName').textContent=p.display_name||('@'+m0r.slice(0,16));
+  $('pfAddr').textContent=m0r;
+  if(p.bio){$('pfBio').textContent=p.bio;$('pfBio').style.display='block';}
+  const s=p.stats;
+  $('pfStats').innerHTML=`<div><b>${nf(s.posts)}</b><span>投稿</span></div><div><b id="pfFwr">${nf(s.followers)}</b><span>フォロワー</span></div><div><b>${nf(s.likes)}</b><span>いいね</span></div><div><b>${nf(s.earned_morm)}</b><span>獲得MORM</span></div>`;
+  const fb=$('pfFollow');
+  if(p.is_self){fb.style.display='none';}else{fb.style.display='block';setPfFollowBtn(p.following);}
+  $('pfGrid').innerHTML=p.items.length?p.items.map(it=>`<div class="pc" data-id="${it.id}"><img loading="lazy" src="${it.cover||it.thumb}" alt=""><div class="pcl">${IC.like}${nf(it.likes)}</div></div>`).join(''):'<div style="grid-column:1/-1;color:var(--soft);text-align:center;padding:20px">まだ投稿がありません</div>';
+  $('pfGrid').querySelectorAll('.pc').forEach(el=>el.onclick=()=>{$('ovProfile').classList.remove('on');openPlayer(el.dataset.id);});}
+function setPfFollowBtn(following){const fb=$('pfFollow');fb.classList.toggle('sec',following);fb.classList.toggle('pri',!following);fb.textContent=following?'フォロー中':'＋ フォロー';}
+$('pfFollow').onclick=async()=>{if(!pfM0r)return;if(!KEY){toast('この端末はウォレット非対応です');return;}
+  const op=$('pfFollow').classList.contains('sec')?'unfollow':'follow';
+  const r=await followReq(pfM0r,op);if(r.error){toast(r.error);return;}
+  setPfFollowBtn(r.following);setFollowUI(pfM0r,r.following);
+  const fw=$('pfFwr');if(fw)fw.textContent=nf(r.followers);};
+/* edit profile */
+$('acctEditP').onclick=()=>{$('ovAcct').classList.remove('on');$('epName').value=(ME&&ME.display_name)||'';$('epBio').value=(ME&&ME.bio)||'';$('epMsg').textContent='';$('ovEditP').classList.add('on');};
+$('acctViewP').onclick=()=>{if(!(ME&&ME.m0r)){toast('初期化中です');return;}$('ovAcct').classList.remove('on');openProfile(ME.m0r);};
+$('epSave').onclick=async()=>{const m=$('epMsg');if(!KEY){m.className='msg err';m.textContent='この端末はウォレット非対応です';return;}
+  m.className='msg';m.textContent='署名して保存中…';$('epSave').disabled=true;
+  try{const payload={display_name:$('epName').value.trim().slice(0,40),bio:$('epBio').value.trim().slice(0,200)};
+    const env={kind:'set.profile',sender:PUBHEX,nonce:Date.now()+'-'+Math.random().toString(36).slice(2,6),payload};
+    const sig=hex(await sign(new TextEncoder().encode(canon(env))));
+    const r=await fetch('/api/profile',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...env,sig})}).then(r=>r.json());
+    if(r.error){m.className='msg err';m.textContent=r.error;$('epSave').disabled=false;return;}
+    ME=await fetch('/api/me?pub='+PUBHEX).then(r=>r.json());m.className='msg ok';m.textContent='✓ 保存しました';
+    setTimeout(()=>{$('ovEditP').classList.remove('on');$('epSave').disabled=false;},700);
+  }catch(e){m.className='msg err';m.textContent='エラー: '+e;$('epSave').disabled=false;}};
+
+/* ── comments ── */
+let comCid=null,comSlide=null;
+async function openComments(id,s){comCid=id;comSlide=s;$('clist').innerHTML='<div style="color:var(--soft);padding:14px 0">読み込み中…</div>';$('ovCom').classList.add('on');
+  const d=await fetch('/api/comments/'+id).then(r=>r.json());renderComments(d.items);}
+function renderComments(items){$('comTitle').textContent='コメント '+(items.length?items.length:'');
+  if(!items.length){$('clist').innerHTML='<div style="color:var(--soft);padding:20px 0;text-align:center">最初のコメントを書こう</div>';return;}
+  $('clist').innerHTML=items.map(c=>{const id='av'+Math.random().toString(36).slice(2,7);
+    return `<div class="citem"><div class="av" id="${id}"></div><div class="cb"><div class="cu">@${esc(c.account).slice(0,16)}</div><div class="ct">${esc(c.text)}</div></div></div>`;}).join('');
+  items.forEach((c,i)=>{const el=$('clist').querySelectorAll('.av')[i];if(el)avatarFor(el,c.account);});}
+$('cSend').onclick=async()=>{const t=$('cText').value.trim();if(!t||!comCid)return;
+  if(!KEY){toast('この端末はコメントに未対応です');return;}
+  $('cText').value='';
+  const payload={id:comCid,text:t};const env={kind:'comment',sender:PUBHEX,nonce:Date.now()+'-'+Math.random().toString(36).slice(2,6),payload};
+  const sig=hex(await sign(new TextEncoder().encode(canon(env))));
+  const d=await fetch('/api/comment',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...env,sig})}).then(r=>r.json());
+  if(d.error){toast(d.error);return;}
+  if(d.awarded_points>0)awardToast(d.awarded_points);
+  const dd=await fetch('/api/comments/'+comCid).then(r=>r.json());renderComments(dd.items);
+  if(comSlide){comSlide.dataset.comments=d.comments;const cn=comSlide.querySelector('.cn');if(cn)cn.textContent=nf(d.comments);}};
+$('cText').addEventListener('keydown',e=>{if(e.key==='Enter')$('cSend').click();});
+
+/* ── zone tabs / search / tags ── */
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{const z=t.dataset.zone;
+  if(z==='adult'&&!(ME&&ME.age_verified)){openAge();return;}
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');zone=z;resetHome();});
+const searchBar=$('searchBar'),qEl=$('q');
+$('btnSearch').onclick=()=>{searchBar.classList.add('on');qEl.focus();};
+$('btnCloseSearch').onclick=()=>searchBar.classList.remove('on');
+let qt;qEl.oninput=()=>{clearTimeout(qt);qt=setTimeout(()=>{q=qEl.value.trim();resetHome();},280);};
+fetch('/api/tags').then(r=>r.json()).then(ts=>{const c=$('chips');
+  const all=document.createElement('button');all.className='chip on';all.textContent='すべて';
+  all.onclick=()=>{tag='';[...c.children].forEach(x=>x.classList.remove('on'));all.classList.add('on');resetHome();};c.appendChild(all);
+  ts.tags.forEach(t=>{const b=document.createElement('button');b.className='chip';b.textContent='#'+t;
+    b.onclick=()=>{tag=t;[...c.children].forEach(x=>x.classList.remove('on'));b.classList.add('on');resetHome();};c.appendChild(b);});});
+
+/* ── account sheet ── */
+document.querySelectorAll('.ov').forEach(o=>{o.onclick=e=>{if(e.target===o)o.classList.remove('on');};o.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>o.classList.remove('on'));});
+/* ovGrid を閉じたらオート再生を止める(背景クリック/×の両方) */
+(function(){const og=$('ovGrid');if(!og)return;const stop=()=>{if(GC.auto)gcStopAuto();};
+  og.addEventListener('click',e=>{if(e.target===og)stop();});
+  og.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',stop));})();
+$('btnAvatar').onclick=()=>{renderAcct();$('ovAcct').classList.add('on');};
+function renderAcct(){
+  avatarFor($('acctAv'),ME&&ME.m0r);$('acctAddr').textContent=(ME&&ME.m0r)||'(未初期化)';
+  $('acctName').textContent=(ME&&ME.display_name)||'マイアカウント';
+  $('acctFollow').textContent=ME?`フォロワー ${nf(ME.followers||0)}　・　フォロー中 ${nf(ME.following||0)}`:'';
+  const v=ME&&ME.age_verified;$('acctAge').innerHTML=`<span class="badge ${v?'yes':'no'}">${v?'✓ 年齢認証済み':'年齢未認証'}</span>`;
+  $('acctVerify').style.display=v?'none':'block';
+  const e=(ME&&ME.earnings)||{earned_morm:0,views:0,likes:0,posts:0,paid_morm:0,pending_morm:0};
+  $('earnBig').innerHTML=`${nf(e.earned_morm)} <small>MORM ≈ $${(e.earned_morm*MORM_USD).toFixed(2)}</small>`;
+  $('eV').textContent=nf(e.views);$('eL').textContent=nf(e.likes);$('eP').textContent=nf(e.posts);
+  const rt=(ME&&ME.rates)||{view:0.002,like:0.05};
+  $('earnSub').innerHTML=`再生 ${rt.view}／いいね ${rt.like} MORM。受取済 ${nf(e.paid_morm)}・未受取 <b style="color:var(--yellow)">${nf(e.pending_morm)}</b> MORM`;
+  const l1=(ME&&ME.l1);
+  $('l1Bal').innerHTML = l1
+    ? `⛓ オンチェーン残高 <b>${nf(l1.balance)}</b> MORM ≈ $${(l1.balance*MORM_USD).toFixed(2)}`
+      + (l1.stake?`　・ ステーク <b>${nf(l1.stake)}</b>`:'')
+      + (l1.locked?`　・ ロック <b>${nf(l1.locked)}</b>`:'')
+    : `<span style="color:var(--soft)">⛓ オンチェーン残高: 取得できませんでした</span>`;
+  const pt=(ME&&ME.points);
+  if(pt){const per=pt.per_action||{like:1,comment:2,share:1};
+    $('ptBal').innerHTML=`⭐ エンゲージ・ポイント <b style="color:var(--yellow)">${nf(pt.pending)}</b> pt`
+      +` <span style="color:var(--soft)">（≈ ${nf(pt.est_morm||0)} MORM・72時間毎にウォレットへ）</span>`
+      +`<br><span style="color:var(--soft);font-size:11.5px">いいね ${per.like} / コメント ${per.comment} / シェア ${per.share} pt・${pt.per_morm}pt=1MORM</span>`;
+  } else $('ptBal').innerHTML='';
+  $('claimBtn').style.display=e.pending_morm>0?'block':'none';
+  $('claimBtn').textContent=`受け取る（${nf(e.pending_morm)} MORM を配分）`;
+  loadInvite();
+}
+function inviteLink(){return location.origin+'/?ref='+((ME&&ME.ref_code)||'');}
+async function loadInvite(){
+  if(!(ME&&ME.m0r)){$('inviteBox').style.display='none';return;}
+  $('inviteBox').style.display='block';$('refLink').value=inviteLink();
+  $('refbyNote').innerHTML=ME.referred_by?`<div class="refby">🎉 招待経由で参加しました</div>`:'';
+  const s=await fetch('/api/referral/stats?m0r='+encodeURIComponent(ME.m0r)).then(r=>r.json()).catch(()=>null);
+  if(!s)return;
+  $('refBonus').textContent=s.bonus_referee;
+  $('refStats').innerHTML=`<div><b>${nf(s.invited)}</b><span>招待</span></div>`
+    +`<div><b>${nf(s.qualified)}</b><span>成立</span></div>`
+    +`<div><b style="color:var(--yellow)">${nf(s.earned_bonus_morm)}</b><span>獲得MORM</span></div>`;
+  if(s.my_status==='pending')$('refbyNote').innerHTML=`<div class="refby" style="background:#ffdc3c22;color:var(--yellow)">投稿が承認されると二人にボーナス</div>`;
+}
+$('refCopy').onclick=()=>{navigator.clipboard.writeText(inviteLink()).then(()=>toast('招待リンクをコピーしました'));};
+$('refShare').onclick=()=>{const url=inviteLink();if(navigator.share)navigator.share({title:'MORM Play に招待',text:'MORM Play で動画を見て、投稿してMORMを稼ごう',url}).catch(()=>{});else navigator.clipboard.writeText(url).then(()=>toast('招待リンクをコピーしました'));};
+$('acctVerify').onclick=()=>{$('ovAcct').classList.remove('on');openAge();};
+$('claimBtn').onclick=()=>toast('配分はまもなく自動化されます（現在は運営が定期配分）');
+$('admSave').onclick=()=>{const t=$('admTok').value.trim();if(t){localStorage.setItem('morm_admin',t);adminMode=true;$('admMsg').className='msg ok';$('admMsg').textContent='✓ 有効化（全作品でサムネ設定可）';}else{localStorage.removeItem('morm_admin');adminMode=false;$('admMsg').textContent='';}};
+
+/* ── cover (thumbnail cut) picker ── */
+let covCid=null,covHls=null;
+async function openCover(id){covCid=id;const v=$('covVid');$('covMsg').textContent='';$('covMsg').className='msg';
+  $('ovCover').classList.add('on');const src='/m/'+id+'/master.m3u8';
+  if(covHls){covHls.destroy();covHls=null;}
+  if(window.Hls&&Hls.isSupported()){covHls=new Hls();covHls.loadSource(src);covHls.attachMedia(v);}else v.src=src;
+  v.onloadedmetadata=()=>{$('covScrub').max=(v.duration||3).toFixed(2);$('covScrub').value=Math.min(0.5,(v.duration||1)/2);v.currentTime=+$('covScrub').value;};
+  // 既存カットがあれば解除ボタン
+  const it=await fetch('/api/content/'+id).then(r=>r.json()).catch(()=>({}));
+  $('covReset').style.display=it.cover?'block':'none';
+}
+$('covScrub').oninput=e=>{const v=$('covVid');v.pause();v.currentTime=+e.target.value;};
+$('covSet').onclick=async()=>{const v=$('covVid'),m=$('covMsg');m.className='msg';m.textContent='生成中…';$('covSet').disabled=true;
+  try{
+    const cv=document.createElement('canvas');const w=Math.min(540,v.videoWidth||480);cv.width=w;cv.height=Math.round(w*(v.videoHeight/v.videoWidth||16/9));
+    cv.getContext('2d').drawImage(v,0,0,cv.width,cv.height);
+    const dataUrl=cv.toDataURL('image/jpeg',0.82);
+    const body={id:covCid,cover:dataUrl,ts:+$('covScrub').value};
+    if(adminMode){body.token=localStorage.getItem('morm_admin');}
+    else{const payload={id:covCid,ts:Math.round((+$('covScrub').value)*100)/100};
+      const env={kind:'set.cover',sender:PUBHEX,nonce:Date.now()+'-'+Math.random().toString(36).slice(2,6),payload};
+      body.kind='set.cover';body.sender=PUBHEX;body.nonce=env.nonce;body.payload=payload;body.sig=hex(await sign(new TextEncoder().encode(canon(env))));}
+    const r=await fetch('/api/cover',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json());
+    if(r.error){m.className='msg err';m.textContent=r.error;$('covSet').disabled=false;return;}
+    m.className='msg ok';m.textContent='✓ サムネを設定しました';
+    setTimeout(()=>{$('ovCover').classList.remove('on');if(covHls){covHls.destroy();covHls=null;}resetHome();},700);
+  }catch(e){m.className='msg err';m.textContent='エラー: '+e;$('covSet').disabled=false;}};
+$('covReset').onclick=async()=>{const body={id:covCid,cover:'data:image/jpeg;base64,',ts:0};
+  if(adminMode)body.token=localStorage.getItem('morm_admin');
+  else{const payload={id:covCid,ts:0};const env={kind:'set.cover',sender:PUBHEX,nonce:Date.now()+'',payload};
+    Object.assign(body,{kind:'set.cover',sender:PUBHEX,nonce:env.nonce,payload,sig:hex(await sign(new TextEncoder().encode(canon(env))))});}
+  await fetch('/api/cover',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+  toast('ループ表示に戻しました（※画像はサーバ側で解除）');};
+
+/* ── age verify ── */
+(function(){const y=new Date().getFullYear();let o='';for(let i=y-10;i>=1930;i--)o+=`<option value="${i}">${i}</option>`;$('birthYear').innerHTML=o;$('birthYear').value=y-25;})();
+function openAge(){$('ageMsg').textContent='';$('age18').checked=false;$('ageGo').disabled=true;$('ovAge').classList.add('on');}
+$('age18').onchange=e=>$('ageGo').disabled=!e.target.checked;
+$('ageGo').onclick=async()=>{const m=$('ageMsg');if(!KEY){m.className='msg err';m.textContent='この端末はウォレット非対応です';return;}
+  $('ageGo').disabled=true;m.className='msg';m.textContent='署名して確認中…';
+  try{const by=parseInt($('birthYear').value,10);
+    const env={kind:'age.verify',sender:PUBHEX,nonce:Date.now()+'-'+Math.random().toString(36).slice(2,7),payload:{birth_year:by}};
+    const sig=hex(await sign(new TextEncoder().encode(canon(env))));
+    const r=await fetch('/api/age/verify',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...env,sig})}).then(r=>r.json());
+    if(r.error){m.className='msg err';m.textContent=r.error;$('ageGo').disabled=false;return;}
+    ME=await fetch('/api/me?pub='+PUBHEX).then(r=>r.json());m.className='msg ok';m.textContent='✓ 認証しました';
+    setTimeout(()=>{$('ovAge').classList.remove('on');document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));document.querySelector('.tab.adult').classList.add('on');zone='adult';resetHome();},600);
+  }catch(e){m.className='msg err';m.textContent='エラー: '+e;$('ageGo').disabled=false;}};
+
+/* ── challenge / remix ── */
+function metaChips(it){const c=[];
+  if(it.remix_of)c.push(`<span class="mchip" data-rx-parent="${esc(it.remix_of)}">${IC.remix}元: ${esc(it.remix_of_title||'動画')}</span>`);
+  if(it.remix_count>0)c.push(`<span class="mchip" data-rx-list="${esc(it.id)}">${IC.remix}リミックス ${nf(it.remix_count)}</span>`);
+  if(it.story>0)c.push(`<span class="mchip" data-story="${esc(it.id)}">🕸 分岐 ${nf(it.story)}</span>`);
+  if(it.challenge)c.push(`<span class="mchip ch" data-chal="${esc(it.challenge)}">${IC.trophy}${esc(it.challenge_title||it.challenge)}</span>`);
+  return c.length?`<div class="meta">${c.join('')}</div>`:'';}
+function remixThis(it){let u='/upload?remix='+encodeURIComponent(it.id);if(it.challenge)u+='&challenge='+encodeURIComponent(it.challenge);location.href=u;}
+function fmtEnds(ends){if(!ends)return '無期限';const d=Math.ceil((ends*1000-Date.now())/86400000);return d>0?`あと${d}日`:'終了';}
+/* ── grid choice (分岐ストーリー) ── */
+let GC={cid:null,hist:[],auto:false,autoT:null,data:null};
+async function openGrid(cid){$('ovGrid').classList.add('on');
+  GC={cid:null,hist:[],auto:false,autoT:null,data:null};
+  $('gcStage').innerHTML='';$('gcCrumb').textContent='読み込み中…';await gcLoad(cid,false);}
+async function gcLoad(cid,push){
+  const d=await fetch('/api/story/'+encodeURIComponent(cid)+'?uid='+encodeURIComponent(uid())).then(r=>r.json()).catch(()=>null);
+  if(!d||d.error){toast('取得できません');return;}
+  if(push&&GC.cid)GC.hist.push(GC.cid);
+  GC.cid=cid;GC.data=d;gcRender();}
+function gcRender(){const d=GC.data;if(!d)return;
+  const idxBySlot={0:1,1:5,2:7,3:3};   // 3x3グリッド: 0=N,1=E,2=S,3=W
+  const cells=Array.from({length:9},()=>'<div class="gccell"></div>');
+  const n=d.node;
+  cells[4]=`<div class="gccell gcnode"><div class="card"><img src="${n.cover||n.thumb}" alt="">`
+    +`<div class="gcnlbl">${esc(n.title)}</div></div></div>`;
+  (d.choices||[]).forEach(c=>{const gi=idxBySlot[((c.slot%4)+4)%4];
+    const t=c.target||{};const cost=c.cost>0?`<div class="cost">${nf(c.cost)}pt</div>`:'';
+    cells[gi]=`<div class="gccell"><div class="gcchoice" data-to="${esc(c.to)}">`
+      +`<img loading="lazy" src="${t.cover||t.thumb||''}" alt="">${cost}`
+      +`<div class="lbl">${esc(c.label||t.title||'続きへ')}</div></div></div>`;});
+  $('gcStage').innerHTML=cells.join('');
+  $('gcStage').querySelectorAll('.gcchoice').forEach(el=>el.onclick=()=>gcChoose(el.dataset.to));
+  $('gcCrumb').textContent=d.is_end?'物語の終わり — この先の分岐はありません'
+    :`分岐 ${d.choices.length}${GC.hist.length?`　・　${GC.hist.length}手目`:''} — どれかを選んで続きへ`;
+  $('gcBack').style.visibility=GC.hist.length?'visible':'hidden';
+  $('gcAuto').textContent=GC.auto?'⏸ オート停止':'▶ オート';}
+async function gcChoose(to){if(GC.auto)gcStopAuto();await gcLoad(to,true);}
+function gcStopAuto(){GC.auto=false;if(GC.autoT){clearTimeout(GC.autoT);GC.autoT=null;}gcRender();}
+function gcStartAuto(){GC.auto=true;gcRender();gcAutoStep();}
+function gcAutoStep(){if(!GC.auto)return;
+  const ch=(GC.data&&GC.data.choices)||[];
+  if(!ch.length){gcStopAuto();toast('物語の終わりに到達しました');return;}
+  const best=ch.slice().sort((a,b)=>((b.target&&b.target.views)||0)-((a.target&&a.target.views)||0))[0];
+  GC.autoT=setTimeout(async()=>{if(!GC.auto)return;await gcLoad(best.to,true);gcAutoStep();},1700);}
+$('gcBack').onclick=async()=>{if(GC.auto)gcStopAuto();if(!GC.hist.length)return;const p=GC.hist.pop();await gcLoad(p,false);};
+$('gcAuto').onclick=()=>{GC.auto?gcStopAuto():gcStartAuto();};
+$('gcPlay').onclick=()=>{if(GC.cid){if(GC.auto)gcStopAuto();$('ovGrid').classList.remove('on');openPlayer(GC.cid);}};
+/* challenge list */
+$('btnChal').onclick=openChalList;
+async function openChalList(){$('ovChal').classList.add('on');$('chalList').innerHTML='<div style="color:var(--soft);text-align:center;padding:20px">読み込み中…</div>';
+  const d=await fetch('/api/challenges?status=active').then(r=>r.json()).catch(()=>null);
+  if(!d||!d.items||!d.items.length){$('chalList').innerHTML='<div style="color:var(--soft);text-align:center;padding:20px">開催中のチャレンジはまだありません。<br>「＋ 作る」で最初のお題を立てよう。</div>';return;}
+  $('chalList').innerHTML=d.items.map(c=>`<div class="chalcard" data-slug="${esc(c.slug)}">
+    ${c.cover?`<img loading="lazy" src="${c.cover}">`:`<div class="ph"></div>`}
+    <div class="cc"><div class="ct2">${esc(c.title)}</div>
+      <div class="cm"><span>${nf(c.entries)} 作品</span><span>·</span><span>${fmtEnds(c.ends_at)}</span>
+        ${c.reward_pool>0?`<span class="poolb">${IC.trophy}${nf(c.reward_pool)} MORM</span>`:''}</div></div></div>`).join('');
+  $('chalList').querySelectorAll('.chalcard').forEach(el=>el.onclick=()=>{$('ovChal').classList.remove('on');openChallenge(el.dataset.slug);});}
+/* challenge detail */
+let cdSlug=null;
+async function openChallenge(slug){cdSlug=slug;$('ovChalD').classList.add('on');
+  $('cdGrid').innerHTML='<div style="grid-column:1/-1;color:var(--soft);text-align:center;padding:20px">読み込み中…</div>';
+  $('cdBoardWrap').style.display='none';$('cdDesc').textContent='';$('cdMeta').textContent='';$('cdHero').innerHTML='';
+  const d=await fetch('/api/challenge/'+encodeURIComponent(slug)+'?viewer='+encodeURIComponent(uid())).then(r=>r.json()).catch(()=>null);
+  if(!d||d.error){toast('チャレンジを取得できません');$('ovChalD').classList.remove('on');return;}
+  $('cdTitle').textContent=d.title;
+  $('cdStatus').innerHTML=d.status==='active'?'':'<span class="closedb">終了</span>';
+  const hero=d.items[0]&&(d.items[0].cover||d.items[0].thumb);if(hero)$('cdHero').innerHTML=`<img src="${hero}">`;
+  $('cdMeta').innerHTML=`${nf(d.entries)} 作品　·　${fmtEnds(d.ends_at)}${d.reward_pool>0?`　·　<span class="poolb">${IC.trophy}${nf(d.reward_pool)} MORM プール</span>`:''}`;
+  if(d.description)$('cdDesc').textContent=d.description;
+  $('cdJoin').style.display=d.status==='active'?'block':'none';
+  $('cdCount').textContent=d.entries?`(${d.entries})`:'';
+  const lb=(d.leaderboard||[]).filter(x=>x.likes>0||x.views>0).slice(0,5);
+  if(lb.length){$('cdBoardWrap').style.display='block';
+    $('cdBoard').innerHTML=lb.map((x,i)=>`<div class="li" data-id="${x.id}"><span class="rk">${i+1}</span><span class="nm">${esc(x.name||('@'+x.m0r.slice(0,12)))}</span><b>♥${nf(x.likes)}</b></div>`).join('');
+    $('cdBoard').querySelectorAll('.li').forEach(el=>el.onclick=()=>{$('ovChalD').classList.remove('on');openPlayer(el.dataset.id);});}
+  $('cdGrid').innerHTML=d.items.length?d.items.map(it=>`<div class="pc" data-id="${it.id}"><img loading="lazy" src="${it.cover||it.thumb}" alt=""><div class="pcl">${IC.like}${nf(it.likes)}</div></div>`).join(''):'<div style="grid-column:1/-1;color:var(--soft);text-align:center;padding:20px">まだ参加作品がありません。<br>一番乗りで投稿しよう！</div>';
+  $('cdGrid').querySelectorAll('.pc').forEach(el=>el.onclick=()=>{$('ovChalD').classList.remove('on');openPlayer(el.dataset.id);});}
+$('cdJoin').onclick=()=>{if(cdSlug)location.href='/upload?challenge='+encodeURIComponent(cdSlug);};
+/* challenge create */
+$('chalNewBtn').onclick=()=>{$('ovChal').classList.remove('on');$('cnMsg').textContent='';$('cnMsg').className='msg';$('ovChalNew').classList.add('on');};
+$('cnGo').onclick=async()=>{const m=$('cnMsg');const title=$('cnTitle').value.trim();
+  if(!title){m.className='msg err';m.textContent='タイトルを入力してください';return;}
+  if(!KEY){m.className='msg err';m.textContent='この端末はウォレット非対応です';return;}
+  m.className='msg';m.textContent='署名して作成中…';$('cnGo').disabled=true;
+  try{const payload={title,description:$('cnDesc').value.trim(),ends_days:parseInt($('cnEnds').value,10)||0};
+    const env={kind:'challenge.create',sender:PUBHEX,nonce:Date.now()+'-'+Math.random().toString(36).slice(2,6),payload};
+    const sig=hex(await sign(new TextEncoder().encode(canon(env))));
+    const r=await fetch('/api/challenge/create',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...env,sig})}).then(r=>r.json());
+    if(r.error){m.className='msg err';m.textContent=(r.gate?'⛔ ':'')+r.error;$('cnGo').disabled=false;return;}
+    m.className='msg ok';m.textContent='✓ 作成しました';
+    setTimeout(()=>{$('ovChalNew').classList.remove('on');$('cnGo').disabled=false;$('cnTitle').value='';$('cnDesc').value='';openChallenge(r.slug);},700);
+  }catch(e){m.className='msg err';m.textContent='エラー: '+e;$('cnGo').disabled=false;}};
+/* remix list */
+async function openRemixes(id,title){$('ovRemix').classList.add('on');$('rxTitle').textContent='リミックス';
+  $('rxParent').textContent='';$('rxGrid').innerHTML='<div style="grid-column:1/-1;color:var(--soft);text-align:center;padding:20px">読み込み中…</div>';
+  const d=await fetch('/api/remixes/'+encodeURIComponent(id)).then(r=>r.json()).catch(()=>null);
+  if(!d){toast('取得できません');$('ovRemix').classList.remove('on');return;}
+  $('rxTitle').textContent=`リミックス ${d.total}`;
+  if(d.parent){$('rxParent').innerHTML=`元動画: <b style="color:var(--ink);cursor:pointer" id="rxToParent">${esc(d.parent.title)}</b>`;
+    const tp=$('rxToParent');if(tp)tp.onclick=()=>{$('ovRemix').classList.remove('on');openPlayer(d.parent.id);};}
+  $('rxGrid').innerHTML=d.items.length?d.items.map(it=>`<div class="pc" data-id="${it.id}"><img loading="lazy" src="${it.cover||it.thumb}" alt=""><div class="pcl">${IC.like}${nf(it.likes)}</div></div>`).join(''):'<div style="grid-column:1/-1;color:var(--soft);text-align:center;padding:20px">まだリミックスがありません</div>';
+  $('rxGrid').querySelectorAll('.pc').forEach(el=>el.onclick=()=>{$('ovRemix').classList.remove('on');openPlayer(el.dataset.id);});}
+
+/* ── boot ── */
+(async()=>{
+  try{const _ref=new URLSearchParams(location.search).get('ref');if(_ref)localStorage.setItem('morm_ref',_ref.trim().slice(0,16));}catch(e){}
+  refreshPrice();setInterval(refreshPrice,60000);
+  await wallet();await loadHome();
+  const start=new URLSearchParams(location.search).get('id');if(start)openPlayer(start);})();
+</script></body></html>

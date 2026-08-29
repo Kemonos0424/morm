@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+"""MORM Play モデレーション worker — status='pending' を pull → DGX分類 → verdict書戻し。
+
+play_server とは HTTP(pull/verdict API)で疎結合。Mac Mini でも hpmini でも動く
+（PLAY_URL を変えるだけ）。LLM推論は DGX Ollama で走る（moderation.py 経由）。
+
+環境変数:
+  PLAY_URL     play_server ベース (default http://127.0.0.1:8791)
+  ADMIN_TOKEN  pull/verdict 用トークン (必須)
+  POLL_EVERY   空振り時のポーリング間隔秒 (default 3)
+"""
+import json
+import os
+import time
+import urllib.request
+
+from moderation import moderate
+
+PLAY_URL = os.environ.get("PLAY_URL", "http://127.0.0.1:8791").rstrip("/")
+ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "")
+POLL_EVERY = int(os.environ.get("POLL_EVERY", "3"))
+GATEWAY = os.environ.get("GATEWAY", "http://100.80.207.111:8801")  # フレーム取得元
+
+
+def _get(path):
+    return json.loads(urllib.request.urlopen(PLAY_URL + path, timeout=30).read())
+
+
+def _post(path, obj):
+    req = urllib.request.Request(PLAY_URL + path, data=json.dumps(obj).encode(),
+                                 headers={"Content-Type": "application/json"})
+    return json.loads(urllib.request.urlopen(req, timeout=60).read())
+
+
+def main():
+    if not ADMIN_TOKEN:
+        print("ADMIN_TOKEN required", flush=True)
+        return 2
+    print(f"[mod-worker] play={PLAY_URL} model-host=DGX poll={POLL_EVERY}s", flush=True)
+    while True:
+        try:
+            items = _get(f"/api/mod/pull?token={ADMIN_TOKEN}&limit=1").get("items", [])
+        except Exception as e:
+            print(f"pull error: {e}", flush=True)
+            time.sleep(POLL_EVERY)
+            continue
+        if not items:
+            time.sleep(POLL_EVERY)
+            continue
+        it = items[0]
+        verdict = moderate(it["title"], it["description"], it["tags"], it["tier"],
+                           play_cid=it.get("play_cid"), gateway=GATEWAY)
+        try:
+            _post("/api/mod/verdict", {"token": ADMIN_TOKEN, "id": it["id"], "verdict": verdict})
+            fl = verdict.get("frame_labels")
+            print(f"[{it['id']}] {verdict['status']}/{verdict['category']}/{verdict['rating']} "
+                  f"({verdict['model']}) reason={verdict['reason']}"
+                  + (f" frame={ {k:round(v,2) for k,v in fl.items() if v>0} }" if fl else " frame=none"), flush=True)
+        except Exception as e:
+            print(f"verdict error {it['id']}: {e}", flush=True)
+            time.sleep(POLL_EVERY)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

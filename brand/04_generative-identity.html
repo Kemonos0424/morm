@@ -1,0 +1,269 @@
+<title>MORM — Generative Identity</title>
+<style>
+  :root{
+    --paper:#F4F2EA; --card:#FBFAF4; --ink:#0C0C0E; --ink-soft:#4A4A4E; --line:#0C0C0E;
+    --blue:#1E37E6; --magenta:#EC1E79; --orange:#FF4A17; --green:#0EA24A; --yellow:#FFD11A; --violet:#6B2CE6;
+  }
+  @media(prefers-color-scheme:dark){:root{
+    --paper:#0C0C0E; --card:#151517; --ink:#F4F2EA; --ink-soft:#B7B7B0; --line:#F4F2EA;
+    --blue:#4A5CFF; --magenta:#FF3E93; --orange:#FF6A3D; --green:#22C466; --yellow:#FFDC3C; --violet:#9163FF;
+  }}
+  :root[data-theme="light"]{--paper:#F4F2EA;--card:#FBFAF4;--ink:#0C0C0E;--ink-soft:#4A4A4E;--line:#0C0C0E;
+    --blue:#1E37E6;--magenta:#EC1E79;--orange:#FF4A17;--green:#0EA24A;--yellow:#FFD11A;--violet:#6B2CE6}
+  :root[data-theme="dark"]{--paper:#0C0C0E;--card:#151517;--ink:#F4F2EA;--ink-soft:#B7B7B0;--line:#F4F2EA;
+    --blue:#4A5CFF;--magenta:#FF3E93;--orange:#FF6A3D;--green:#22C466;--yellow:#FFDC3C;--violet:#9163FF}
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:"Helvetica Neue",Helvetica,"Inter",Arial,"Hiragino Kaku Gothic ProN",sans-serif;line-height:1.55;letter-spacing:-.003em}
+  .wrap{max-width:1080px;margin:0 auto;padding:clamp(22px,4.5vw,56px) clamp(16px,4.5vw,52px)}
+  .mono{font-family:ui-monospace,"SF Mono",Menlo,"Courier New",monospace}
+  .eyebrow{font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.28em;text-transform:uppercase}
+
+  header.mast{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;
+    border-top:3px solid var(--line);padding-top:12px;margin-bottom:6px}
+  .toggle{cursor:pointer;background:var(--ink);color:var(--paper);border:0;font-family:ui-monospace,monospace;
+    font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:7px 12px}
+  .toggle:focus-visible,.btn:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+  .lede{font-size:clamp(16px,2.1vw,19px);font-weight:500;max-width:66ch;margin:10px 0 0}
+  .lede b{background:var(--blue);color:#fff;padding:1px 7px}
+
+  /* generative stage */
+  .stageBox{border:3px solid var(--line);background:var(--card);margin:clamp(20px,3.5vw,36px) 0 0;overflow:hidden}
+  .metabar{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 14px;border-bottom:3px solid var(--line);flex-wrap:wrap}
+  .metabar .seed{font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)}
+  .metabar .timer{font-family:ui-monospace,monospace;font-size:12px;font-weight:700;letter-spacing:.06em}
+  .metabar .timer b{color:var(--green)}
+  .stage{display:flex;align-items:center;justify-content:center;padding:clamp(28px,7vw,80px) 12px;min-height:clamp(180px,34vw,320px)}
+  .morm{display:inline-flex;line-height:.84;font-weight:800;letter-spacing:-.055em;
+    font-family:"Helvetica Neue",Helvetica,Arial,sans-serif}
+  .morm span{display:inline-block;-webkit-background-clip:text;background-clip:text;
+    color:var(--ink);-webkit-text-fill-color:var(--ink);background-repeat:repeat;background-position:center}
+  .stage .morm{font-size:clamp(78px,20vw,236px)}
+
+  .controls{display:flex;gap:0;border-top:3px solid var(--line)}
+  .btn{flex:1;cursor:pointer;background:var(--card);border:0;border-right:3px solid var(--line);color:var(--ink);
+    font-weight:700;font-size:14px;padding:14px 10px;letter-spacing:.02em}
+  .btn:last-child{border-right:0}
+  .btn:hover{background:var(--ink);color:var(--paper)}
+  .btn[aria-pressed="true"]{background:var(--blue);color:#fff}
+
+  .cap{font-size:13.5px;color:var(--ink-soft);margin:14px 2px 0;max-width:72ch}
+  .cap b{color:var(--ink)}
+
+  .head{display:flex;align-items:center;gap:14px;margin:clamp(34px,5vw,58px) 0 18px}
+  .head h2{font-family:ui-monospace,monospace;font-weight:700;font-size:12px;letter-spacing:.22em;text-transform:uppercase;margin:0;background:var(--ink);color:var(--paper);padding:5px 10px}
+  .head .hr{flex:1;height:3px;background:var(--line)}
+  .head .n{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+
+  /* library wall */
+  .wall{display:grid;grid-template-columns:repeat(2,1fr);gap:0;border:3px solid var(--line)}
+  @media(min-width:520px){.wall{grid-template-columns:repeat(3,1fr)}}
+  @media(min-width:820px){.wall{grid-template-columns:repeat(4,1fr)}}
+  .cellw{aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;
+    border-right:3px solid var(--line);border-bottom:3px solid var(--line);padding:6px;background:var(--card)}
+  .cellw .morm{font-size:clamp(26px,5.4vw,40px)}
+
+  footer{margin-top:26px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:3px solid var(--line);padding-top:12px}
+  footer .c{font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+  @media (prefers-reduced-motion:reduce){ .btn[data-auto]{display:none} }
+</style>
+
+<div class="wrap">
+  <header class="mast">
+    <div>
+      <div class="eyebrow">MORM · Generative Identity № 04</div>
+      <p class="lede"><b>器は不変・中身は毎回生成。</b> アクセスのたびにMORMは別の姿になる。読み込み中はパターンが目まぐるしく切り替わり、それ自体が時間を計る。</p>
+    </div>
+    <button class="toggle" id="tg" type="button">◑ theme</button>
+  </header>
+
+  <!-- generative stage -->
+  <div class="stageBox">
+    <div class="metabar">
+      <span class="seed" id="seed">seed · —</span>
+      <span class="timer mono" id="timer">measuring <b>0.00s</b></span>
+    </div>
+    <div class="stage"><div class="morm" id="hero"><span>M</span><span>O</span><span>R</span><span>M</span></div></div>
+    <div class="controls">
+      <button class="btn" id="shuffle" type="button">↻ 変える（Shuffle）</button>
+      <button class="btn" id="replay" type="button">▶ 読み込みを再生</button>
+      <button class="btn" id="auto" data-auto type="button" aria-pressed="false">◆ オート</button>
+    </div>
+  </div>
+  <p class="cap"><b>仕組み：</b>四文字それぞれに、生成器（単色 / ストライプ / ドット / 市松 / スペクトラム / 分割 / …）× 六鮮色の順列がランダムに割り当たる。組み合わせは実質無限。約20%で四声（多書体）も混ざる。「読み込みを再生」でローダー演出（高速切替＝計時）を再現。</p>
+
+  <!-- library -->
+  <div class="head"><h2>Initial set</h2><span class="hr"></span><span class="n">a wall of variants — 初期セット（自動生成の一例）</span></div>
+  <div class="wall" id="wall"></div>
+  <p class="cap">この壁は毎回別の内容で描かれる（＝"かなりの数"は固定リストではなく、生成規則そのもの）。タイルをクリックすると、その姿を上のステージへ。</p>
+
+  <footer>
+    <div class="c">MORM — the swarm for every frame</div>
+    <div class="c">generative № 04 · vessel fixed · fills infinite</div>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var reduce = matchMedia('(prefers-reduced-motion:reduce)').matches;
+  var HUES=['--blue','--magenta','--orange','--green','--yellow','--violet'];
+  var VOICES=[
+    {f:'"Helvetica Neue",Helvetica,Arial,sans-serif', ls:'-.055em', w:800},
+    {f:'ui-monospace,"SF Mono",Menlo,"Courier New",monospace', ls:'-.02em', w:700},
+    {f:'"Didot","Bodoni 72","Playfair Display",Georgia,serif', ls:'-.01em', w:700},
+    {f:'"Optima","Futura","Century Gothic","Palatino Linotype",sans-serif', ls:'0', w:700}
+  ];
+  var V=function(n){return 'var('+n+')';};
+  function ri(n){return Math.floor(Math.random()*n);}
+  function pick(a){return a[ri(a.length)];}
+  function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=ri(i+1);var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+  function fs(el){return parseFloat(getComputedStyle(el).fontSize)||60;}
+
+  // ── fill-in-glyph パターン生成器（"塗り"カテゴリ）──
+  var PATS=[
+    function(h){var w=7+ri(9);return 'repeating-linear-gradient('+pick([0,45,90,135])+'deg,'+V(h[0])+' 0 '+w+'px,'+V(h[1])+' '+w+'px '+(2*w)+'px)';}, // stripes
+    function(h){var s=10+ri(9),r=(s/2.5).toFixed(1);return 'radial-gradient(circle at 50% 50%,'+V(h[0])+' '+r+'px,transparent '+(+r+0.7).toFixed(1)+'px) 0 0/'+s+'px '+s+'px,'+V(h[1]);}, // dots
+    function(h){var s=12+ri(10);return 'conic-gradient('+V(h[0])+' 0 90deg,'+V(h[1])+' 0 180deg,'+V(h[0])+' 0 270deg,'+V(h[1])+' 0) 0 0/'+s+'px '+s+'px';}, // checker
+    function(h){return 'linear-gradient('+pick([0,45,90])+'deg,'+V(h[0])+' 50%,'+V(h[1])+' 50%)';}, // split
+    function(h){return 'conic-gradient('+V(h[0])+' 0 90deg,'+V(h[1])+' 90deg 180deg,'+V(h[2])+' 180deg 270deg,'+V(h[3])+' 270deg)';}, // quarters
+    function(h){return 'conic-gradient(from '+ri(360)+'deg,'+V('--magenta')+','+V('--orange')+','+V('--yellow')+','+V('--green')+','+V('--blue')+','+V('--violet')+','+V('--magenta')+')';}, // spectrum
+    function(h){var s=9+ri(6);return 'radial-gradient('+V(h[0])+' 1.4px,transparent 1.6px) 0 0/'+s+'px '+s+'px,radial-gradient('+V(h[0])+' 1.4px,transparent 1.6px) '+(s/2)+'px '+(s/2)+'px/'+s+'px '+s+'px,'+V(h[1]);}, // swarm dots（群れ）
+    function(h){var w=6+ri(6);return 'repeating-linear-gradient('+pick([0,90,45,135])+'deg,'+V(h[0])+' 0 '+w+'px,'+V(h[1])+' '+w+'px '+(2*w)+'px,'+V(h[2])+' '+(2*w)+'px '+(3*w)+'px)';}, // 三色ストライプ(前回)
+    function(h){var w=3+ri(3);return 'repeating-linear-gradient('+pick([0,90])+'deg,'+V('--ink')+' 0 '+w+'px,'+V(h[0])+' '+w+'px '+(w*3)+'px)';}, // 細インクバー(前回)
+    function(h){var w=8+ri(8);return 'repeating-conic-gradient('+V(h[0])+' 0 '+(15+ri(20))+'deg,'+V(h[1])+' 0 '+(30+ri(20))+'deg)';} // 放射(rays)
+  ];
+
+  // ── letter を「素の状態」に戻す ──
+  function reset(el){ el.style.cssText=''; }
+  function setFont(el,voice){ el.style.fontFamily=voice.f; el.style.letterSpacing=voice.ls; el.style.fontWeight=voice.w; el.style.display='inline-block'; }
+  function visible(el,c){ el.style.color=c; el.style.webkitTextFillColor=c; }
+
+  // ── モード（カテゴリの違う型）──
+  var MODES={
+    solid:function(el,h){ visible(el,V(h[0])); },
+    outline:function(el,h){ el.style.background='none'; el.style.webkitTextFillColor='transparent'; el.style.color='transparent';
+      el.style.webkitTextStroke=Math.max(1.5,fs(el)*0.02).toFixed(1)+'px '+V(h[0]); },
+    pop:function(el,h){ visible(el,V(h[0])); el.style.webkitTextStroke=Math.max(1.5,fs(el)*0.018).toFixed(1)+'px '+V(h[1]); }, // 縁取りポップ
+    offset:function(el,h){ visible(el,V(h[0])); var d=Math.max(2,fs(el)*0.028).toFixed(1); el.style.textShadow=d+'px '+d+'px 0 '+V(h[1]); }, // リソ風オフセット
+    box:function(el,h){ el.style.webkitBackgroundClip='border-box'; el.style.backgroundClip='border-box';
+      el.style.background=V(h[0]); visible(el,V('--paper')); el.style.padding='.04em .1em'; }, // 白抜きブロック
+    boxpat:function(el,h){ el.style.webkitBackgroundClip='border-box'; el.style.backgroundClip='border-box';
+      el.style.background=PATS[ri(PATS.length)](h); visible(el,V('--paper')); el.style.padding='.04em .1em'; }, // パターン箱に白抜き
+    fill:function(el,h){ el.style.webkitBackgroundClip='text'; el.style.backgroundClip='text';
+      el.style.color='transparent'; el.style.webkitTextFillColor='transparent'; el.style.background=PATS[ri(PATS.length)](h); } // 文字内パターン
+  };
+  var CLEAN=['solid','outline','pop','offset','box']; // 視認性の高い型
+  var TEXTURE=['fill','boxpat'];                       // 密度のある型（数を絞る）
+
+  function applyLetter(el, voice, mode, hues){ reset(el); setFont(el,voice); MODES[mode](el,hues); }
+
+  function render(root){
+    reset(root); root.style.display='inline-flex'; root.style.alignItems='baseline'; root.style.lineHeight='.84';
+    root.style.fontWeight='800'; root.style.letterSpacing='-.055em';
+    var spans=root.querySelectorAll('span');
+    var mixVoices = Math.random()<0.16;
+    var baseVoice = VOICES[0];
+    var r=Math.random();
+    var layout = r<0.16 ? 'blockword' : r<0.40 ? 'boxes' : r<0.62 ? 'uniform' : 'mixed';
+
+    if(layout==='blockword'){ // 一つの色/柄ブロックに MORM を白抜き（最も視認性が高い）
+      var wh=shuffle(HUES);
+      root.style.webkitBackgroundClip='border-box'; root.style.backgroundClip='border-box';
+      root.style.background = Math.random()<0.55 ? V(wh[0]) : PATS[ri(PATS.length)](wh);
+      root.style.padding='.08em .16em'; root.style.gap='0';
+      for(var i=0;i<spans.length;i++){ reset(spans[i]); setFont(spans[i],baseVoice); visible(spans[i],V('--paper')); }
+      return;
+    }
+    if(layout==='boxes'){ // 文字ごとに色箱で白抜き（Benetton）
+      root.style.gap='3px';
+      var bh=shuffle(HUES);
+      for(var i=0;i<spans.length;i++){ applyLetter(spans[i], mixVoices?VOICES[i%4]:baseVoice, Math.random()<0.25?'boxpat':'box', shuffle(HUES)); }
+      return;
+    }
+    root.style.gap='0';
+    if(layout==='uniform'){ // 語全体で同じ型（Aの整然）
+      var mode = pick(CLEAN.concat(['fill']));
+      var uh=shuffle(HUES);
+      for(var i=0;i<spans.length;i++){ applyLetter(spans[i], baseVoice, mode, uh); }
+      return;
+    }
+    // mixed：文字ごとに"カテゴリの違う型"を混ぜる。密パターンは最大2文字に制限＝視認性確保
+    var patLeft=2;
+    for(var i=0;i<spans.length;i++){
+      var voice = mixVoices?VOICES[i%4]:baseVoice;
+      var mode;
+      if(Math.random()<0.42 && patLeft>0){ mode=pick(TEXTURE); patLeft--; }
+      else { mode=pick(CLEAN); }
+      applyLetter(spans[i], voice, mode, shuffle(HUES));
+    }
+  }
+
+  var hero=document.getElementById('hero');
+  var seedEl=document.getElementById('seed');
+  var timerEl=document.getElementById('timer');
+  function newSeed(){ return (Math.random().toString(36).slice(2,7)).toUpperCase(); }
+  function stampSeed(){ seedEl.textContent='seed · '+newSeed(); }
+
+  // loader sequence: 高速切替＝計時
+  var loaderT=null, startTs=0;
+  function stopLoader(){ if(loaderT){clearInterval(loaderT);loaderT=null;} }
+  function runLoader(){
+    stopLoader();
+    if(reduce){ render(hero,{}); stampSeed(); timerEl.innerHTML='ready <b>0.00s</b>'; return; }
+    startTs=performance.now();
+    var dur=1700+ri(500);
+    loaderT=setInterval(function(){
+      var t=(performance.now()-startTs);
+      render(hero,{}); stampSeed();
+      timerEl.innerHTML='measuring <b>'+(t/1000).toFixed(2)+'s</b>';
+      if(t>=dur){ stopLoader();
+        render(hero,{}); stampSeed();
+        timerEl.innerHTML='ready <b>'+(t/1000).toFixed(2)+'s</b>';
+      }
+    }, 72);
+  }
+
+  // controls
+  document.getElementById('shuffle').addEventListener('click',function(){ stopLoader(); render(hero,{}); stampSeed(); timerEl.innerHTML='shuffled <b>·</b>'; });
+  document.getElementById('replay').addEventListener('click',runLoader);
+  var autoBtn=document.getElementById('auto'), autoT=null;
+  autoBtn.addEventListener('click',function(){
+    var on=autoBtn.getAttribute('aria-pressed')==='true';
+    if(on){ clearInterval(autoT); autoT=null; autoBtn.setAttribute('aria-pressed','false'); }
+    else { autoBtn.setAttribute('aria-pressed','true'); stopLoader();
+      autoT=setInterval(function(){render(hero,{});stampSeed();},900); }
+  });
+
+  // theme
+  document.getElementById('tg').addEventListener('click',function(){
+    var cur=document.documentElement.getAttribute('data-theme');
+    var next=cur?(cur==='dark'?'light':'dark'):(matchMedia('(prefers-color-scheme:dark)').matches?'light':'dark');
+    document.documentElement.setAttribute('data-theme',next);
+  });
+
+  // library wall
+  var wall=document.getElementById('wall');
+  var N=20;
+  for(var k=0;k<N;k++){
+    var cell=document.createElement('div'); cell.className='cellw';
+    var m=document.createElement('div'); m.className='morm';
+    m.innerHTML='<span>M</span><span>O</span><span>R</span><span>M</span>';
+    cell.appendChild(m); wall.appendChild(cell);
+    render(m,{});
+    (function(node){ cell.style.cursor='pointer';
+      cell.addEventListener('click',function(){ stopLoader();
+        // この姿を実際にステージへ複製（container+各letterのインラインstyleをコピー）
+        hero.style.cssText=node.style.cssText;
+        var src=node.querySelectorAll('span'), dst=hero.querySelectorAll('span');
+        for(var i=0;i<dst.length;i++){ dst[i].style.cssText=src[i].style.cssText; }
+        stampSeed(); timerEl.innerHTML='picked <b>·</b>';
+      });
+    })(m);
+  }
+
+  // boot
+  runLoader();
+})();
+</script>

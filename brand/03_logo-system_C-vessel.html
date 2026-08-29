@@ -1,0 +1,180 @@
+<title>MORM — Logo System</title>
+<style>
+  :root{
+    --paper:#F4F2EA; --card:#FBFAF4; --ink:#0C0C0E; --ink-soft:#4A4A4E; --line:#0C0C0E; --white:#F7F5EE;
+    --blue:#1E37E6; --magenta:#EC1E79; --orange:#FF4A17; --green:#0EA24A; --yellow:#FFD11A; --violet:#6B2CE6;
+  }
+  @media(prefers-color-scheme:dark){:root{
+    --paper:#0C0C0E; --card:#151517; --ink:#F4F2EA; --ink-soft:#B7B7B0; --line:#F4F2EA; --white:#F7F5EE;
+    --blue:#4A5CFF; --magenta:#FF3E93; --orange:#FF6A3D; --green:#22C466; --yellow:#FFDC3C; --violet:#9163FF;
+  }}
+  :root[data-theme="light"]{--paper:#F4F2EA;--card:#FBFAF4;--ink:#0C0C0E;--ink-soft:#4A4A4E;--line:#0C0C0E;--white:#F7F5EE;
+    --blue:#1E37E6;--magenta:#EC1E79;--orange:#FF4A17;--green:#0EA24A;--yellow:#FFD11A;--violet:#6B2CE6}
+  :root[data-theme="dark"]{--paper:#0C0C0E;--card:#151517;--ink:#F4F2EA;--ink-soft:#B7B7B0;--line:#F4F2EA;--white:#F7F5EE;
+    --blue:#4A5CFF;--magenta:#FF3E93;--orange:#FF6A3D;--green:#22C466;--yellow:#FFDC3C;--violet:#9163FF}
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:"Helvetica Neue",Helvetica,"Inter",Arial,"Hiragino Kaku Gothic ProN",sans-serif;
+    line-height:1.55;letter-spacing:-.003em}
+  .wrap{max-width:1080px;margin:0 auto;padding:clamp(24px,4.5vw,60px) clamp(18px,4.5vw,52px)}
+  .mono{font-family:ui-monospace,"SF Mono",Menlo,"Courier New",monospace}
+  .eyebrow{font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.28em;text-transform:uppercase}
+
+  header.mast{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;
+    border-top:3px solid var(--line);padding-top:12px;margin-bottom:6px}
+  .toggle{cursor:pointer;background:var(--ink);color:var(--paper);border:0;font-family:ui-monospace,monospace;
+    font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:7px 12px}
+  .toggle:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+  .lede{font-size:clamp(17px,2.2vw,20px);font-weight:500;max-width:66ch;margin:10px 0 0}
+  .lede b{background:var(--blue);color:#fff;padding:1px 7px}
+
+  .head{display:flex;align-items:center;gap:14px;margin:clamp(34px,5vw,58px) 0 20px}
+  .head h2{font-family:ui-monospace,monospace;font-weight:700;font-size:12px;letter-spacing:.22em;
+    text-transform:uppercase;margin:0;background:var(--ink);color:var(--paper);padding:5px 10px}
+  .head .hr{flex:1;height:3px;background:var(--line)}
+  .head .n{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+
+  /* the vessel — fixed form */
+  .vessel{border:3px solid var(--line);background:var(--card);padding:clamp(28px,6vw,64px) 20px;position:relative;overflow:hidden}
+  .word{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-weight:800;letter-spacing:-.055em;line-height:.86;display:inline-flex}
+  .vessel .big{font-size:clamp(74px,19vw,210px);color:var(--ink);justify-content:center;width:100%}
+  .clearspace{position:absolute;inset:14px;border:1px dashed var(--ink-soft);opacity:.5;pointer-events:none}
+  .note{font-size:13.5px;color:var(--ink-soft);margin:14px 2px 0;max-width:70ch}
+  .note b{color:var(--ink)}
+
+  /* content set grid (A-leaning) */
+  .set{display:grid;grid-template-columns:1fr;gap:0;border:3px solid var(--line)}
+  @media(min-width:560px){.set{grid-template-columns:1fr 1fr}}
+  @media(min-width:900px){.set{grid-template-columns:1fr 1fr 1fr}}
+  .fillcard{border-right:3px solid var(--line);border-bottom:3px solid var(--line);background:var(--card);
+    display:flex;flex-direction:column}
+  .stage{aspect-ratio:16/8;display:flex;align-items:center;justify-content:center;padding:8px}
+  .stage .word{font-size:clamp(30px,6vw,52px)}
+  .flab{display:flex;justify-content:space-between;gap:8px;border-top:2px solid var(--line);padding:9px 12px}
+  .flab .a{font-weight:700;font-size:13px}
+  .flab .b{font-family:ui-monospace,monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);align-self:center}
+
+  /* fills */
+  .solid{color:var(--blue)}
+  .l-blue{color:var(--blue)} .l-orange{color:var(--orange)} .l-magenta{color:var(--magenta)} .l-green{color:var(--green)}
+  .knock{background:var(--magenta)} .knock .word{color:#fff}
+  .outline .word{color:transparent;-webkit-text-stroke:2.5px var(--ink)}
+  .halftone .word{color:transparent;-webkit-background-clip:text;background-clip:text;
+    background:radial-gradient(circle at center,var(--ink) 1.3px,transparent 1.5px) 0 0/7px 7px,var(--blue)}
+  /* editorial = four voices (preserved concept) */
+  .v1{font-family:"Didot","Bodoni 72",Georgia,serif;font-weight:700;color:var(--blue)}
+  .v2{font-family:"Optima","Futura","Century Gothic",sans-serif;font-weight:700;color:var(--orange)}
+  .v3{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-weight:800;letter-spacing:-.05em;color:var(--magenta)}
+  .v4{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-weight:700;color:var(--green)}
+
+  /* the M monogram / app icon */
+  .icons{display:flex;gap:0;border:3px solid var(--line);flex-wrap:wrap}
+  .ic{width:clamp(84px,15vw,128px);height:clamp(84px,15vw,128px);display:flex;align-items:center;justify-content:center;
+    border-right:3px solid var(--line);color:#fff;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-weight:800;
+    font-size:clamp(44px,8vw,68px);letter-spacing:-.05em}
+  .ic:last-child{border-right:0}
+
+  /* in use */
+  .use{display:grid;grid-template-columns:1fr;gap:0;border:3px solid var(--line)}
+  @media(min-width:720px){.use{grid-template-columns:1.2fr 1fr 1fr}}
+  .u{border-right:3px solid var(--line);border-bottom:3px solid var(--line);overflow:hidden}
+  .u .cap{font-family:ui-monospace,monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);padding:9px 12px;border-top:2px solid var(--line)}
+  .u .canvas{aspect-ratio:16/10;display:flex;align-items:center;justify-content:center;position:relative}
+  /* app tile */
+  .u1 .canvas{background:var(--blue)} .u1 .word{color:#fff;font-size:clamp(30px,7vw,58px)}
+  /* banner quarters */
+  .u2 .canvas{background:var(--white);flex-direction:column;gap:6px}
+  .u2 .word{font-size:clamp(24px,6vw,44px)}
+  .u2 .tag{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink)}
+  /* photo knockout */
+  .u3 .canvas{background:conic-gradient(from 200deg,var(--magenta),var(--orange),var(--yellow),var(--green),var(--blue),var(--violet),var(--magenta))}
+  .u3 .word{color:#fff;font-size:clamp(24px,6vw,46px);mix-blend-mode:normal}
+
+  .rules{display:grid;grid-template-columns:1fr;gap:0;border:3px solid var(--line)}
+  @media(min-width:640px){.rules{grid-template-columns:1fr 1fr}}
+  .rules>div{padding:15px 16px;border-right:3px solid var(--line);border-bottom:3px solid var(--line)}
+  .rules .k{font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;margin-bottom:7px}
+  .rules .yes .k{color:var(--green)} .rules .no .k{color:var(--magenta)}
+  .rules ul{margin:0;padding-left:1.05em} .rules li{margin:.22em 0;font-size:14px}
+
+  footer{margin-top:26px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:3px solid var(--line);padding-top:12px}
+  footer .c{font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+</style>
+
+<div class="wrap">
+  <header class="mast">
+    <div>
+      <div class="eyebrow">MORM · Logo System № 03 — C-vessel / A-set</div>
+      <p class="lede"><b>器（形）は不変。中身（塗り）で多様性。</b> 初期セットは A 寄り＝規律ある鮮色。四声（多書体）は"特別な中身"として温存。</p>
+    </div>
+    <button class="toggle" id="tg" type="button">◑ theme</button>
+  </header>
+
+  <!-- vessel -->
+  <div class="head"><h2>The vessel</h2><span class="hr"></span><span class="n">fixed form — 不変の輪郭</span></div>
+  <div class="vessel">
+    <span class="clearspace"></span>
+    <div class="word big">MORM</div>
+  </div>
+  <p class="note"><b>唯一の固定要素。</b>太い均一グロテスク（Helvetica系 Black・字間 −5.5%）。この輪郭は決して変えない——変えるのは"中身"だけ。周囲のクリアスペース＝文字高の 1/2。</p>
+
+  <!-- content set -->
+  <div class="head"><h2>Initial content set</h2><span class="hr"></span><span class="n">A-leaning — 規律ある鮮色</span></div>
+  <div class="set">
+    <div class="fillcard"><div class="stage"><div class="word solid">MORM</div></div><div class="flab"><span class="a">Solid</span><span class="b">基本 · 単色</span></div></div>
+    <div class="fillcard"><div class="stage"><div class="word"><span class="l-blue">M</span><span class="l-orange">O</span><span class="l-magenta">R</span><span class="l-green">M</span></div></div><div class="flab"><span class="a">Four Colors</span><span class="b">各文字1色 · 多様性の顔</span></div></div>
+    <div class="fillcard knock"><div class="stage"><div class="word">MORM</div></div><div class="flab" style="border-color:#fff;color:#fff"><span class="a" style="color:#fff">Knockout</span><span class="b" style="color:#fff">色地に白抜き</span></div></div>
+    <div class="fillcard outline"><div class="stage"><div class="word">MORM</div></div><div class="flab"><span class="a">Outline</span><span class="b">線 · 軽い場面</span></div></div>
+    <div class="fillcard halftone"><div class="stage"><div class="word">MORM</div></div><div class="flab"><span class="a">Halftone</span><span class="b">印刷/群れの粒</span></div></div>
+    <div class="fillcard"><div class="stage"><div class="word"><span class="v1">M</span><span class="v2">O</span><span class="v3">R</span><span class="v4">M</span></div></div><div class="flab"><span class="a">Editorial ★</span><span class="b">四声 · カルチャー時</span></div></div>
+  </div>
+  <p class="note"><b>これが"初期セット"。</b>基本は Solid と Four Colors。日常は A 寄りに規律よく、特集・アート文脈だけ Editorial（四声）や写真差し替えに開放する。中身は将来いくらでも増やせる（＝群れ）。</p>
+
+  <!-- monogram -->
+  <div class="head"><h2>The mark</h2><span class="hr"></span><span class="n">M monogram — アイコン</span></div>
+  <div class="icons">
+    <div class="ic" style="background:var(--blue)">M</div>
+    <div class="ic" style="background:var(--magenta)">M</div>
+    <div class="ic" style="background:var(--orange)">M</div>
+    <div class="ic" style="background:var(--green)">M</div>
+    <div class="ic" style="background:var(--ink);color:var(--paper)">M</div>
+  </div>
+  <p class="note">狭い場所は頭文字 <b>M</b>（＝群れ／Swarm の M）を正方タイルで。アプリアイコン・ファビコン・ノードのバッジに。地色を替えるだけで無限に増える。</p>
+
+  <!-- in use -->
+  <div class="head"><h2>In use</h2><span class="hr"></span><span class="n">applications</span></div>
+  <div class="use">
+    <div class="u u1"><div class="canvas"><div class="word">MORM</div></div><div class="cap">App / node badge</div></div>
+    <div class="u u2"><div class="canvas"><div class="word"><span class="l-blue">M</span><span class="l-orange">O</span><span class="l-magenta">R</span><span class="l-green">M</span></div><span class="tag">the swarm for every frame</span></div><div class="cap">Banner · four colors</div></div>
+    <div class="u u3"><div class="canvas"><div class="word">MORM</div></div><div class="cap">On video · knockout</div></div>
+  </div>
+
+  <!-- rules -->
+  <div class="head"><h2>Rules</h2><span class="hr"></span><span class="n">keep it a system</span></div>
+  <div class="rules">
+    <div class="yes"><div class="k">する</div><ul>
+      <li>形は不変。<b>中身だけ</b>を替える</li>
+      <li>基本は Solid / Four Colors（A の規律）</li>
+      <li>狭所は M モノグラム＋色タイル</li>
+      <li>Editorial（四声）は特集・アート限定</li></ul></div>
+    <div class="no"><div class="k">しない</div><ul>
+      <li>輪郭（字形・字間・太さ）を歪めない</li>
+      <li>にじみ・影・グラデ発光を足さない</li>
+      <li>四声を日常ロゴにしない（＝Bの領域）</li>
+      <li>低コントラストや土色に沈めない</li></ul></div>
+  </div>
+
+  <footer>
+    <div class="c">MORM — the swarm for every frame</div>
+    <div class="c">system № 03 · vessel=fixed · content=diverse</div>
+  </footer>
+</div>
+
+<script>
+  (function(){var tg=document.getElementById('tg');tg.addEventListener('click',function(){
+    var cur=document.documentElement.getAttribute('data-theme');
+    var next=cur?(cur==='dark'?'light':'dark'):(matchMedia('(prefers-color-scheme:dark)').matches?'light':'dark');
+    document.documentElement.setAttribute('data-theme',next);});})();
+</script>
