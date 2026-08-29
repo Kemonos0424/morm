@@ -50,10 +50,14 @@ MORM 4サーフェス（www/api/node/play.morm.one）を監査→**致命セキ�
 
 ### E. Agent Lane 活性化（`agent-lane/DEPLOY.md` 冒頭★の順）★ready-state検証済 2026-08-29
 **✅ 準備完了(確認済)**: Phase A コード live(api.morm.one `/api/lane/skill|feed`=200・Vercel)／play settle修正 live(本日デプロイ・Phase D前提クリア)／verify 9/9／`ADMIN_PASSWORD`=Yachida0024／**treasury `m0rzjtz…ctbc` balance≈1e18・nonce20**／payout口座 balance=0(未fund)。
-**❌ ユーザー実行が必要(機微・私は seed/実送金を扱わない)**、順に:
-1. **payout seed 配置**: seedは MacBook `~/.morm-agentlane/{play,dash}_payout.seed`(0600・addresses一致)に生成済だが**配布先に未配置**。①`play_payout.seed`→**Mac Mini** に置き Play `TREASURY_SEED_FILE` を向ける ②`dash_payout.seed`→**Vercel(morm-dashboard) env** `MORM_TREASURY_SEED`(+ADDRESS)。※Mac Mini `~/.morm-agentlane/` は現在不在。
-2. **fund(treasury→payout・実MORM送金＝ユーザー実行)**: Mac Mini で `python3 -m morm_l1.cli submit --rpc http://127.0.0.1:8900 --seed $(cat ~/.morm-l1/producer.seed) transfer --to <PLAY> --amount 100000` → 着金待ち → 同 `<DASH>`。PLAY=`m0r3pos24vwa5d3lq5vqaij75wo3tmyrv4t` DASH=`m0roshqbpskljwuj3drophhb7tth33qprzn`。手順=`agent-lane/deploy/fund-payouts.md`。
-3. **段階flag(既定offから)**: C(`BRIDGE_VALVE=on`ほか) → F(AD・要ADMIN_PASSWORD済) → B(`MORM_LANE_EARN=1`) → D(`EMISSION_MODE=proportional`+`B_EPOCH_MORM`小+`VIEW_EARN`はクライアント署名watch改修後)。各段ロールバック=flag戻すだけ。**Phase E(node emission)は廃止**。
+**進捗(2026-08-29 実行)**:
+- ✅**E-1** PLAY_PAYOUT seed を Mac Mini `~/.morm-agentlane/play_payout.seed`(0600) に配置・導出アドレス一致で検証。
+- ✅**E-2 fund 完了(ユーザー実行)**: treasury→PLAY 100000・DASH 100000 着金。treasury 残 ≈1e18-2e5・nonce22。
+- ✅**E-3 Play 分離完了**: `com.morm.play.plist` に `TREASURY_SEED_FILE=/Users/user/.morm-agentlane/play_payout.seed` 追加→再起動(PID更新・health OK・エラーなし)。Play settle は今後 PLAY_PAYOUT の独立 nonce で支払い＝跨ぎ衝突解消。plist backup=`com.morm.play.plist.bak-20260829-134924`。
+
+**残(api.morm.one=Vercel の段階ロールアウト・各段ユーザー承認/検証)**:
+- **E-4 DASH 配線(秘密更新＝ユーザー実行)**: Vercel morm-dashboard の `MORM_TREASURY_SEED`(現在22日前の旧値)を **dash_payout.seed** に、`MORM_TREASURY_ADDRESS` を `m0roshqbpskljwuj3drophhb7tth33qprzn` に更新→再デプロイ。※F/B の前に必須。
+- **段階flag(vercel env・既定offから)**: **C** `BRIDGE_VALVE=on`(他は既定: SYSTEM_DAILY_FRAC0.005/ACCT_DAILY_USD50/COOLDOWN86400・**発行前に先行推奨**) → **F**(AD・ADMIN_PASSWORD済) → **B** `MORM_LANE_EARN=1`(+`MORM_LANE_EARN_DAILY_CAP`) → **D**(Play側 `EMISSION_MODE=proportional`+`B_EPOCH_MORM`小・`VIEW_EARN`は署名watchクライアント改修後)。各段 env 変更→redeploy→検証→ロールバック=flag戻すだけ。**Phase E(node emission)は廃止**。
 - 詳細=`agent-lane/DEPLOY.md` 冒頭★。base=1(整数MORM)で初回・§G(1e6)は後日。
 
 ## 必要アクセス（新セッションで request）
