@@ -866,7 +866,12 @@ def creator_profile(m0r, viewer=""):
 
 
 # --- 年齢認証(自己申告MVP・署名+HMAC cookie) -------------------------------
-AGE_SECRET = hashlib.sha256(("morm-age:" + ADMIN_TOKEN).encode()).digest()
+# ★AGE_SECRET は ADMIN_TOKEN と独立させる: 専用 AGE_SECRET_KEY があればそれを使い、無ければ
+#   ADMIN_TOKEN を流用(後方互換)、どちらも空なら起動毎ランダム(=既知定数 sha256("morm-age:") で
+#   age cookie を偽造され R18 gate を突破される事故を防ぐ。※ランダム時は再起動で既存 cookie 失効)。
+_AGE_KEY_SRC = os.environ.get("AGE_SECRET_KEY", "") or ADMIN_TOKEN
+AGE_SECRET = (hashlib.sha256(("morm-age:" + _AGE_KEY_SRC).encode()).digest()
+              if _AGE_KEY_SRC else os.urandom(32))
 AGE_TTL = 180 * 86400
 
 
@@ -2537,6 +2542,10 @@ class H(BaseHTTPRequestHandler):
         if m:
             # ★GETでは views を増やさない(有効再生=視聴ビーコンの閾値超えのみ計上)
             c = get_content(m.group(1), q.get("uid"))
+            # 未承認(pending/pending_review/rejected/reserved/removed)は公開しない(メタ情報も隠す)。
+            # owner は自分の投稿を /api/mine(pub 必須)で参照する。
+            if c and content_rating(m.group(1))[1] not in ("approved", "shadow"):
+                c = None
             return self._json(200, c) if c else self._json(404, {"error": "not found"})
         m = re.match(r"^/cover/([A-Za-z0-9]+)\.jpg$", path)
         if m:
