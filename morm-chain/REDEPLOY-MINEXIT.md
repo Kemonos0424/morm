@@ -22,6 +22,10 @@
 cd ~/Desktop/MORM/morm-chain
 forge build          # compile 確認（artifact present ならOK）
 ```
+★**broadcast 前に必ず** `echo "${DEPLOYER_PK:?DEPLOYER_PK unset}"` で存在確認。未設定だと
+DeployExportBridge.s.sol が **周知の Anvil #0 秘密鍵 `0xac0974…f2ff80` に silent fallback** して
+その鍵でデプロイ/署名してしまう（GUARDIAN も未設定なら Anvil #1 に fallback）。`.testnet-keys.env` に
+`DEPLOYER_PK` があることを `source` 後に確認すること。
 本番同等シミュレーション（`--broadcast` 無し＝on-chain 送信なし・deployer鍵は startBroadcast に必要）:
 ```bash
 set -a; source ../.testnet-deploy.env; source ../.testnet-keys.env; set +a

@@ -19,7 +19,14 @@ TARGET="${PAYOUT_TARGET:-100000}"
 L1DIR="${MORM_L1_DIR:-$HOME/morm-l1}"
 WAIT_MAX="${REFILL_WAIT_MAX:-90}"
 SEEDFILE="$HOME/.morm-l1/producer.seed"
-declare -A ADDR=( [PLAY]=m0r3pos24vwa5d3lq5vqaij75wo3tmyrv4t [DASH]=m0roshqbpskljwuj3drophhb7tth33qprzn )
+# macOS /bin/bash は 3.2 で連想配列(declare -A)非対応 → case 関数で address を引く。
+addr_for() {
+  case "$1" in
+    PLAY) printf 'm0r3pos24vwa5d3lq5vqaij75wo3tmyrv4t' ;;
+    DASH) printf 'm0roshqbpskljwuj3drophhb7tth33qprzn' ;;
+    *) printf '' ;;
+  esac
+}
 which=("$@"); [ $# -eq 0 ] && which=(PLAY DASH)
 
 # 残高取得。RPC/parse 失敗は "ERR" を返す(set -e で黙って落ちない)。
@@ -36,7 +43,7 @@ except Exception: print("ERR")' 2>/dev/null)"
 export MORM_SUBMIT_SEED="$(cat "$SEEDFILE")"   # ★env で渡す(argv 露出回避)
 rc=0
 for name in "${which[@]}"; do
-  addr="${ADDR[$name]:-}"; [ -z "$addr" ] && { echo "[refill] unknown account: $name"; rc=1; continue; }
+  addr="$(addr_for "$name")"; [ -z "$addr" ] && { echo "[refill] unknown account: $name"; rc=1; continue; }
   cur="$(bal "$addr")"
   if [ "$cur" = "ERR" ]; then echo "[refill] $name: RPC/parse error → skip"; rc=1; continue; fi
   if [ "$cur" -ge "$TARGET" ]; then echo "[refill] $name=$cur >= target $TARGET → skip"; continue; fi
