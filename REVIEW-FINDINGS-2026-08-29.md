@@ -24,15 +24,21 @@
 | J | MEDIUM | **AGE_SECRET を ADMIN_TOKEN から独立化**(`AGE_SECRET_KEY`優先→無ければ token→空なら起動毎ランダム)。既知定数での age cookie 偽造を封鎖 | `3410efc` |
 | K | LOW-MED | **未承認メタ漏洩**: `/api/content/{id}` を status で 404 化(未承認はメタも隠す)。Play 反映 | `3410efc` |
 
-## ⚠️ 残（単一プロセスでは安全 or 設計変更・ドキュメント化）
+## 設計系 findings — 判断結果（2026-08-29）
 
-- **[MEDIUM] payout() は atomic DB claim なし**: 現状 **単一 ThreadingHTTPServer + `_payout_lock` で安全**。
-  多重プロセス/blue-green を導入する場合のみ、他3経路と同型の条件付き UPDATE(CAS)+rowcount を追加すること。
-- **[MEDIUM] 署名read が pub 秘匿依存**: earnings/mine/me は `?pub=` で認証。pub は署名POSTで広く送信されるため、
-  観測で漏れると他者の収益が読める。nonce+expiry の**署名read**に上げるのが理想(設計変更)。
-- **[LOW] 署名replay(nonce/expiry なし)**: 状態変更は概ね冪等。厳密化には消費済 nonce 追跡が要る(設計変更)。
-- **[LOW] pending マーカーの sweeper なし**(reservation-first で残る 'pending' tx の照合バッチ)／
-  admin の constant-time 比較／base=1↔1e6 時の morm_txs.amount 表記／story/comments の status フィルタ。
+- ✅**[MEDIUM] payout() atomic claim → 実装済 `1333a71`**: 予約を CAS(earnings が読んだ paid を条件に
+  条件付き UPDATE / PK INSERT・rowcount0/PK衝突で concurrent skip)化。単一プロセスは `_payout_lock` で
+  既に安全だが多重プロセス/blue-green でも安全側。テスト4項目PASS・Play 本番反映。
+- ⏸**[MEDIUM] 署名read が pub 秘匿依存 → 据置(ユーザー判断 2026-08-29)**: 実務上の危険度が低い(被害者の
+  署名POST 観測=悪性拡張/POSTボディログ/侵害クライアントが必要・HTTPS上で remote無認証攻撃ではない)一方、
+  正しい修正は www `account.html` と play `index.html` の2クライアント協調改修＋read replay 窓対策が要り
+  live walletUI を壊すリスクが高い。additive(?pub= 併存)では脆弱性が閉じない。
+  **移行計画(実施時)**: ①サーバに signed-read(kind=account.read・nonce+短expiry・消費済nonce追跡)を additive 追加
+  →②2クライアントを signed POST に移行→③検証後に `?pub=` GET を撤去(ここで初めて脆弱性が閉じる)。別ミニプロジェクトで。
+- ⏸**[LOW] 署名replay(write) → 据置**: write は概ね冪等(like/follow/watch/comment)で replay 実害ほぼなし。
+  全 write に nonce 追跡を足すのは低価値×高リスク。nonce の主価値は上記 signed-read 側にあるのでそこと一体で。
+- **[LOW] その他(据置)**: pending マーカーの sweeper(照合バッチ)／admin の constant-time 比較／
+  base=1↔1e6 時の morm_txs.amount 表記／story/comments の status フィルタ。
 
 ## 参考
 - 詳細な再現・行番号は各レビュー結果（本セッション transcript）。secret ローテ=`SECURITY-SECRET-ROTATION.md`。
