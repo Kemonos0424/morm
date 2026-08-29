@@ -81,7 +81,15 @@ export async function POST(request) {
     try {
       gate = await checkBurn({ fromAddr: signer, amountUnits: p.amount });
     } catch (e) {
-      gate = { ok: true, bypass: true, valveError: e.message }; // never hard-fail on a valve bug
+      // ★fail-CLOSED: valve は薄いプールを守る唯一の backstop。例外時に bypass すると無制限 burn を
+      //   許す(fail-open→価格暴落/drain)。VALVE=on の時は保護不能なら拒否、off の時のみ従来どおり通す。
+      const valveOn = (process.env.BRIDGE_VALVE || 'off').toLowerCase() === 'on';
+      if (valveOn) {
+        return NextResponse.json(
+          { error: 'cash-out valve unavailable, retry later', valveError: e.message },
+          { status: 503, headers });
+      }
+      gate = { ok: true, bypass: true, valveError: e.message };
     }
     if (!gate.ok) {
       return NextResponse.json({ error: gate.reason, valve: gate }, { status: gate.code || 429, headers });

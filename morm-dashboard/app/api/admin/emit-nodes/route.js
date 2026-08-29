@@ -9,6 +9,11 @@ export const dynamic = 'force-dynamic';
 // legacy weekly-snapshot flow is untouched.
 export async function POST(request) {
   try {
+    // ★Phase E(node emission) は退役。node報酬は node.morm.one の earned が唯一の正で、これを叩くと
+    //   二重支払い/旧DB空配布になる。コードでハード無効化(既定 off)。復活時のみ明示 env を立てる。
+    if ((process.env.NODE_EMISSION_ENABLED || 'off').toLowerCase() !== 'on') {
+      return NextResponse.json({ error: 'node emission retired (Phase E)' }, { status: 410 });
+    }
     const body = await request.json().catch(() => ({}));
     const adminPass = (process.env.ADMIN_PASSWORD || '').trim();  // fail-closed（既定 '1234' 撤廃）
     if (!adminPass || (body.password || '') !== adminPass) {

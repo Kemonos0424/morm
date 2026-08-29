@@ -86,3 +86,14 @@ export async function finalizeEarn({ addr, kind, ref, amount, txHash }) {
     [Number(amount) || 0, txHash || null, addr, kind, ref]
   );
 }
+
+// ★送金失敗(未確認/ドロップ)時に予約(amount=0 の未確定行)を解放して ref を再試行可能に戻す。
+//   amount>0(確定済)は削除しない=支払い済みの二重払いを防ぐ。
+export async function releaseEarn({ addr, kind, ref }) {
+  try {
+    await dbRun(
+      `DELETE FROM lane_earn WHERE addr = ? AND kind = ? AND ref = ? AND amount = 0`,
+      [addr, kind, ref]
+    );
+  } catch { /* best-effort release */ }
+}

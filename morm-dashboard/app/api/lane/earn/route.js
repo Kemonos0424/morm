@@ -7,7 +7,7 @@ import { dbGet } from '@/app/lib/db';
 import { mormL1Enabled, transferMorm } from '@/app/lib/morm-l1';
 import { ensureWalletSchema, recordTx } from '@/app/lib/wallet-schema';
 import {
-  ensureLaneSchema, reserveEarn, finalizeEarn,
+  ensureLaneSchema, reserveEarn, finalizeEarn, releaseEarn,
 } from '@/app/lib/lane-schema';
 
 export const dynamic = 'force-dynamic';
@@ -89,10 +89,18 @@ export async function POST(request) {
     }
 
     if (!mormL1Enabled()) {
+      await releaseEarn({ addr, kind, ref });  // 予約だけ残して未払いにしない
       return NextResponse.json({ error: 'L1 payout not available' }, { status: 503, headers });
     }
 
-    const r = await transferMorm({ to: addr, mormAmount: LANE_EARN_MORM });
+    // ★送金失敗(未確認/ドロップ)時は予約を解放し ref を再試行可能に戻す(未払いで恒久 unclaimable にしない)。
+    let r;
+    try {
+      r = await transferMorm({ to: addr, mormAmount: LANE_EARN_MORM });
+    } catch (e) {
+      await releaseEarn({ addr, kind, ref });
+      return NextResponse.json({ error: 'payout not confirmed, retry', detail: e.message }, { status: 502, headers });
+    }
     await finalizeEarn({ addr, kind, ref, amount: LANE_EARN_MORM, txHash: r.txHash });
     await recordTx({ txHash: r.txHash, from: process.env.MORM_TREASURY_ADDRESS, to: addr, amount: LANE_EARN_MORM, kind: `lane-earn:${kind}` });
 

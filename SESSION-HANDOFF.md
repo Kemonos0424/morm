@@ -10,6 +10,7 @@ MORM 4サーフェス（www/api/node/play.morm.one）を監査→**致命セキ�
 - **admin PW: api.morm.one=`Yachida0024`（設定済）**。node.morm.one=別の既設PW（1234不可）。play=`ADMIN_TOKEN`。
 
 ## ★重要な罠
+- **★launchd の env 変更は `kickstart -k` では反映されない**（EnvironmentVariables はロード時のみ読込）。plist の env を変えたら **`launchctl bootout gui/501/<label>` → `launchctl bootstrap gui/501 <plist>`** で再読込必須。code(play_server.py 等)ファイル変更は都度読込 or kickstart で反映されるが、**env(ADMIN_TOKEN/TREASURY_SEED_FILE/EMISSION_MODE/VIEW_EARN 等)は bootout+bootstrap**。※2026-08-29: 今セッションの play env 変更(payout分離/proportional/VIEW_EARN/token ローテ)は当初 kickstart で未反映→bootout+bootstrap で反映確定。
 - **node.morm.one のデプロイ/実行実体は `~/Desktop/node-cluster/src/node-dashboard`**（`.env.local`/`.vercel`保持）。`MORM/node-dashboard` は submodule=参照専用（ここを編集してもデプロイされない）。編集/デプロイは node-cluster 側で。→ 新セッションで `request_directory ~/Desktop/node-cluster/src/node-dashboard`。
 - Vercel デプロイ(`vercel --prod --yes`)は権限ガードで最初ブロック→ユーザー承認で通る。各 dir の `.vercel/project.json` がプロジェクトを決める（node-dashboard / morm-dashboard）。
 - **secret厳守**: `.guardian-keys.env`/`.testnet-*.env`/`*.env`/plists/`service-key.json` は .gitignore 済。`git add .` 禁止・パス指定で add。
