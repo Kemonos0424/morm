@@ -61,7 +61,8 @@ MORM 4サーフェス（www/api/node/play.morm.one）を監査→**致命セキ�
 - ✅**E-4 DASH 配線完了 2026-08-29**: ユーザーが `MORM_TREASURY_SEED`→dash_payout・`MORM_TREASURY_ADDRESS`→`m0rosh…` を更新(seed導出=DASH一致を検証)→`vercel --prod`(deploy `elkqashi5`)→回帰なし・l1.morm.one 200(dashboard の L1 到達確認)。dashboard は DASH_PAYOUT(100000) から faucet/lane/AD を支払う。
 - ✅**Phase F(AD) ready**: 専用フラグ無し=`ADMIN_PASSWORD`(設定済)で admin-gated。no-auth→401(fail-closed)確認。発行外の再分配。
 - ✅**Phase B(lane earn) active**: `MORM_LANE_EARN`既定1・`MORM_LANE_EARN_DAILY_CAP`既定10。未署名→400"invalid m0r addr"(署名必須・開放なし)。DASH から支払い。
-- ⏳**Phase D(engagement) のみ残**: Play側 plist に `EMISSION_MODE=proportional`+`B_EPOCH_MORM`(1エポック発行予算・要値決定)+`EPOCH_ACCT_CAP_FRAC=0.005`。現状 fixed レートで安全稼働中=急ぎでない。`VIEW_EARN=on` は署名付きwatchのクライアント改修後(未改修は安全に無報酬)。ロールバック=`EMISSION_MODE`をfixedへ。**Phase E(node emission)は廃止**。
+- ✅**Phase D(engagement proportional) LIVE 2026-08-29**: Play plist に `EMISSION_MODE=proportional`+`B_EPOCH_MORM=5000`(72h)+`EPOCH_ACCT_CAP_FRAC=0.005` 追加→再起動(PID更新・health OK・エラーなし)。engagement settle は総発行B頭打ちの proportional に(PLAY_PAYOUTから・base=1)。plist backup=`com.morm.play.plist.bak-D`。ロールバック=`EMISSION_MODE`をfixedに戻す/削除→再起動。`VIEW_EARN` は署名付きwatchクライアント改修後(未改修は安全に無報酬)。
+- ✅**Agent Lane 活性化 完了**: fund→Play分離→C(valve)→DASH→F(AD)→B(lane)→D(engagement) 全て稼働。**Phase E(node emission)は廃止(不活性のまま)**。残: `VIEW_EARN`(クライアント改修待ち)・明示的な lane/日次上限の調整(任意)・payout口座の残高監視/補充。
 - 詳細=`agent-lane/DEPLOY.md` 冒頭★。base=1(整数MORM)で初回・§G(1e6)は後日。
 
 ## 必要アクセス（新セッションで request）
