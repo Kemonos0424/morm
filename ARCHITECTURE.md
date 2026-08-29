@@ -8,7 +8,7 @@
 |---|---|---|---|
 | **www.morm.one** / morm.one | LP＋**ユーザー口座**（walletless m0r・passkey/生体）＋whitepaper | `site/`（gitignore・別配線） | Mac Mini へ scp（静的） |
 | **api.morm.one** | ①**ウォレットAPI**（account.htmlが叩く `/api/wallet/*`・`/api/price`）②旧0xダッシュ`/my`+`/admin`（**陳腐化**） | `morm-dashboard/` | Vercel `morm-dashboard` |
-| **node.morm.one** | **MORMNODE**（MCアカウント名+PWログイン・ノード運用者）＋`/shop`機体販売 | **`~/Desktop/node-cluster/src/node-dashboard/`**（別gitリポジトリ・**MORM外**。`~/Desktop/IPPool-System/node-dashboard` はここへのsymlink） | Vercel `node-dashboard` |
+| **node.morm.one** | **MORMNODE**（MCアカウント名+PWログイン・ノード運用者）＋`/shop`機体販売 | **`MORM/node-dashboard`（git submodule → github.com/Kemonos0424/node-dashboard）**。デプロイ/実行の実体は `~/Desktop/node-cluster/src/node-dashboard/`（`.env.local`/`.vercel`保持・IPPool symlink先）。両者は同一リポ | Vercel `node-dashboard` |
 | **play.morm.one** | **MORM Play**（動画ディスカバリ＋配信元秘匿・自動ed25519ウォレット） | `morm-play/`（`play_server.py`） | Mac Mini launchd `com.morm.play` |
 | L1 `127.0.0.1:8900` | MORM L1 ノード（**不可侵**・写込みは所定手順のみ） | `morm-l1/` | Mac Mini |
 | （EVM↔MORM スワップ/ブリッジUI） | `MORM/USD 価格`・`ブリッジ&スワップ(Base Sepolia)` | `morm-market/`（app.html/index.html） | ※公開先未確定（market.morm.one 未live） |
