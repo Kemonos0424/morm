@@ -2,8 +2,19 @@
 
 **新セッションは最初にこれを読む。** 推奨 cwd = `~/Desktop/MORM/`。全体マップ=`ARCHITECTURE.md`／統合計画=`CONSOLIDATION-PLAN.md`／エアドロ=`agent-lane/DEPLOY.md`（冒頭★2026-08-29確定）。
 
-## 一行サマリ
-MORM 4サーフェス（www/api/node/play.morm.one）を監査→**致命セキュリティ封鎖・デプロイ済**／node.morm.one を**earned報酬(稼働+利用)に統一・デプロイ済**／リポ整理 Phase 1-3 完了（ARCHITECTURE・archive・論理コミット・旧0xダッシュ廃止・node-dashboard を submodule で1入口化）。**全てローカルcommit・MORM本体は未push**。残りをこのハンドオフの「残タスク」で片付ける。
+## ★2026-08-29 現況（このセッションで到達・以降を最優先で読む）
+- **push 済・origin/main と同期**（当初の「未push」は解消。以後の全変更も push 済）。
+- **Agent Lane 全フェーズ本番活性化 完了**: fund(PLAY/DASH=各100000 MORM)→Play を PLAY_PAYOUT に分離→Phase C バルブ(BRIDGE_VALVE=on)→DASH 配線→F(AD)→B(lane earn)→D(engagement=proportional B_EPOCH_MORM=5000)→VIEW_EARN=on。Phase E(node emission)は退役(410でハード無効化)。
+- **並列レビュー(2波)でセキュリティ監査→CRIT2/HIGH3/MED多数を修正・本番反映**。記録=`REVIEW-FINDINGS-2026-08-29.md`。
+  - CRIT: **本番 ADMIN_TOKEN が公開リポにコミット済＝生 token 漏洩→ローテ済**（旧 token は play で 403）。proportional 発行の予算超過→修正。
+  - HIGH: view-farm→drain／システム発行上限(既定10000 MORM/24h・env `MORM_DAILY_ISSUANCE_CAP`)／payout-refill 無限ループ。
+  - MED: valve fail-closed／emit-nodes 410／lane 予約解放／AGE_SECRET 独立化／未承認メタ隠蔽／CLI env-seed。
+- **★重大な運用トラップ発見**: `launchctl kickstart -k` は **plist の env を再読込しない**。plist env 変更は **`bootout`+`bootstrap` 必須**（罠セクション参照）。今回の Play env 全変更は当初 kickstart で未反映→bootout で反映確定。
+- **hpmini mod-worker は sudo 不要でローテ**: `mod_worker.py` が `~/.morm-worker-token` を env より優先読込→ファイル書込み＋自プロセス kill(Restart=always)で反映(手順=`SECURITY-SECRET-ROTATION.md`§0-2)。
+- **残(未対応)**: market.morm.one DNS(morm.one CFで CNAME 作成のみ)／C-1 export_relayer 起動(鍵配置=`agent-lane/ops/relayer-deploy.md`)／C-2 minExit=1e18 再デプロイ(`morm-chain/REDEPLOY-MINEXIT.md`)／設計系 findings(payout CAS=単一プロセスなら安全・pub 秘匿依存read・replay nonce)。
+
+## 一行サマリ（初期・履歴）
+MORM 4サーフェス（www/api/node/play.morm.one）を監査→致命セキュリティ封鎖・デプロイ済／node.morm.one を earned報酬に統一／リポ整理 Phase 1-3 完了。
 
 ## 稼働URL・ログイン（詳細=ARCHITECTURE.md）
 - www.morm.one=`site/account.html`（walletless m0r）。api.morm.one=`morm-dashboard/`（ウォレットAPI＋Agent Lane API。旧0x UIは廃止済、`/`→node.morm.oneへ307）。node.morm.one=**`node-cluster/src/node-dashboard/`**（MCアカウント+PW）。play.morm.one=`morm-play/play_server.py`（Mac Mini）。L1=`morm-l1/` Mac Mini :8900（**不可侵**）。
