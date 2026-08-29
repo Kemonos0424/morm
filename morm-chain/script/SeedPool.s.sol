@@ -41,6 +41,11 @@ contract SeedPool is Script {
         address usdc  = vm.envAddress("USDC_ADDR");
         address npmA  = vm.envOr("NPM_ADDR", NPM_DEFAULT);
 
+        // fail-fast: seed 額が $0.01 で balanced か（外部呼び出し前に検算・ガス浪費回避）。
+        require(vm.envOr("SEED_WMORM", uint256(100_000))
+                == vm.envOr("SEED_USDC", uint256(1_000)) * 100,
+                "SEED not balanced at 0.01 (wMORM must = USDC*100)");
+
         // token0 = lower address. ★順序で sqrtPriceX96 が変わる: 1 wMORM = 0.01 USDC。
         //   USDC(6dec)=token0: price token1/token0 = 1e18/1e4 = 1e14 → sqrt=1e7 → 1e7*2^96。
         //   wMORM(18dec)=token0: price = 1e4/1e18 = 1e-14 → sqrt=1e-7 → 2^96/1e7 = 7922816251426433759354。
@@ -61,10 +66,19 @@ contract SeedPool is Script {
     }
 
     function _mint(address npmA, address t0, address t1, address to) internal {
-        // 1,000 USDC + 100,000 wMORM (balanced at 0.01 USDC/wMORM)
+        // Seed amounts env-driven (default 1,000 USDC + 100,000 wMORM = testnet).
+        // ★mainnet 初動は SEED_USDC=100 SEED_WMORM=10000 (100 USDC + 10,000 wMORM)。
+        // balanced at 0.01 USDC/wMORM のとき wMORM == USDC*100。ズレは価格を歪めるので検算+ログ。
+        uint256 usdcWhole  = vm.envOr("SEED_USDC",  uint256(1_000));
+        uint256 wmormWhole = vm.envOr("SEED_WMORM", uint256(100_000));
+        require(wmormWhole == usdcWhole * 100, "SEED not balanced at 0.01 (wMORM must = USDC*100)");
+        uint256 usdcAmt  = usdcWhole  * 1e6;
+        uint256 wmormAmt = wmormWhole * 1e18;
+        console2.log("seed USDC (whole) :", usdcWhole);
+        console2.log("seed wMORM(whole) :", wmormWhole);
         (uint256 a0, uint256 a1) =
-            t0 < t1 && _is6dec(t0) ? (uint256(1_000 * 1e6), uint256(100_000 * 1e18))
-                                    : (uint256(100_000 * 1e18), uint256(1_000 * 1e6));
+            t0 < t1 && _is6dec(t0) ? (usdcAmt, wmormAmt)
+                                    : (wmormAmt, usdcAmt);
         (uint256 id, uint128 liq,,) = INPM(npmA).mint(INPM.MintParams({
             token0: t0, token1: t1, fee: FEE, tickLower: TL, tickUpper: TU,
             amount0Desired: a0, amount1Desired: a1, amount0Min: 0, amount1Min: 0,

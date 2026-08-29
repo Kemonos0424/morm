@@ -15,8 +15,10 @@ import {MockUSDC} from "../src/MockUSDC.sol";
 ///      --rpc-url $BASE_SEPOLIA_RPC --broadcast --verify
 ///
 ///  Env (all optional; defaults are local-sim only — set real values on Base):
-///    DEPLOYER_PK, GUARDIAN, SIGNER_A/B/C, THRESHOLD,
+///    DEPLOYER_PK, GUARDIAN, SIGNERS (comma-separated addresses, N-of-M), THRESHOLD,
 ///    WINDOW_LEN, MAX_MINT_PER_WINDOW, MAX_SUPPLY, MIN_EXIT, DEPLOY_MOCK_USDC
+///  ★mainnet は 3-of-5: SIGNERS="0xA,0xB,0xC,0xD,0xE" THRESHOLD=3 DEPLOY_MOCK_USDC=false。
+///   legacy SIGNER_A/B/C (個別) も後方互換で受ける（SIGNERS 未設定時のみ）。
 contract DeployExportBridge is Script {
     struct Cfg {
         uint256 pk;
@@ -35,11 +37,16 @@ contract DeployExportBridge is Script {
             uint256(0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80)); // anvil #0
         c.guardian = vm.envOr("GUARDIAN",
             address(0x70997970C51812dc3A010C7d01b50e0d17dc79C8));                        // anvil #1
-        c.signers = new address[](3);
-        c.signers[0] = vm.envOr("SIGNER_A", vm.addr(0xA11CE));
-        c.signers[1] = vm.envOr("SIGNER_B", vm.addr(0xB0B));
-        c.signers[2] = vm.envOr("SIGNER_C", vm.addr(0xC0C));
+        // Canonical input: SIGNERS="0x..,0x..,0x.." (any N-of-M, e.g. 3-of-5 on mainnet).
+        // Legacy fallback: individual SIGNER_A/B/C (only when SIGNERS is unset).
+        address[] memory legacy = new address[](3);
+        legacy[0] = vm.envOr("SIGNER_A", vm.addr(0xA11CE));
+        legacy[1] = vm.envOr("SIGNER_B", vm.addr(0xB0B));
+        legacy[2] = vm.envOr("SIGNER_C", vm.addr(0xC0C));
+        c.signers = vm.envOr("SIGNERS", ",", legacy);
         c.threshold = vm.envOr("THRESHOLD", uint256(2));
+        // fail-loud guardrails (constructor also checks, but surface it before broadcast):
+        require(c.signers.length >= c.threshold && c.threshold > 0, "bad threshold/signers");
         c.windowLen = vm.envOr("WINDOW_LEN", uint256(1 hours));
         c.maxWin    = vm.envOr("MAX_MINT_PER_WINDOW", uint256(1_000_000 ether));
         c.maxSupply = vm.envOr("MAX_SUPPLY", uint256(100_000_000 ether));
@@ -67,6 +74,10 @@ contract DeployExportBridge is Script {
         console2.log("MORMExportBridge :", address(b));
         console2.log("MockUSDC         :", usdc);
         console2.log("guardian         :", c.guardian);
+        console2.log("signerCount      :", c.signers.length);
         console2.log("threshold        :", c.threshold);
+        for (uint256 i = 0; i < c.signers.length; i++) {
+            console2.log("  signer", i, c.signers[i]);
+        }
     }
 }
