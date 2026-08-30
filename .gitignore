@@ -112,3 +112,4 @@ _archive/morm-node-shop/
 .claude/worktrees/
 **/.claude/worktrees/
 morm-market/rpc-config.js
+morm-scan/mormscan-data.json

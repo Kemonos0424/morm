@@ -1,0 +1,182 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>MORMSCAN — MORM ⇄ Base エクスプローラ</title>
+<style>
+:root{
+  --paper:#F1EEE4;--card:#FFFFFF;--card2:#F5F2E9;--ink:#0C0C0E;--soft:#6A6A6E;--faint:#9A9A9E;
+  --line:#0C0C0E14;--line2:#0C0C0E0D;
+  --blue:#1E37E6;--magenta:#EC1E79;--green:#0EA24A;--warn:#E8730C;--vio:#6B2CE6;
+  --sh:0 1px 2px #0000000a,0 8px 24px #0000000a;--shs:0 1px 2px #0000000d;
+}
+@media(prefers-color-scheme:dark){:root{
+  --paper:#0A0A0C;--card:#161618;--card2:#202024;--ink:#F4F2EA;--soft:#A6A6A2;--faint:#6E6E72;
+  --line:#F4F2EA1A;--line2:#F4F2EA12;
+  --blue:#5D6DFF;--magenta:#FF3E93;--green:#22C466;--warn:#FF9F45;--vio:#9A6BFF;
+  --sh:0 1px 2px #0000001a,0 10px 30px #00000030;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Helvetica Neue",Helvetica,Arial,"Hiragino Kaku Gothic ProN",system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:760px;margin:0 auto;padding:18px 14px 60px}
+@media(min-width:720px){.wrap{padding-top:26px}}
+.top{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.logo{font-weight:900;font-size:21px;letter-spacing:-.04em;color:var(--magenta)}.logo b{color:var(--blue)}
+.top .pair{font-family:ui-monospace,monospace;font-size:11px;color:var(--soft);border:1px solid var(--line);border-radius:999px;padding:5px 10px;background:var(--card)}
+.top .sp{flex:1}
+.chip{font-size:11px;font-weight:800;letter-spacing:.03em;color:var(--magenta);border:1px solid var(--line);border-radius:999px;padding:6px 11px;background:var(--card)}
+.search{display:flex;gap:8px;margin-bottom:14px}
+.search input{flex:1;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:12px 14px;font-size:14px;font-family:ui-monospace,monospace}
+.search button{border:none;background:var(--ink);color:var(--paper);border-radius:12px;padding:0 16px;font-weight:800;cursor:pointer}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+@media(max-width:520px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--card2);border:1px solid var(--line2);border-radius:12px;padding:10px 12px}
+.stat span{font-size:10px;color:var(--faint);font-weight:800;display:block;text-transform:uppercase;letter-spacing:.03em}
+.stat b{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums}
+.tabs{display:flex;gap:5px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:5px;margin-bottom:14px;box-shadow:var(--shs)}
+.tabs button{flex:1;border:none;background:none;color:var(--soft);font-weight:800;font-size:13.5px;padding:10px 6px;border-radius:10px;cursor:pointer}
+.tabs button.on{background:var(--ink);color:var(--paper)}
+section.tab{display:none}section.tab.on{display:block}
+.row{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--shs)}
+.row .r1{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.row .r2{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--soft);margin-top:5px;word-break:break-all}
+.tag{font-size:10.5px;font-weight:800;border-radius:999px;padding:3px 9px;white-space:nowrap}
+.tag.mint{background:var(--vio)22;color:var(--vio);border:1px solid var(--vio)44}
+.tag.burn{background:var(--magenta)22;color:var(--magenta);border:1px solid var(--magenta)44}
+.tag.xfer{background:var(--blue)18;color:var(--blue);border:1px solid var(--blue)33}
+.tag.k{background:var(--card2);color:var(--soft);border:1px solid var(--line)}
+.st{font-size:10.5px;font-weight:800;border-radius:999px;padding:3px 9px;white-space:nowrap}
+.st.ok{background:var(--green)22;color:var(--green)}
+.st.pend{background:var(--warn)22;color:var(--warn)}
+.st.base{background:var(--blue)18;color:var(--blue)}
+.amt{font-weight:800;font-variant-numeric:tabular-nums}
+.dir{font-weight:900;letter-spacing:-.02em}
+.mono{font-family:ui-monospace,monospace}
+.arrow{color:var(--magenta);font-weight:900;margin:0 4px}
+a{color:var(--blue);text-decoration:none}
+.mut{color:var(--faint);font-size:12px;text-align:center;padding:20px}
+.lk{cursor:pointer;border-bottom:1px dotted var(--soft)}
+.upd{font-size:11px;color:var(--faint);text-align:center;margin-top:14px}
+.legend{font-size:11px;color:var(--soft);margin:2px 2px 12px}
+</style>
+<div class="wrap">
+  <div class="top">
+    <span class="logo">M<b>0</b>RM<span style="color:var(--ink)">SCAN</span></span>
+    <span class="sp"></span>
+    <span class="chip">MORM ⇄ BASE</span>
+  </div>
+  <div class="search">
+    <input id="q" placeholder="m0r… / 0x… / tx ハッシュ で検索" spellcheck="false" autocapitalize="off">
+    <button id="qClear">クリア</button>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="tabs">
+    <button data-t="bridges" class="on">ブリッジ</button>
+    <button data-t="txs">トランザクション</button>
+    <button data-t="blocks">ブロック</button>
+  </div>
+
+  <section class="tab on" id="tabBridges">
+    <div class="legend">MORM ⇄ Base の橋渡しを一気通貫で表示。<b>confirmed</b>=Base 側反映済 / <b>pending</b>=リレー待ち / <b>Base確定</b>=Base で発生・MORM へ反映中。</div>
+    <div id="brList"></div>
+  </section>
+  <section class="tab" id="tabTxs"><div id="txList"></div></section>
+  <section class="tab" id="tabBlocks"><div id="blkList"></div></section>
+
+  <div class="upd" id="upd">読み込み中…</div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const DATA_URL="mormscan-data.json";
+const BASESCAN="https://basescan.org";
+let D=null, TAB="bridges", Q="";
+
+function short(s,n=10){s=s||"";return s.length>n*2?s.slice(0,n)+"…"+s.slice(-4):s;}
+function ago(ms){if(!ms)return"";const s=(Date.now()-ms)/1000;
+  if(s<60)return Math.floor(s)+"秒前";if(s<3600)return Math.floor(s/60)+"分前";
+  if(s<86400)return Math.floor(s/3600)+"時間前";return Math.floor(s/86400)+"日前";}
+function num(n){n=Number(n);return n>=1e6?n.toLocaleString(undefined,{maximumFractionDigits:2}):(Number.isInteger(n)?n.toLocaleString():n.toFixed(2));}
+function big(w){w=Number(w);
+  if(w>=1e16)return (w/1e16>=100?(w/1e16).toFixed(0):(w/1e16).toFixed(1))+"京";
+  if(w>=1e12)return (w/1e12).toFixed(1)+"兆";if(w>=1e8)return (w/1e8).toFixed(2)+"億";
+  if(w>=1e4)return (w/1e4).toFixed(1)+"万";return num(w);}
+function bx(kind){return "<a class='mono' target='_blank' rel='noopener' href='"+BASESCAN+kind+"'>";}
+
+function fmtBridgeAmt(b){
+  if(b.token==="USDm")return num(Number(b.amount)/1e6)+" USDm";
+  if(b.asset==="wMORM→MORM")return num(Number(b.amount)/1e18)+" wMORM → MORM";
+  if(b.asset==="MORM→wMORM")return num(Number(b.amount))+" MORM → wMORM";
+  return num(b.amount);
+}
+function stTag(s){
+  if(s==="confirmed")return "<span class='st ok'>confirmed ✓</span>";
+  if(s==="pending")return "<span class='st pend'>pending…</span>";
+  return "<span class='st base'>Base確定 → MORM</span>";
+}
+function kindTag(k,name){
+  const c=k===20?"mint":k===21?"burn":k===6?"xfer":"k";
+  return "<span class='tag "+c+"'>"+name+"</span>";
+}
+function q(s){return (s||"").toLowerCase();}
+function hit(txt){return !Q||q(txt).includes(Q);}
+
+function drawStats(){
+  const c=D.chain||{},b=D.base||{};
+  const cells=[
+    ["高さ",num(c.height)],["確定",num(c.finalized)],["tips",num(c.tips)],
+    ["mempool",num(c.mempool)],["treasury",c.treasury!=null?big(c.treasury)+" MORM":"—"],
+    ["wMORM 流通",b.bridged_wmorm!=null?num(b.bridged_wmorm):"—"],
+    ["USDm 供給",b.usdm_supply!=null?num(b.usdm_supply):"—"],
+    ["USDm エスクロー",b.usdm_escrow!=null?num(b.usdm_escrow):"—"],
+  ];
+  $("stats").innerHTML=cells.map(([k,v])=>"<div class='stat'><span>"+k+"</span><b>"+v+"</b></div>").join("");
+}
+function drawBridges(){
+  const rows=(D.bridges||[]).filter(b=>hit((b.from||"")+(b.to||"")+(b.l1Tx||"")+(b.baseTx||"")+(b.asset||"")));
+  if(!rows.length){$("brList").innerHTML="<div class='mut'>該当するブリッジがありません</div>";return;}
+  $("brList").innerHTML=rows.map(b=>{
+    const L2B=b.dir==="MORM→Base";
+    const fromC=L2B?"<span class='lk' data-q='"+(b.from||"")+"'>"+short(b.from)+"</span>":(bx("/address/"+b.from)+short(b.from)+"</a>");
+    const toC  =L2B?(bx("/address/"+b.to)+short(b.to)+"</a>"):"<span class='lk' data-q='"+(b.to||"")+"'>"+short(b.to)+"</span>";
+    const txlk=b.baseTx?(bx("/tx/"+b.baseTx)+"Base tx ↗</a>"):("<span class='mono lk' data-q='"+(b.l1Tx||"")+"'>"+short(b.l1Tx,8)+"</span>");
+    return "<div class='row'><div class='r1'>"
+      +"<span class='dir'>"+(L2B?"MORM <span class='arrow'>→</span> Base":"Base <span class='arrow'>→</span> MORM")+"</span>"
+      +"<span class='amt'>"+fmtBridgeAmt(b)+"</span><span class='sp' style='flex:1'></span>"+stTag(b.status)+"</div>"
+      +"<div class='r2'>"+fromC+" <span class='arrow'>→</span> "+toC+" · "+txlk+" · "+ago(b.ts)+"</div></div>";
+  }).join("");
+}
+function drawTxs(){
+  const rows=(D.txs||[]).filter(t=>hit((t.sender||"")+(t.hash||"")+(t.to||"")+(t.kindName||"")));
+  if(!rows.length){$("txList").innerHTML="<div class='mut'>該当する tx がありません</div>";return;}
+  $("txList").innerHTML=rows.map(t=>{
+    let amt="";
+    if(t.amount!=null){const a=(t.token==="USDm")?num(Number(t.amount)/1e6)+" USDm":num(t.amount)+" "+(t.token||"MORM");amt="<span class='amt'>"+a+"</span>";}
+    const to=t.to?" <span class='arrow'>→</span> "+(String(t.to).startsWith("0x")?short(t.to):"<span class='lk' data-q='"+t.to+"'>"+short(t.to)+"</span>"):"";
+    return "<div class='row'><div class='r1'>"+kindTag(t.kind,t.kindName)+amt
+      +"<span class='sp' style='flex:1'></span><span class='mono' style='font-size:11px;color:var(--faint)'>#"+num(t.height)+" · "+ago(t.ts)+"</span></div>"
+      +"<div class='r2'><span class='lk' data-q='"+(t.sender||"")+"'>"+short(t.sender)+"</span>"+to+" · tx "+short(t.hash,8)+"</div></div>";
+  }).join("");
+}
+function drawBlocks(){
+  const rows=(D.blocks||[]).filter(b=>hit((b.hash||"")+(b.producer||"")));
+  if(!rows.length){$("blkList").innerHTML="<div class='mut'>ブロックがありません</div>";return;}
+  $("blkList").innerHTML=rows.map(b=>"<div class='row'><div class='r1'>"
+    +"<span class='dir'>#"+num(b.height)+"</span><span class='tag k'>"+b.txs+" tx</span>"
+    +"<span class='sp' style='flex:1'></span><span style='font-size:11px;color:var(--faint)'>"+ago(b.ts)+"</span></div>"
+    +"<div class='r2'>producer <span class='lk' data-q='"+(b.producer||"")+"'>"+short(b.producer)+"</span> · "+short(b.hash,8)+"</div></div>").join("");
+}
+function drawAll(){drawStats();drawBridges();drawTxs();drawBlocks();
+  document.querySelectorAll(".lk").forEach(el=>el.onclick=()=>{$("q").value=el.dataset.q;Q=q(el.dataset.q);drawAll();});}
+
+function setTab(t){TAB=t;
+  document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===t));
+  document.querySelectorAll("section.tab").forEach(s=>s.classList.toggle("on",s.id==="tab"+t.charAt(0).toUpperCase()+t.slice(1)));}
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>setTab(b.dataset.t));
+$("q").addEventListener("input",e=>{Q=q(e.target.value);drawAll();});
+$("qClear").onclick=()=>{$("q").value="";Q="";drawAll();};
+
+async function load(){try{const r=await fetch(DATA_URL,{cache:"no-store"});D=await r.json();
+  drawAll();$("upd").textContent="更新: "+new Date((D.updated||0)*1000).toLocaleString("ja-JP")+"（自動更新 2分毎）";
+}catch(e){$("upd").textContent="データを取得できませんでした";}}
+load();setInterval(load,60000);
+</script>
