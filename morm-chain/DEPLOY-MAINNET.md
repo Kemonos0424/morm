@@ -164,3 +164,8 @@ forge script script/DeployUSDm.s.sol --rpc-url "$RPC_URL" --broadcast # 本番
 - ★**監査**: 実資金を扱うステーブルなので mainnet 本格運用前に第三者監査＋コンプラ確認（規制上 blocklist/pause が要るなら reviewed v2 で追加。v1 は意図的にトラストレス）。
 - **L1 ミラー**: USDm を MORM L1 の `account_tokens` にミラーするには EVM 側 lock/escrow ブリッジ＋relayer の USDm 対応が必要（wMORM の mint 型 bridge とは別＝lock 型）。別途実装。
 - **JPYm は取りやめ（2026-08-30 決定）**: FX リスク回避のため発行しない。USD 系(USDm)に一本化。SHOP の ¥ 表示は物販の値付け用途で JPY_PER_USD 固定を継続（トークンではない）。
+
+### ★USDm デプロイ済（2026-08-30・Base mainnet）
+- **USDm**: `0xd65896532806030878DB852F3f5216Bc917FD376`（"MORM USD"/USDm/6dec・backedBy=native USDC 0x8335…）
+- 検証済: usdc()=USDC・totalSupply 0・backing 0/0（未 deposit）。tx `0x5ef09f2a…` blk 50633459。
+- 使い方: `USDC.approve(USDm, amt)` → `USDm.deposit(amt)`（1:1 mint）／`USDm.withdraw(amt)`（1:1 償還）。
