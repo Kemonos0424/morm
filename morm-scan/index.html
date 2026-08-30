@@ -68,17 +68,20 @@ a{color:var(--blue);text-decoration:none}
 .kv .v a,.kv .v .lk{color:var(--blue)}
 .cp{border:none;background:transparent;color:var(--faint);cursor:pointer;font-size:12px;padding:0 3px;line-height:1;vertical-align:baseline}
 .cp:hover{color:var(--blue)}.cp.ok{color:var(--green)}
+.lang{border:1px solid var(--line);background:var(--card);color:var(--soft);border-radius:999px;font-size:11px;font-weight:800;padding:6px 11px;cursor:pointer}
+.lang:hover{color:var(--ink)}
 </style>
 <div class="wrap">
   <div class="top">
     <span class="logo">M<b>0</b>RM<span style="color:var(--ink)">SCAN</span></span>
     <span class="sp"></span>
+    <button class="lang" id="langBtn" type="button">EN</button>
     <span class="chip">MORM ⇄ BASE</span>
   </div>
-  <div class="sub">MORM チェーンと Base の取引・ブリッジ（橋渡し）を見るエクスプローラ</div>
+  <div class="sub" id="sub"></div>
   <div class="search">
-    <input id="q" placeholder="m0r… / 0x… / tx ハッシュ で検索" spellcheck="false" autocapitalize="off">
-    <button id="qClear">クリア</button>
+    <input id="q" spellcheck="false" autocapitalize="off">
+    <button id="qClear"></button>
   </div>
 
   <div class="stats" id="stats"></div>
@@ -91,7 +94,7 @@ a{color:var(--blue);text-decoration:none}
   </div>
 
   <section class="tab on" id="tabBridges">
-    <div class="legend">MORM と Base のあいだの資産の移動（ブリッジ）を一覧します。<b>完了</b>＝両チェーンに反映済み ／ <b>処理中</b>＝リレー待ち ／ <b>反映中</b>＝Base で発生し MORM へ反映中。</div>
+    <div class="legend" id="legend"></div>
     <div id="brList"></div>
   </section>
   <section class="tab" id="tabTxs"><div id="txList"></div></section>
@@ -105,12 +108,48 @@ const DATA_URL="mormscan-data.json";
 const BASESCAN="https://basescan.org";
 let D=null, TAB="bridges", Q="";
 
+/* ================= i18n ================= */
+const I18N={
+ ja:{sub:"MORM チェーンと Base の取引・ブリッジ（橋渡し）を見るエクスプローラ",
+     search:"m0r… / 0x… / tx ハッシュ で検索", clear:"クリア",
+     tab_bridges:"ブリッジ", tab_txs:"トランザクション", tab_blocks:"ブロック",
+     legend:"MORM と Base のあいだの資産の移動（ブリッジ）を一覧します。<b>完了</b>＝両チェーンに反映済み ／ <b>処理中</b>＝リレー待ち ／ <b>反映中</b>＝Base で発生し MORM へ反映中。",
+     s_height:"ブロック高", s_final:"確定済", s_treasury:"MORM 準備金", s_baseMorm:"Base の MORM",
+     s_usdmSupply:"USDm 発行", s_usdmEscrow:"USDm 預託",
+     meta:(t,m)=>"tips（分岐先端）"+t+" ・ 未確定 tx（mempool）"+m,
+     k_from:"差出人", k_to:"受取", k_dest:"宛先", k_tx:"取引", k_producer:"作成者", k_hash:"ハッシュ",
+     st_ok:"完了", st_pend:"処理中", st_base:"反映中", baseView:"Base で見る ↗", nTx:"取引",
+     emptyBr:"該当するブリッジがありません", emptyTx:"該当する取引がありません", emptyBlk:"ブロックがありません",
+     updated:"更新", auto:"（自動更新 2分毎）", loading:"読み込み中…", fetchErr:"データを取得できませんでした",
+     ago:(s)=>s<60?Math.floor(s)+"秒前":s<3600?Math.floor(s/60)+"分前":s<86400?Math.floor(s/3600)+"時間前":Math.floor(s/86400)+"日前",
+     kinds:{1:"コンテンツ登録",2:"注文作成",3:"証明提出",4:"確定",5:"ステーク",6:"送金",7:"視聴報酬",
+       10:"ジョブ投稿",11:"ジョブ受注",12:"作業証明",20:"ブリッジ発行",21:"ブリッジ焼却",
+       30:"AIサービス登録",31:"プロデューサー登録",32:"署名者登録",33:"マルチシグ"}},
+ en:{sub:"Explorer for transactions & bridges between the MORM chain and Base",
+     search:"Search m0r… / 0x… / tx hash", clear:"Clear",
+     tab_bridges:"Bridge", tab_txs:"Transactions", tab_blocks:"Blocks",
+     legend:"Asset movements (bridges) between MORM and Base. <b>Done</b> = reflected on both chains / <b>Pending</b> = awaiting relay / <b>Relaying</b> = started on Base, being reflected to MORM.",
+     s_height:"Block height", s_final:"Finalized", s_treasury:"MORM treasury", s_baseMorm:"MORM on Base",
+     s_usdmSupply:"USDm supply", s_usdmEscrow:"USDm escrow",
+     meta:(t,m)=>"tips "+t+" · mempool "+m,
+     k_from:"From", k_to:"To", k_dest:"To", k_tx:"Tx", k_producer:"Producer", k_hash:"Hash",
+     st_ok:"Done", st_pend:"Pending", st_base:"Relaying", baseView:"View on Base ↗", nTx:"tx",
+     emptyBr:"No matching bridges", emptyTx:"No matching transactions", emptyBlk:"No blocks",
+     updated:"Updated", auto:" (auto-refresh every 2 min)", loading:"Loading…", fetchErr:"Could not load data",
+     ago:(s)=>s<60?Math.floor(s)+"s ago":s<3600?Math.floor(s/60)+"m ago":s<86400?Math.floor(s/3600)+"h ago":Math.floor(s/86400)+"d ago",
+     kinds:{1:"Register content",2:"Create order",3:"Submit proof",4:"Finalize",5:"Stake",6:"Send",7:"View reward",
+       10:"Post job",11:"Claim job",12:"Work proof",20:"Bridge mint",21:"Bridge burn",
+       30:"Register AI service",31:"Register producer",32:"Register signers",33:"Multisig"}}
+};
+let LANG="ja";
+try{const v=localStorage.getItem("mormscan_lang");if(v==="ja"||v==="en")LANG=v;}catch(e){}
+function L(){return I18N[LANG];}
+
 function short(s,n=10){s=s||"";return s.length>n*2?s.slice(0,n)+"…"+s.slice(-4):s;}
-function ago(ms){if(!ms)return"";const s=(Date.now()-ms)/1000;
-  if(s<60)return Math.floor(s)+"秒前";if(s<3600)return Math.floor(s/60)+"分前";
-  if(s<86400)return Math.floor(s/3600)+"時間前";return Math.floor(s/86400)+"日前";}
+function ago(ms){if(!ms)return"";return L().ago((Date.now()-ms)/1000);}
 function num(n){n=Number(n);return n>=1e6?n.toLocaleString(undefined,{maximumFractionDigits:2}):(Number.isInteger(n)?n.toLocaleString():n.toFixed(2));}
 function big(w){w=Number(w);
+  if(LANG==="en"){try{return new Intl.NumberFormat("en",{notation:"compact",maximumFractionDigits:2}).format(w);}catch(e){return num(w);}}
   if(w>=1e16)return (w/1e16>=100?(w/1e16).toFixed(0):(w/1e16).toFixed(1))+"京";
   if(w>=1e12)return (w/1e12).toFixed(1)+"兆";if(w>=1e8)return (w/1e8).toFixed(2)+"億";
   if(w>=1e4)return (w/1e4).toFixed(1)+"万";return num(w);}
@@ -119,7 +158,7 @@ function bx(kind){return "<a class='mono' target='_blank' rel='noopener' href='"
 const KJA={1:"コンテンツ登録",2:"注文作成",3:"証明提出",4:"確定",5:"ステーク",6:"送金",7:"視聴報酬",
   10:"ジョブ投稿",11:"ジョブ受注",12:"作業証明",20:"ブリッジ発行",21:"ブリッジ焼却",
   30:"AIサービス登録",31:"プロデューサー登録",32:"署名者登録",33:"マルチシグ"};
-function kja(k,name){return KJA[k]||name;}
+function kja(k,name){return L().kinds[k]||name;}
 function amtBridge(b){
   if(b.token==="USDm")return num(Number(b.amount)/1e6)+" USDm";
   if(b.asset==="wMORM→MORM")return num(Number(b.amount)/1e18)+" wMORM";
@@ -127,9 +166,9 @@ function amtBridge(b){
   return num(b.amount);
 }
 function stTag(s){
-  if(s==="confirmed")return "<span class='st ok'>完了</span>";
-  if(s==="pending")return "<span class='st pend'>処理中</span>";
-  return "<span class='st base'>反映中</span>";
+  if(s==="confirmed")return "<span class='st ok'>"+L().st_ok+"</span>";
+  if(s==="pending")return "<span class='st pend'>"+L().st_pend+"</span>";
+  return "<span class='st base'>"+L().st_base+"</span>";
 }
 function cb(name){return "<span class='cb "+(name==="MORM"?"morm":"base")+"'>"+name+"</span>";}
 function flow(dir){const p=dir==="MORM→Base"?["MORM","Base"]:["Base","MORM"];
@@ -150,57 +189,60 @@ function acell(a){ // clickable m0r (filter) or basescan link for 0x, + copy but
 }
 
 function drawStats(){
-  const c=D.chain||{},b=D.base||{};
+  const c=D.chain||{},b=D.base||{},L_=L();
   const cells=[
-    ["ブロック高",num(c.height)],
-    ["確定済",num(c.finalized)],
-    ["MORM 準備金",c.treasury!=null?big(c.treasury):"—"],
-    ["Base の MORM",b.bridged_wmorm!=null?num(b.bridged_wmorm)+" wMORM":"—"],
-    ["USDm 発行",b.usdm_supply!=null?num(b.usdm_supply):"—"],
-    ["USDm 預託",b.usdm_escrow!=null?num(b.usdm_escrow):"—"],
+    [L_.s_height,num(c.height)],
+    [L_.s_final,num(c.finalized)],
+    [L_.s_treasury,c.treasury!=null?big(c.treasury):"—"],
+    [L_.s_baseMorm,b.bridged_wmorm!=null?num(b.bridged_wmorm)+" wMORM":"—"],
+    [L_.s_usdmSupply,b.usdm_supply!=null?num(b.usdm_supply):"—"],
+    [L_.s_usdmEscrow,b.usdm_escrow!=null?num(b.usdm_escrow):"—"],
   ];
   $("stats").innerHTML=cells.map(([k,v])=>"<div class='stat'><span>"+k+"</span><b>"+v+"</b></div>").join("");
-  $("chainmeta").textContent="tips（分岐先端）"+num(c.tips)+" ・ 未確定 tx（mempool）"+num(c.mempool);
+  $("chainmeta").textContent=L_.meta(num(c.tips),num(c.mempool));
 }
 function drawBridges(){
+  const L_=L();
   const rows=(D.bridges||[]).filter(b=>hit((b.from||"")+(b.to||"")+(b.l1Tx||"")+(b.baseTx||"")+(b.asset||"")));
-  if(!rows.length){$("brList").innerHTML="<div class='mut'>該当するブリッジがありません</div>";return;}
+  if(!rows.length){$("brList").innerHTML="<div class='mut'>"+L_.emptyBr+"</div>";return;}
   $("brList").innerHTML=rows.map(b=>{
     const txfull=b.baseTx||b.l1Tx;
-    const txcell=(b.baseTx?(bx("/tx/"+b.baseTx)+"Base で見る ↗</a>")
+    const txcell=(b.baseTx?(bx("/tx/"+b.baseTx)+L_.baseView+"</a>")
                           :"<span class='lk' data-q='"+(b.l1Tx||"")+"'>"+short(b.l1Tx,8)+"</span>")+cp(txfull);
     return "<div class='row'>"
       +"<div class='r1'>"+flow(b.dir)+"<span class='amt'>"+amtBridge(b)+"</span>"
         +"<span class='sp'></span>"+stTag(b.status)+"<span class='when'>"+ago(b.ts)+"</span></div>"
-      +"<div class='kv'><span class='k'>差出人</span><span class='v'>"+acell(b.from)+"</span></div>"
-      +"<div class='kv'><span class='k'>受取</span><span class='v'>"+acell(b.to)+"</span></div>"
-      +"<div class='kv'><span class='k'>取引</span><span class='v'>"+txcell+"</span></div>"
+      +"<div class='kv'><span class='k'>"+L_.k_from+"</span><span class='v'>"+acell(b.from)+"</span></div>"
+      +"<div class='kv'><span class='k'>"+L_.k_to+"</span><span class='v'>"+acell(b.to)+"</span></div>"
+      +"<div class='kv'><span class='k'>"+L_.k_tx+"</span><span class='v'>"+txcell+"</span></div>"
       +"</div>";
   }).join("");
 }
 function drawTxs(){
+  const L_=L();
   const rows=(D.txs||[]).filter(t=>hit((t.sender||"")+(t.hash||"")+(t.to||"")+(t.kindName||"")+(kja(t.kind,"")||"")));
-  if(!rows.length){$("txList").innerHTML="<div class='mut'>該当する取引がありません</div>";return;}
+  if(!rows.length){$("txList").innerHTML="<div class='mut'>"+L_.emptyTx+"</div>";return;}
   $("txList").innerHTML=rows.map(t=>{
     let amt="";
     if(t.amount!=null){const a=(t.token==="USDm")?num(Number(t.amount)/1e6)+" USDm":num(t.amount)+" "+(t.token||"MORM");amt="<span class='amt'>"+a+"</span>";}
     return "<div class='row'>"
       +"<div class='r1'>"+kindTag(t.kind,t.kindName)+amt
         +"<span class='sp'></span><span class='when'>#"+num(t.height)+" ・ "+ago(t.ts)+"</span></div>"
-      +"<div class='kv'><span class='k'>差出人</span><span class='v'>"+acell(t.sender)+"</span></div>"
-      +(t.to?"<div class='kv'><span class='k'>宛先</span><span class='v'>"+acell(t.to)+"</span></div>":"")
-      +"<div class='kv'><span class='k'>取引</span><span class='v'>"+short(t.hash,8)+cp(t.hash)+"</span></div>"
+      +"<div class='kv'><span class='k'>"+L_.k_from+"</span><span class='v'>"+acell(t.sender)+"</span></div>"
+      +(t.to?"<div class='kv'><span class='k'>"+L_.k_dest+"</span><span class='v'>"+acell(t.to)+"</span></div>":"")
+      +"<div class='kv'><span class='k'>"+L_.k_tx+"</span><span class='v'>"+short(t.hash,8)+cp(t.hash)+"</span></div>"
       +"</div>";
   }).join("");
 }
 function drawBlocks(){
+  const L_=L();
   const rows=(D.blocks||[]).filter(b=>hit((b.hash||"")+(b.producer||"")));
-  if(!rows.length){$("blkList").innerHTML="<div class='mut'>ブロックがありません</div>";return;}
+  if(!rows.length){$("blkList").innerHTML="<div class='mut'>"+L_.emptyBlk+"</div>";return;}
   $("blkList").innerHTML=rows.map(b=>"<div class='row'>"
-    +"<div class='r1'><span class='dir'>#"+num(b.height)+"</span><span class='tag k'>"+b.txs+" 取引</span>"
+    +"<div class='r1'><span class='dir'>#"+num(b.height)+"</span><span class='tag k'>"+b.txs+" "+L_.nTx+"</span>"
       +"<span class='sp'></span><span class='when'>"+ago(b.ts)+"</span></div>"
-    +"<div class='kv'><span class='k'>作成者</span><span class='v'>"+acell(b.producer)+"</span></div>"
-    +"<div class='kv'><span class='k'>ハッシュ</span><span class='v'>"+short(b.hash,8)+cp(b.hash)+"</span></div>"
+    +"<div class='kv'><span class='k'>"+L_.k_producer+"</span><span class='v'>"+acell(b.producer)+"</span></div>"
+    +"<div class='kv'><span class='k'>"+L_.k_hash+"</span><span class='v'>"+short(b.hash,8)+cp(b.hash)+"</span></div>"
     +"</div>").join("");
 }
 function drawAll(){drawStats();drawBridges();drawTxs();drawBlocks();
@@ -217,8 +259,19 @@ document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>setTab(b.data
 $("q").addEventListener("input",e=>{Q=q(e.target.value);drawAll();});
 $("qClear").onclick=()=>{$("q").value="";Q="";drawAll();};
 
+function setUpd(){const L_=L();
+  $("upd").textContent=L_.updated+": "+new Date((D&&D.updated||0)*1000).toLocaleString(LANG==="ja"?"ja-JP":"en-US")+L_.auto;}
+function applyStatic(){const L_=L();
+  $("sub").textContent=L_.sub;$("q").placeholder=L_.search;$("qClear").textContent=L_.clear;
+  $("legend").innerHTML=L_.legend;$("langBtn").textContent=(LANG==="ja")?"EN":"日本語";
+  document.querySelectorAll(".tabs button").forEach(b=>{b.textContent=L_["tab_"+b.dataset.t];});
+  document.documentElement.lang=LANG;
+  if(D)setUpd();else $("upd").textContent=L_.loading;}
+function setLang(l){LANG=l;try{localStorage.setItem("mormscan_lang",l);}catch(e){}applyStatic();if(D)drawAll();}
+$("langBtn").onclick=()=>setLang(LANG==="ja"?"en":"ja");
+
 async function load(){try{const r=await fetch(DATA_URL,{cache:"no-store"});D=await r.json();
-  drawAll();$("upd").textContent="更新: "+new Date((D.updated||0)*1000).toLocaleString("ja-JP")+"（自動更新 2分毎）";
-}catch(e){$("upd").textContent="データを取得できませんでした";}}
-load();setInterval(load,60000);
+  drawAll();setUpd();
+}catch(e){$("upd").textContent=L().fetchErr;}}
+applyStatic();load();setInterval(load,60000);
 </script>
