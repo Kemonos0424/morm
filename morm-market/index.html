@@ -1,175 +1,317 @@
 <!doctype html><html lang="ja"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MORM / USD — 価格チャート (Base)</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>MORM — チャート・スワップ・ブリッジ (Base)</title>
 <style>
-:root{--paper:#F4F2EA;--card:#FBFAF4;--ink:#0C0C0E;--soft:#5A5A5E;--line:#0C0C0E22;
---blue:#1E37E6;--magenta:#EC1E79;--orange:#FF4A17;--green:#0EA24A;--up:#0EA24A;--dn:#EC1E79;--vol:#8A8A8E}
-@media(prefers-color-scheme:dark){:root{--paper:#0C0C0E;--card:#151517;--ink:#F4F2EA;--soft:#B7B7B0;--line:#F4F2EA22;--blue:#4A5CFF;--magenta:#FF3E93;--orange:#FF6A3D;--green:#22C466;--up:#22C466;--dn:#FF3E93;--vol:#6A6A70}}
-:root[data-theme=dark]{--paper:#0C0C0E;--card:#151517;--ink:#F4F2EA;--soft:#B7B7B0;--line:#F4F2EA22;--blue:#4A5CFF;--magenta:#FF3E93;--orange:#FF6A3D;--up:#22C466;--dn:#FF3E93;--vol:#6A6A70}
-:root[data-theme=light]{--paper:#F4F2EA;--card:#FBFAF4;--ink:#0C0C0E;--soft:#5A5A5E;--line:#0C0C0E22;--blue:#1E37E6;--magenta:#EC1E79;--up:#0EA24A;--dn:#EC1E79;--vol:#8A8A8E}
+:root{
+  --paper:#F1EEE4;--card:#FFFFFF;--card2:#F5F2E9;--ink:#0C0C0E;--soft:#6A6A6E;--faint:#9A9A9E;
+  --line:#0C0C0E14;--line2:#0C0C0E0D;
+  --blue:#1E37E6;--magenta:#EC1E79;--green:#0EA24A;--uni:#FF007A;--warn:#E8730C;--up:#0EA24A;--dn:#EC1E79;--vol:#8A8A8E;
+  --sh:0 1px 2px rgba(12,12,14,.05),0 12px 34px rgba(12,12,14,.06);--shs:0 1px 2px rgba(12,12,14,.05);
+}
+@media(prefers-color-scheme:dark){:root{
+  --paper:#0A0A0C;--card:#161618;--card2:#202024;--ink:#F4F2EA;--soft:#A6A6A2;--faint:#6E6E72;
+  --line:#F4F2EA1A;--line2:#F4F2EA12;
+  --blue:#5D6DFF;--magenta:#FF3E93;--green:#22C466;--uni:#FF3D96;--warn:#FF9F45;--up:#22C466;--dn:#FF3E93;--vol:#6A6A70;
+  --sh:0 1px 2px rgba(0,0,0,.4),0 14px 40px rgba(0,0,0,.45);--shs:0 1px 2px rgba(0,0,0,.4);
+}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--paper);color:var(--ink);font-family:"Helvetica Neue",Helvetica,Arial,"Hiragino Kaku Gothic ProN",sans-serif}
-.wrap{max-width:820px;margin:0 auto;padding:20px 16px 60px}
-.top{display:flex;align-items:center;gap:12px;margin-bottom:6px;flex-wrap:wrap}
-.logo{font-weight:900;font-size:22px;letter-spacing:-.04em;color:var(--magenta)}
-.logo b{color:var(--blue)}
-.pair{font-family:ui-monospace,monospace;font-size:12px;color:var(--soft);border:1px solid var(--line);border-radius:999px;padding:5px 11px}
-.use{font-size:12px;font-weight:700;color:#fff;background:var(--magenta);text-decoration:none;border-radius:999px;padding:6px 13px}
-.net{margin-left:auto;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--orange);border:1px solid var(--line);border-radius:999px;padding:5px 10px}
-.price{display:flex;align-items:baseline;gap:14px;margin:14px 0 2px}
-.big{font-size:44px;font-weight:900;letter-spacing:-.02em}
-.unit{font-size:16px;font-weight:800;color:var(--soft)}
-.chg{font-size:16px;font-weight:800}
-.sub{color:var(--soft);font-size:12.5px;margin-bottom:16px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px}
-canvas{width:100%;height:360px;display:block;touch-action:none}
-.ctl{display:flex;align-items:center;gap:6px;margin:14px 0 0;flex-wrap:wrap}
-.rng{display:flex;gap:6px}
-.rng button,.tgl button{flex:0 0 auto;font-size:12px;font-weight:700;border:1px solid var(--line);background:transparent;color:var(--soft);border-radius:999px;padding:6px 12px;cursor:pointer}
-.rng button.on{background:var(--blue);color:#fff;border-color:transparent}
-.tgl{display:flex;gap:6px;margin-left:auto}
-.tgl button.on{background:var(--ink);color:var(--paper);border-color:transparent}
-.modes{display:flex;gap:6px;margin:12px 0 0}
-.modes button{flex:1;font-size:13px;font-weight:800;border:1px solid var(--line);background:transparent;color:var(--soft);border-radius:11px;padding:9px;cursor:pointer}
-.modes button.on{background:var(--magenta);color:#fff;border-color:transparent}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}
-@media(max-width:560px){.stats{grid-template-columns:1fr 1fr}}
-.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 13px}
-.stat b{display:block;font-size:17px;font-weight:800;margin-top:3px}
-.stat span{font-size:11px;color:var(--soft);font-weight:700;letter-spacing:.02em}
-.links{margin-top:18px;font-size:12.5px;color:var(--soft);line-height:1.9}
-.links a{color:var(--blue);text-decoration:none;word-break:break-all}
-.foot{margin-top:14px;font-size:11.5px;color:var(--soft);line-height:1.7}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Helvetica Neue",Helvetica,Arial,"Hiragino Kaku Gothic ProN",system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.wrap{max-width:520px;margin:0 auto;padding:18px 16px calc(48px + env(safe-area-inset-bottom))}
+.top{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.logo{font-weight:900;font-size:21px;letter-spacing:-.04em;color:var(--magenta)}.logo b{color:var(--blue)}
+.top .pair{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--soft);border:1px solid var(--line);border-radius:999px;padding:5px 10px;background:var(--card)}
+.top .sp{flex:1}
+.chip.net{font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--magenta);border:1px solid var(--line);border-radius:999px;padding:6px 11px;background:var(--card)}
+/* wallet */
+.wbar{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:11px 13px;box-shadow:var(--sh);margin-bottom:12px}
+.wbar .who{flex:1;min-width:0}
+.wbar .who .lab{font-size:10.5px;color:var(--faint);font-weight:800}
+.wbar .who .ad{font-family:ui-monospace,monospace;font-size:12.5px;color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cbtn{border:none;border-radius:11px;padding:10px 15px;font-size:13px;font-weight:800;cursor:pointer;background:var(--ink);color:var(--paper);white-space:nowrap;box-shadow:var(--shs)}
+.cbtn:disabled{opacity:.5;cursor:default}
+.hbal{display:none;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+.hbal.on{display:grid}
+.hbal div{background:var(--card2);border:1px solid var(--line2);border-radius:12px;padding:8px 11px}
+.hbal span{font-size:10px;color:var(--faint);font-weight:800;display:block}.hbal b{font-size:14px;font-weight:800}
+/* tabs */
+.tabs{display:flex;gap:5px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:5px;margin-bottom:14px;box-shadow:var(--shs)}
+.tabs button{flex:1;border:none;background:none;color:var(--soft);font-weight:800;font-size:13.5px;padding:10px 6px;border-radius:10px;cursor:pointer}
+.tabs button.on{background:var(--ink);color:var(--paper)}
+section.tab{display:none}section.tab.on{display:block}
+/* chart */
+.price{display:flex;align-items:baseline;gap:12px;margin:2px 2px 2px}
+.big{font-size:40px;font-weight:900;letter-spacing:-.02em}
+.unit{font-size:14px;font-weight:800;color:var(--soft)}.chg{font-size:15px;font-weight:800}
+.subx{color:var(--soft);font-size:12px;margin:2px 2px 14px}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:5px;vertical-align:middle;animation:p 1.6s infinite}
 @keyframes p{0%,100%{opacity:1}50%{opacity:.3}}
-.tag{display:inline-block;font-size:10px;font-weight:800;color:#fff;background:var(--orange);border-radius:5px;padding:2px 6px;vertical-align:middle;margin-left:8px}
+.tag{display:inline-block;font-size:10px;font-weight:800;color:#fff;background:var(--warn);border-radius:5px;padding:2px 6px;vertical-align:middle;margin-left:8px}
+.modes{display:flex;gap:6px;margin:0 0 10px}
+.modes button{flex:1;font-size:13px;font-weight:800;border:1px solid var(--line);background:var(--card);color:var(--soft);border-radius:11px;padding:9px;cursor:pointer}
+.modes button.on{background:var(--magenta);color:#fff;border-color:transparent}
+.cardc{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:var(--sh)}
+canvas{width:100%;height:340px;display:block;touch-action:none}
+.ctl{display:flex;align-items:center;gap:6px;margin:12px 0 0;flex-wrap:wrap}
+.rng{display:flex;gap:6px}
+.rng button,.tgl button{font-size:12px;font-weight:700;border:1px solid var(--line);background:transparent;color:var(--soft);border-radius:999px;padding:6px 12px;cursor:pointer}
+.rng button.on{background:var(--blue);color:#fff;border-color:transparent}
+.tgl{display:flex;gap:6px;margin-left:auto}.tgl button.on{background:var(--ink);color:var(--paper);border-color:transparent}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+@media(max-width:560px){.stats{grid-template-columns:1fr 1fr}}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:11px 12px;box-shadow:var(--shs)}
+.stat b{display:block;font-size:16px;font-weight:800;margin-top:3px}.stat span{font-size:11px;color:var(--soft);font-weight:700}
+.links{margin-top:16px;font-size:12.5px;color:var(--soft);line-height:1.9}.links a{color:var(--blue);text-decoration:none;word-break:break-all}
+/* swap */
+.swap{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:16px;box-shadow:var(--sh)}
+.swap .hd{display:flex;align-items:center;gap:8px;margin:0 2px 12px}.swap .hd h2{margin:0;font-size:17px;font-weight:900;flex:1}
+.gear{cursor:pointer;border:1px solid var(--line);background:var(--card2);border-radius:10px;width:34px;height:34px;font-size:15px;display:flex;align-items:center;justify-content:center;color:var(--soft)}
+.tok{position:relative;background:var(--card2);border:1px solid var(--line2);border-radius:16px;padding:13px 14px}
+.tok .rowt{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:var(--faint);font-weight:700;margin-bottom:4px}
+.tok .rowt .mx{color:var(--blue);font-weight:800;cursor:pointer;border:none;background:none;font-size:11.5px;padding:0}
+.tok .rowb{display:flex;align-items:center;gap:10px}
+.tok input{flex:1;min-width:0;border:none;background:none;color:var(--ink);font-size:30px;font-weight:800;letter-spacing:-.02em;outline:none;padding:0;width:100%;font-family:inherit}
+.tok input::placeholder{color:var(--faint)}.tok input:read-only{color:var(--soft)}
+.tok .usd{font-size:11.5px;color:var(--faint);font-weight:700;margin-top:3px;min-height:14px}
+.pill{display:flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 12px 6px 7px;font-weight:800;font-size:15px;box-shadow:var(--shs);white-space:nowrap}
+.pill .ic{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#fff}
+.ic.wm{background:linear-gradient(135deg,var(--magenta),var(--blue))}.ic.uc{background:#2775CA}
+.flipwrap{display:flex;justify-content:center;height:0;position:relative;z-index:2}
+.flip{position:relative;top:-13px;width:38px;height:38px;border-radius:12px;border:4px solid var(--card);background:var(--ink);color:var(--paper);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:var(--shs)}
+.flip:active{transform:scale(.92)}
+.info{margin:12px 4px 0;font-size:12.5px;color:var(--soft);line-height:1.7}
+.info .r{display:flex;justify-content:space-between;gap:12px}.info .r b{font-weight:800;color:var(--ink)}
+.info .imp.hi{color:var(--warn);font-weight:800}.info .imp.crit{color:var(--magenta);font-weight:800}
+.slip{display:none;gap:6px;margin:10px 2px 0}.slip.on{display:flex}
+.slip button{flex:1;font-size:12.5px;font-weight:800;border:1px solid var(--line);background:var(--card2);color:var(--soft);border-radius:10px;padding:8px;cursor:pointer}
+.slip button.on{background:var(--ink);color:var(--paper);border-color:transparent}
+.slide{position:relative;height:56px;border-radius:15px;background:var(--card2);border:1px solid var(--line);overflow:hidden;user-select:none;touch-action:none;margin-top:14px}
+.slide .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--magenta);opacity:.16}
+.slide .lab{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:var(--soft);pointer-events:none;padding-left:30px}
+.slide .knob{position:absolute;left:4px;top:4px;width:48px;height:48px;border-radius:12px;background:var(--magenta);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:grab;box-shadow:var(--shs);touch-action:none}
+.slide.busy .knob,.slide.done .knob{cursor:default}.slide.disabled{opacity:.5}.slide.disabled .knob{cursor:not-allowed;background:var(--faint)}
+.msg{font-size:12.5px;margin-top:9px;line-height:1.6;color:var(--soft);text-align:center}.msg.err{color:var(--magenta)}.msg.ok{color:var(--green)}
+.unilink{display:block;text-align:center;margin-top:12px;font-size:12.5px;color:var(--blue);text-decoration:none;font-weight:700}
+/* bridge */
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px;box-shadow:var(--sh);margin-bottom:14px}
+.chead{display:flex;align-items:center;gap:10px;margin-bottom:4px}.chead h2{margin:0;font-size:16.5px;font-weight:900;flex:1}
+.dir{font-size:10.5px;font-weight:800;color:var(--soft);border:1px solid var(--line);border-radius:999px;padding:3px 9px;white-space:nowrap}.dir i{font-style:normal;color:var(--magenta)}
+.lead{font-size:13px;color:var(--soft);margin:0 0 14px}
+label{font-size:12px;color:var(--soft);font-weight:800;display:block;margin:12px 0 5px}
+.field{position:relative}.field .suf{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:800;color:var(--faint);pointer-events:none}
+input.tx{width:100%;border:1px solid var(--line);background:var(--card2);color:var(--ink);border-radius:12px;padding:13px 52px 13px 13px;font-size:16px;font-family:inherit;outline:none}
+input.tx.plain{padding-right:13px}input.tx:focus{border-color:var(--magenta);box-shadow:0 0 0 3px color-mix(in srgb,var(--magenta) 18%,transparent)}
+.rowf{display:flex;gap:8px}.rcv{font-size:12.5px;color:var(--soft);margin-top:7px}.rcv b{color:var(--ink);font-weight:800}
+.btn{display:block;width:100%;border:none;border-radius:13px;padding:14px;font-size:15px;font-weight:800;cursor:pointer;text-align:center;text-decoration:none;box-shadow:var(--shs)}
+.btn.mag{background:var(--magenta);color:#fff}.btn.blue{background:var(--blue);color:#fff}.btn:disabled{opacity:.45;cursor:default;box-shadow:none}
+.note{font-size:12px;color:var(--soft);background:var(--card2);border:1px solid var(--line2);border-radius:11px;padding:11px 13px;margin-top:11px;line-height:1.6}.note a{color:var(--blue);text-decoration:none}
+.foot{margin-top:18px;font-size:12px;color:var(--faint);line-height:1.8;text-align:center}.foot a{color:var(--blue);text-decoration:none}
+@media(min-width:720px){.wrap{max-width:540px;padding-top:26px}}
 </style></head><body>
 <div class="wrap">
   <div class="top">
     <span class="logo">M<b>0</b>RM</span>
-    <span class="pair">MORM / USD · wMORM/USDC プール</span>
-    <a class="use" href="app.html">売買・ブリッジ →</a>
-    <span class="net">Base · mainnet</span>
-  </div>
-  <div class="price"><span class="big" id="px">—</span><span class="unit">USD / MORM</span><span class="chg" id="chg"></span></div>
-  <div class="sub"><span class="dot"></span><span id="upd">読み込み中…</span><span class="tag">実プール直読み</span></div>
-
-  <div class="modes" id="modes">
-    <button data-m="price" class="on">価格チャート</button>
-    <button data-m="bridged">ブリッジ済み MORM（Base 流通）</button>
+    <span class="pair">MORM / USD</span>
+    <span class="sp"></span>
+    <span class="chip net">BASE · MAINNET</span>
   </div>
 
-  <div class="card" style="margin-top:12px"><canvas id="cv"></canvas>
-    <div class="ctl">
-      <div class="rng" id="rng"></div>
-      <div class="tgl" id="tgl">
-        <button data-k="candle" class="on">ロウソク足</button>
-        <button data-k="line">ライン</button>
+  <div class="wbar">
+    <div class="who"><div class="lab">ウォレット</div><div class="ad" id="who">未接続 — 接続して残高を表示</div></div>
+    <button class="cbtn" id="connect">接続</button>
+  </div>
+  <div class="hbal" id="hbal">
+    <div><span>ETH（手数料）</span><b id="bEth">—</b></div>
+    <div><span>USDC</span><b id="bUsdc">—</b></div>
+    <div><span>wMORM</span><b id="bWm">—</b></div>
+  </div>
+
+  <div class="tabs">
+    <button data-t="chart" class="on">チャート</button>
+    <button data-t="swap">スワップ</button>
+    <button data-t="bridge">ブリッジ</button>
+  </div>
+
+  <!-- ============ CHART ============ -->
+  <section class="tab on" id="tabChart">
+    <div class="price"><span class="big" id="px">—</span><span class="unit">USD / MORM</span><span class="chg" id="chg"></span></div>
+    <div class="subx"><span class="dot"></span><span id="upd">読み込み中…</span><span class="tag">実プール直読み</span></div>
+    <div class="modes" id="cmodes">
+      <button data-m="price" class="on">価格</button>
+      <button data-m="bridged">ブリッジ済み MORM（Base 流通）</button>
+    </div>
+    <div class="cardc"><canvas id="cv"></canvas>
+      <div class="ctl"><div class="rng" id="rng"></div>
+        <div class="tgl" id="tgl"><button data-k="candle" class="on">ロウソク足</button><button data-k="line">ライン</button></div>
       </div>
     </div>
-  </div>
+    <div class="stats">
+      <div class="stat"><span>流動性 (TVL)</span><b id="tvl">—</b></div>
+      <div class="stat"><span>Base 流通 MORM</span><b id="bridged">—</b></div>
+      <div class="stat"><span>本体 treasury</span><b id="treasury">—</b></div>
+      <div class="stat"><span>ブリッジ 持出/戻し</span><b id="brc">—</b></div>
+    </div>
+    <div class="links">
+      プール: <a id="lpool" target="_blank" rel="noopener"></a><br>
+      wMORM: <a id="ltok" target="_blank" rel="noopener"></a><br>
+      Uniswap: <a id="luni" target="_blank" rel="noopener">app.uniswap.org</a>
+    </div>
+  </section>
 
-  <div class="stats">
-    <div class="stat"><span>流動性 (TVL)</span><b id="tvl">—</b></div>
-    <div class="stat"><span>Base 流通 MORM</span><b id="bridged">—</b></div>
-    <div class="stat"><span>本体 treasury (MORM)</span><b id="treasury">—</b></div>
-    <div class="stat"><span>ブリッジ (持出/戻し)</span><b id="brc">—</b></div>
-  </div>
+  <!-- ============ SWAP ============ -->
+  <section class="tab" id="tabSwap">
+    <div class="swap">
+      <div class="hd"><h2>スワップ</h2><div class="gear" id="gear" title="スリッページ設定">⚙</div></div>
+      <div class="tok">
+        <div class="rowt"><span>支払う</span><span><span id="payBal">—</span> <button class="mx" id="maxBtn">最大</button></span></div>
+        <div class="rowb"><input id="payIn" inputmode="decimal" placeholder="0" autocomplete="off"><span class="pill" id="payPill"><span class="ic uc" id="payIc">$</span><span id="payTok">USDC</span></span></div>
+        <div class="usd" id="payUsd"></div>
+      </div>
+      <div class="flipwrap"><button class="flip" id="flip" title="向きを入れ替え">↓</button></div>
+      <div class="tok">
+        <div class="rowt"><span>受け取る（見込み）</span><span id="recvBal">—</span></div>
+        <div class="rowb"><input id="recvOut" placeholder="0" readonly><span class="pill" id="recvPill"><span class="ic wm" id="recvIc">M</span><span id="recvTok">wMORM</span></span></div>
+        <div class="usd" id="recvUsd"></div>
+      </div>
+      <div class="slip" id="slip"><button data-s="0.5">0.5%</button><button data-s="1" class="on">1%</button><button data-s="3">3%</button><button data-s="5">5%</button></div>
+      <div class="info" id="sinfo" style="display:none">
+        <div class="r"><span>レート</span><b id="iRate">—</b></div>
+        <div class="r"><span>価格影響</span><b class="imp" id="iImpact">—</b></div>
+        <div class="r"><span>手数料 / スリッページ</span><b id="iFee">1% / 1%</b></div>
+        <div class="r"><span>最低受取</span><b id="iMin">—</b></div>
+      </div>
+      <div class="slide disabled" id="slide"><div class="fill"></div><div class="lab" id="slLab">金額を入力</div><div class="knob" id="knob">→</div></div>
+      <div class="msg" id="swMsg"></div>
+      <a class="unilink" id="uniLink" target="_blank" rel="noopener">Uniswap アプリで開く →</a>
+    </div>
+  </section>
 
-  <div class="links">
-    売買・ブリッジ: <a href="app.html">wMORM を売買 / MORM と行き来する →</a><br>
-    プール: <a id="lpool" target="_blank" rel="noopener"></a><br>
-    wMORM トークン: <a id="ltok" target="_blank" rel="noopener"></a><br>
-    Uniswap で取引: <a id="luni" target="_blank" rel="noopener">app.uniswap.org</a>
-  </div>
-  <div class="foot">
-    価格は Uniswap v3 の実プール（wMORM/USDC・1 wMORM = 1 MORM）を Base mainnet から直接読んでいます。
-    履歴・統計はサーバ側（market-data.json）で 2 分毎に集計、現在価格は 15 秒毎に更新。
-    「Base 流通 MORM」は Base 上の wMORM 総量（＝MORM がどれだけ Base に渡っているか）です。
-    $0.01 は初期発行レートで、市場価格はプールのフロートで変動します。
-  </div>
+  <!-- ============ BRIDGE ============ -->
+  <section class="tab" id="tabBridge">
+    <div class="card">
+      <div class="chead"><h2>持ち出す</h2><span class="dir">本体 <i>→</i> Base</span></div>
+      <p class="lead">本体（MORM）を Base の wMORM に変えます。安全のため <b>morm.one</b>（パスキー）で実行します。</p>
+      <label>受け取る Base アドレス（0x…）</label>
+      <div class="rowf"><input class="tx plain" id="fwdTo" placeholder="0x…" spellcheck="false" autocapitalize="off"><button class="cbtn" id="fwdFill" style="flex:0 0 auto">接続先</button></div>
+      <label>持ち出す量</label>
+      <div class="field"><input class="tx" id="fwdAmt" inputmode="numeric" placeholder="0"><span class="suf">MORM</span></div>
+      <a class="btn mag" id="fwdGo" href="https://morm.one/account.html#bridge" target="_blank" rel="noopener" style="margin-top:14px">morm.one で実行する →</a>
+      <div class="note">口座がまだの方は <a href="https://morm.one/" target="_blank" rel="noopener">morm.one でパスキー口座を作成</a>。</div>
+    </div>
+    <div class="card">
+      <div class="chead"><h2>本体に戻す</h2><span class="dir">Base <i>→</i> 本体</span></div>
+      <p class="lead">Base の wMORM を本体（MORM）に戻します。ウォレットを接続して実行します。</p>
+      <label>戻す量</label>
+      <div class="field"><input class="tx" id="exitAmt" inputmode="numeric" placeholder="0"><span class="suf">wMORM</span></div>
+      <div class="rcv" id="exitRcv">受け取り: <b>—</b></div>
+      <label>本体の受け取りアドレス（m0r…）</label>
+      <input class="tx plain" id="exitAddr" placeholder="m0r…" spellcheck="false" autocapitalize="off">
+      <button class="btn blue" id="exitBtn" style="margin-top:14px" disabled>先にウォレットを接続</button>
+      <div class="msg" id="exitMsg" style="text-align:left">戻すと数ブロック後に本体の MORM 口座（m0r…）へ着金します（1 wMORM = 1 MORM・端数切り捨て）。</div>
+    </div>
+  </section>
+
+  <div class="foot" id="foot"></div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
 <script src="rpc-config.js"></script>
 <script>
-const RPC=(window.MORM_RPC)||"https://mainnet.base.org";  // 現在価格の即時取得のみに使用（getLogs はしない）
-const POOL="0x6615fC0239eDDb27A8fF2D774C438e68C4599A55";
+const RPC=(window.MORM_RPC)||"https://mainnet.base.org";
+const CHAIN_ID=8453, CHAIN_HEX="0x2105";
 const WMORM="0x7fEf327a811e73F06cccF0De9db022e739d5076d";
-const USDC="0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+const USDC ="0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+const BRIDGE="0x08Adb8d2c67491249C20edE2A7460d9f4Bd3907A";
+const POOL ="0x6615fC0239eDDb27A8fF2D774C438e68C4599A55";
+const ROUTER="0x2626664c2603336E57B271c5C0b26F421741e481";
+const QUOTER="0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a";
+const FEE=10000;
 const DATA_URL="market-data.json";
-let idc=1;
-async function rpc(method,params){const r=await fetch(RPC,{method:"POST",headers:{"content-type":"application/json"},
-  body:JSON.stringify({jsonrpc:"2.0",id:idc++,method,params})});const j=await r.json();if(j.error)throw new Error(j.error.message);return j.result;}
-function priceFromSqrt(sqrtBig){const r=Number(sqrtBig)/2**96;return r*r*1e12;}  // wMORM=token0 → USDC/wMORM
-
-// ---- data (from server market-data.json) ----
-let md=null;                 // full snapshot
-let events=[];               // price points {t,p,v,sw}
-let bridgedPts=[];           // {t,wmorm}
-let live=null;               // {t,price} live tick
-async function loadData(){
-  try{const r=await fetch(DATA_URL,{cache:"no-store"});md=await r.json();
-    events=(md.priceHistory||[]).map(e=>({t:e.t,p:e.p,v:e.v||0,sw:1}));
-    bridgedPts=(md.bridgedHistory||[]).slice();
-    return true;}catch(e){return false;}
-}
-async function tickLive(){
-  try{const s0=await rpc("eth_call",[{to:POOL,data:"0x3850c7bd"},"latest"]);
-    const sqrt=BigInt("0x"+s0.slice(2,66));live={t:Date.now(),price:priceFromSqrt(sqrt)};render();
-  }catch(e){document.getElementById("upd").textContent="RPC再試行中…";}
-}
-
-// ---- view state ----
-let VIEW="price", RANGE=0, MODE="candle";
-function bucketMs(range,span){
-  if(range>0){if(range<=3600e3)return 5*60e3;if(range<=6*3600e3)return 30*60e3;if(range<=24*3600e3)return 60*60e3;return 3*3600e3;}
-  const s=span||1;return Math.max(60e3,Math.pow(2,Math.round(Math.log2(s/40))));
-}
-function priceSeries(){let s=events.filter(e=>e.p>0).map(e=>({t:e.t,p:e.p}));
-  if(live)s=s.concat([{t:live.t,p:live.price}]);
-  if(RANGE>0){const cut=Date.now()-RANGE;s=s.filter(x=>x.t>=cut);}return s;}
-function candles(){
-  let ev=events.filter(e=>e.p>0);const now=Date.now();
-  if(RANGE>0)ev=ev.filter(e=>e.t>=now-RANGE);
-  const withLive=ev.concat(live?[{t:live.t,p:live.price,v:0}]:[]);
-  if(!withLive.length)return {arr:[],bw:0};
-  const span=withLive[withLive.length-1].t-withLive[0].t;const bw=bucketMs(RANGE,span);const map=new Map();
-  for(const e of withLive){const k=Math.floor(e.t/bw)*bw;let c=map.get(k);
-    if(!c){c={t:k,o:e.p,h:e.p,l:e.p,c:e.p,v:0};map.set(k,c);}
-    c.h=Math.max(c.h,e.p);c.l=Math.min(c.l,e.p);c.c=e.p;c.v+=e.v;}
-  const arr=[...map.values()].sort((a,b)=>a.t-b.t);
-  for(let i=1;i<arr.length;i++)arr[i].o=arr[i-1].c;return {arr,bw};}
-function bridgedSeries(){let s=(bridgedPts||[]).map(e=>({t:e.t,p:e.wmorm}));
-  if(md&&typeof md.bridged==="number")s=s.concat([{t:(md.updated||Date.now()/1000)*1000,p:md.bridged}]);
-  if(RANGE>0){const cut=Date.now()-RANGE;s=s.filter(x=>x.t>=cut);}return s;}
-
-// ---- chart ----
-const cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+const ERC20_ABI=["function balanceOf(address) view returns (uint256)","function allowance(address,address) view returns (uint256)","function approve(address,uint256) returns (bool)"];
+const BRIDGE_ABI=["function exit(uint256 amount, bytes20 mormAddress)","function minExit() view returns (uint256)","function paused() view returns (bool)"];
+const QUOTER_ABI=["function quoteExactInputSingle((address tokenIn,address tokenOut,uint256 amountIn,uint24 fee,uint160 sqrtPriceLimitX96)) returns (uint256 amountOut,uint160 sqrtPriceX96After,uint32 t,uint256 g)"];
+const ROUTER_ABI=["function exactInputSingle((address tokenIn,address tokenOut,uint24 fee,address recipient,uint256 amountIn,uint256 amountOutMinimum,uint160 sqrtPriceLimitX96)) payable returns (uint256)"];
+const ro=new ethers.JsonRpcProvider(RPC,CHAIN_ID);
+const $=id=>document.getElementById(id);
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-function setup(){const dpr=Math.min(2,window.devicePixelRatio||1);const w=cv.clientWidth,h=cv.clientHeight;
-  cv.width=w*dpr;cv.height=h*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);return {w,h};}
-function fmtTime(t,range){const d=new Date(t);const p=n=>String(n).padStart(2,"0");
-  return (range>0&&range<=24*3600e3)?p(d.getHours())+":"+p(d.getMinutes()):p(d.getMonth()+1)+"/"+p(d.getDate());}
-function noData(w,h,txt){ctx.fillStyle=css("--soft");ctx.font="13px inherit";ctx.textAlign="center";
-  ctx.fillText(txt,w/2,h/2);ctx.textAlign="left";}
+let signer=null, account=null, spot=0.01, bal={eth:0n,usdc:0n,wm:0n};
+function priceFromSqrt(sq){const r=Number(sq)/2**96;return r*r*1e12;}
+const fmt=(n,d)=>{n=Number(n);return n>=1000?n.toLocaleString(undefined,{maximumFractionDigits:2}):n.toFixed(d);};
+function fmtN(n){n=Number(n);return n>=1e6?(n/1e6).toFixed(2)+"M":n>=1000?n.toLocaleString(undefined,{maximumFractionDigits:0}):n.toFixed(2);}
+function bigMorm(w){w=Number(w);
+  if(w>=1e16)return (w/1e16>=100?(w/1e16).toFixed(0):(w/1e16).toFixed(1))+"京";
+  if(w>=1e12)return (w/1e12).toFixed(1)+"兆";if(w>=1e8)return (w/1e8).toFixed(2)+"億";
+  if(w>=1e4)return (w/1e4).toFixed(1)+"万";return w.toFixed(0);}
 
+/* ================= TABS ================= */
+let TAB="chart";
+function setTab(t){TAB=t;
+  document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===t));
+  document.querySelectorAll("section.tab").forEach(s=>s.classList.toggle("on",s.id==="tab"+t.charAt(0).toUpperCase()+t.slice(1)));
+  if(t==="chart"){requestAnimationFrame(render);}  // canvas はタブ表示後に描画
+}
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>setTab(b.dataset.t));
+
+/* ================= SHARED: price tick + connect + balances ================= */
+async function tick(){try{const p=new ethers.Contract(POOL,POOL_ABI,ro);const s=await p.slot0();
+  spot=priceFromSqrt(s[0]);live={t:Date.now(),price:spot};if(TAB==="chart")render();}catch(e){$("upd").textContent="RPC再試行中…";}}
+async function ensureChain(eth){try{await eth.request({method:"wallet_switchEthereumChain",params:[{chainId:CHAIN_HEX}]});}
+  catch(e){if(e.code===4902){await eth.request({method:"wallet_addEthereumChain",params:[{chainId:CHAIN_HEX,chainName:"Base",nativeCurrency:{name:"ETH",symbol:"ETH",decimals:18},rpcUrls:[RPC],blockExplorerUrls:["https://basescan.org"]}]});}else throw e;}}
+async function connect(){
+  const eth=window.ethereum;if(!eth){$("who").textContent="ウォレット拡張機能が見つかりません（MetaMask 等）";return;}
+  try{await eth.request({method:"eth_requestAccounts"});await ensureChain(eth);
+    const bp=new ethers.BrowserProvider(eth,{chainId:CHAIN_ID,name:"base"});
+    signer=await bp.getSigner();account=await signer.getAddress();
+    $("who").textContent=account.slice(0,7)+"…"+account.slice(-5)+" ✓";
+    $("connect").textContent="接続済み";$("connect").disabled=true;$("hbal").classList.add("on");
+    $("exitBtn").disabled=false;$("exitBtn").textContent="本体（MORM）へ戻す";
+    if($("fwdTo").value==="")$("fwdTo").value=account,syncFwd();
+    eth.on&&eth.on("accountsChanged",()=>location.reload());eth.on&&eth.on("chainChanged",()=>location.reload());
+    await refreshBal();updateSlide();
+  }catch(e){$("who").textContent="接続失敗: "+(e.shortMessage||e.message);}
+}
+$("connect").onclick=connect;
+async function refreshBal(){if(!account)return;
+  try{const u=new ethers.Contract(USDC,ERC20_ABI,ro),w=new ethers.Contract(WMORM,ERC20_ABI,ro);
+    const [e,ub,wb]=await Promise.all([ro.getBalance(account),u.balanceOf(account),w.balanceOf(account)]);
+    bal={eth:e,usdc:ub,wm:wb};
+    $("bEth").textContent=fmt(ethers.formatEther(e),4);$("bUsdc").textContent=fmt(ethers.formatUnits(ub,6),2);$("bWm").textContent=fmt(ethers.formatUnits(wb,18),2);
+    showBalances();}catch(e){}}
+
+/* ================= CHART ================= */
+let md=null, events=[], bridgedPts=[], live=null;
+async function loadData(){try{const r=await fetch(DATA_URL,{cache:"no-store"});md=await r.json();
+  events=(md.priceHistory||[]).map(e=>({t:e.t,p:e.p,v:e.v||0,sw:1}));bridgedPts=(md.bridgedHistory||[]).slice();return true;}catch(e){return false;}}
+let VIEW="price", RANGE=0, MODE="candle";
+function bucketMs(range,span){if(range>0){if(range<=3600e3)return 5*60e3;if(range<=6*3600e3)return 30*60e3;if(range<=24*3600e3)return 60*60e3;return 3*3600e3;}
+  const s=span||1;return Math.max(60e3,Math.pow(2,Math.round(Math.log2(s/40))));}
+function priceSeries(){let s=events.filter(e=>e.p>0).map(e=>({t:e.t,p:e.p}));if(live)s=s.concat([{t:live.t,p:live.price}]);if(RANGE>0){const cut=Date.now()-RANGE;s=s.filter(x=>x.t>=cut);}return s;}
+function candles(){let ev=events.filter(e=>e.p>0);const now=Date.now();if(RANGE>0)ev=ev.filter(e=>e.t>=now-RANGE);
+  const withLive=ev.concat(live?[{t:live.t,p:live.price,v:0}]:[]);if(!withLive.length)return {arr:[],bw:0};
+  const span=withLive[withLive.length-1].t-withLive[0].t;const bw=bucketMs(RANGE,span);const map=new Map();
+  for(const e of withLive){const k=Math.floor(e.t/bw)*bw;let c=map.get(k);if(!c){c={t:k,o:e.p,h:e.p,l:e.p,c:e.p,v:0};map.set(k,c);}
+    c.h=Math.max(c.h,e.p);c.l=Math.min(c.l,e.p);c.c=e.p;c.v+=e.v;}
+  const arr=[...map.values()].sort((a,b)=>a.t-b.t);for(let i=1;i<arr.length;i++)arr[i].o=arr[i-1].c;return {arr,bw};}
+function bridgedSeries(){let s=(bridgedPts||[]).map(e=>({t:e.t,p:e.wmorm}));if(md&&typeof md.bridged==="number")s=s.concat([{t:(md.updated||Date.now()/1000)*1000,p:md.bridged}]);if(RANGE>0){const cut=Date.now()-RANGE;s=s.filter(x=>x.t>=cut);}return s;}
+const cv=$("cv"),ctx=cv.getContext("2d");
+function setup(){const dpr=Math.min(2,window.devicePixelRatio||1);const w=cv.clientWidth,h=cv.clientHeight;cv.width=w*dpr;cv.height=h*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);return {w,h};}
+function fmtTime(t,range){const d=new Date(t);const p=n=>String(n).padStart(2,"0");return (range>0&&range<=24*3600e3)?p(d.getHours())+":"+p(d.getMinutes()):p(d.getMonth()+1)+"/"+p(d.getDate());}
+function noData(w,h,txt){ctx.fillStyle=css("--soft");ctx.font="13px inherit";ctx.textAlign="center";ctx.fillText(txt,w/2,h/2);ctx.textAlign="left";}
 function draw(){
-  const {w,h}=setup();
-  const pad={l:64,r:12,t:14,b:24};
+  if(!cv.clientWidth)return;                  // タブ非表示時（幅0）はスキップ
+  const {w,h}=setup();const pad={l:64,r:12,t:14,b:24};
   if(VIEW==="bridged"){drawSeries(w,h,pad,bridgedSeries(),v=>fmtN(v),css("--magenta"),"まだブリッジ履歴がありません");return;}
   if(MODE==="line"){drawSeries(w,h,pad,priceSeries(),v=>"$"+v.toFixed(5),null,"取引履歴がまだありません（価格は上部に表示）");return;}
   const volH=Math.round((h-pad.t-pad.b)*0.22),gap=10,priceBot=h-pad.b-volH-gap;
   const c=candles();if(!c.arr.length){noData(w,h,"取引履歴がまだありません（現在価格は上部に表示）");return;}
-  const {arr,bw}=c;
-  let x0=arr[0].t,x1=arr[arr.length-1].t+bw;if(x0===x1){x0-=bw;x1+=bw;}
+  const {arr,bw}=c;let x0=arr[0].t,x1=arr[arr.length-1].t+bw;if(x0===x1){x0-=bw;x1+=bw;}
   let lo=Math.min(...arr.map(k=>k.l)),hi=Math.max(...arr.map(k=>k.h));const yp=(hi-lo)*0.14||hi*0.05;lo-=yp;hi+=yp;
   const vmax=Math.max(...arr.map(k=>k.v),1e-9);
   const X=t=>pad.l+(w-pad.l-pad.r)*(t-x0)/(x1-x0),Y=v=>pad.t+(priceBot-pad.t)*(1-(v-lo)/(hi-lo)),VY=v=>h-pad.b-(volH)*(v/vmax);
   ctx.strokeStyle=css("--line");ctx.fillStyle=css("--soft");ctx.font="11px ui-monospace,monospace";ctx.lineWidth=1;
-  for(let i=0;i<=4;i++){const v=lo+(hi-lo)*i/4,yy=Y(v);
-    ctx.globalAlpha=.5;ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(w-pad.r,yy);ctx.stroke();ctx.globalAlpha=1;
-    ctx.fillText("$"+v.toFixed(5),6,yy+3);}
-  const bwpx=(w-pad.l-pad.r)*(bw/(x1-x0)),cw=Math.max(2,Math.min(14,bwpx*0.62));
-  const up=css("--up"),dn=css("--dn");
+  for(let i=0;i<=4;i++){const v=lo+(hi-lo)*i/4,yy=Y(v);ctx.globalAlpha=.5;ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(w-pad.r,yy);ctx.stroke();ctx.globalAlpha=1;ctx.fillText("$"+v.toFixed(5),6,yy+3);}
+  const bwpx=(w-pad.l-pad.r)*(bw/(x1-x0)),cw=Math.max(2,Math.min(14,bwpx*0.62));const up=css("--up"),dn=css("--dn");
   for(const k of arr){const cx=X(k.t+bw/2),rising=k.c>=k.o,col=rising?up:dn;
     ctx.strokeStyle=col;ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(cx,Y(k.h));ctx.lineTo(cx,Y(k.l));ctx.stroke();
     const yo=Y(k.o),yc=Y(k.c);let top=Math.min(yo,yc),bh=Math.abs(yc-yo);if(bh<1.4)bh=1.4;ctx.fillStyle=col;ctx.fillRect(cx-cw/2,top,cw,bh);
@@ -181,72 +323,153 @@ function draw(){
   if(live){const yy=Y(live.price);ctx.setLineDash([3,3]);ctx.strokeStyle=css("--blue");ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(w-pad.r,yy);ctx.stroke();ctx.setLineDash([]);}
 }
 function drawSeries(w,h,pad,S,ylabel,forceCol,empty){
-  if(S.length<1){noData(w,h,empty);return;}
-  const xs=S.map(p=>p.t),ys=S.map(p=>p.p);
+  if(S.length<1){noData(w,h,empty);return;}const xs=S.map(p=>p.t),ys=S.map(p=>p.p);
   let x0=Math.min(...xs),x1=Math.max(...xs);if(x0===x1){x0-=1;x1+=1;}
   let y0=Math.min(...ys),y1=Math.max(...ys);const yp=(y1-y0)*0.12||Math.abs(y1)*0.08||1;y0-=yp;y1+=yp;
   const X=t=>pad.l+(w-pad.l-pad.r)*(t-x0)/(x1-x0),Y=v=>pad.t+(h-pad.t-pad.b)*(1-(v-y0)/(y1-y0));
   ctx.strokeStyle=css("--line");ctx.fillStyle=css("--soft");ctx.font="11px ui-monospace,monospace";ctx.lineWidth=1;
-  for(let i=0;i<=4;i++){const v=y0+(y1-y0)*i/4,yy=Y(v);
-    ctx.globalAlpha=.5;ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(w-pad.r,yy);ctx.stroke();ctx.globalAlpha=1;ctx.fillText(ylabel(v),6,yy+3);}
-  const up=S[S.length-1].p>=S[0].p;const col=forceCol||(up?css("--up"):css("--dn"));
+  for(let i=0;i<=4;i++){const v=y0+(y1-y0)*i/4,yy=Y(v);ctx.globalAlpha=.5;ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(w-pad.r,yy);ctx.stroke();ctx.globalAlpha=1;ctx.fillText(ylabel(v),6,yy+3);}
+  const upx=S[S.length-1].p>=S[0].p;const col=forceCol||(upx?css("--up"):css("--dn"));
   const g=ctx.createLinearGradient(0,pad.t,0,h-pad.b);g.addColorStop(0,col+"55");g.addColorStop(1,col+"00");
-  // stepped for bridged (supply is piecewise-constant), smooth for price
   const step=(VIEW==="bridged");
-  function path(){ctx.beginPath();ctx.moveTo(X(S[0].t),Y(S[0].p));
-    for(let i=1;i<S.length;i++){if(step)ctx.lineTo(X(S[i].t),Y(S[i-1].p));ctx.lineTo(X(S[i].t),Y(S[i].p));}}
+  function path(){ctx.beginPath();ctx.moveTo(X(S[0].t),Y(S[0].p));for(let i=1;i<S.length;i++){if(step)ctx.lineTo(X(S[i].t),Y(S[i-1].p));ctx.lineTo(X(S[i].t),Y(S[i].p));}}
   path();ctx.lineTo(X(S[S.length-1].t),h-pad.b);ctx.lineTo(X(S[0].t),h-pad.b);ctx.closePath();ctx.fillStyle=g;ctx.fill();
   path();ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.lineJoin="round";ctx.stroke();
   const last=S[S.length-1];ctx.fillStyle=col;ctx.beginPath();ctx.arc(X(last.t),Y(last.p),4,0,7);ctx.fill();
-  // x labels
   ctx.fillStyle=css("--soft");ctx.font="10px ui-monospace,monospace";const nT=4;
   for(let i=0;i<=nT;i++){const t=x0+(x1-x0)*i/nT;let tx=pad.l+(w-pad.l-pad.r)*i/nT-16;if(i===0)tx=pad.l;if(i===nT)tx=w-pad.r-36;ctx.fillText(fmtTime(t,RANGE),tx,h-6);}
 }
-window.addEventListener("resize",draw);
-
-function fmtN(n){n=Number(n);return n>=1e6?(n/1e6).toFixed(2)+"M":n>=1000?n.toLocaleString(undefined,{maximumFractionDigits:0}):n.toFixed(2);}
-function bigMorm(w){w=Number(w);  // 日本語大数単位（万/億/兆/京）
-  if(w>=1e16)return (w/1e16>=100?(w/1e16).toFixed(0):(w/1e16).toFixed(1))+"京";
-  if(w>=1e12)return (w/1e12).toFixed(1)+"兆";
-  if(w>=1e8)return (w/1e8).toFixed(2)+"億";
-  if(w>=1e4)return (w/1e4).toFixed(1)+"万";
-  return w.toFixed(0);}
+window.addEventListener("resize",()=>{if(TAB==="chart")draw();});
 function render(){
   const cur=live?live.price:(md?md.price:(events.length?events[events.length-1].p:0));
-  document.getElementById("px").textContent="$"+cur.toFixed(6);
+  $("px").textContent="$"+cur.toFixed(6);
   const base=events.filter(e=>e.p>0);const first=base.length?base[0].p:cur;const ch=first?((cur-first)/first*100):0;
-  const chg=document.getElementById("chg");chg.textContent=(ch>=0?"▲ +":"▼ ")+ch.toFixed(2)+"%";chg.style.color=ch>=0?css("--up"):css("--dn");
-  if(md){document.getElementById("tvl").textContent="$"+fmtN(md.tvl);
-    document.getElementById("bridged").textContent=bigMorm(md.bridged)+" MORM";
-    document.getElementById("treasury").textContent=md.l1&&md.l1.treasury!=null?bigMorm(md.l1.treasury):"—";
-    const c=md.counts||{};document.getElementById("brc").textContent=(c.forwards||0)+" / "+(c.exits||0);}
-  document.getElementById("upd").textContent="更新: "+new Date().toLocaleTimeString("ja-JP");
+  const chg=$("chg");chg.textContent=(ch>=0?"▲ +":"▼ ")+ch.toFixed(2)+"%";chg.style.color=ch>=0?css("--up"):css("--dn");
+  if(md){$("tvl").textContent="$"+fmtN(md.tvl);$("bridged").textContent=bigMorm(md.bridged)+" MORM";
+    $("treasury").textContent=md.l1&&md.l1.treasury!=null?bigMorm(md.l1.treasury)+" MORM":"—";
+    const c=md.counts||{};$("brc").textContent=(c.forwards||0)+" / "+(c.exits||0);}
+  $("upd").textContent="更新: "+new Date().toLocaleTimeString("ja-JP");
   draw();
 }
-
-// range buttons
 const ranges=[["1H",3600e3],["6H",6*3600e3],["24H",24*3600e3],["全期間",0]];
-const rng=document.getElementById("rng");
 ranges.forEach(([lbl,ms])=>{const b=document.createElement("button");b.textContent=lbl;if(ms===0)b.classList.add("on");
-  b.onclick=()=>{RANGE=ms;[...rng.children].forEach(x=>x.classList.remove("on"));b.classList.add("on");render();};rng.appendChild(b);});
-// candle/line toggle
-const tgl=document.getElementById("tgl");
-[...tgl.children].forEach(b=>b.onclick=()=>{MODE=b.dataset.k;[...tgl.children].forEach(x=>x.classList.remove("on"));b.classList.add("on");render();});
-// price/bridged mode
-const modes=document.getElementById("modes");
-[...modes.children].forEach(b=>b.onclick=()=>{VIEW=b.dataset.m;[...modes.children].forEach(x=>x.classList.remove("on"));b.classList.add("on");
-  tgl.style.visibility=(VIEW==="price")?"visible":"hidden";render();});
-// links
-document.getElementById("lpool").textContent="basescan.org/address/"+POOL;
-document.getElementById("lpool").href="https://basescan.org/address/"+POOL;
-document.getElementById("ltok").textContent="basescan.org/token/"+WMORM;
-document.getElementById("ltok").href="https://basescan.org/token/"+WMORM;
-document.getElementById("luni").href="https://app.uniswap.org/swap?chain=base&inputCurrency="+USDC+"&outputCurrency="+WMORM;
+  b.onclick=()=>{RANGE=ms;[...$("rng").children].forEach(x=>x.classList.remove("on"));b.classList.add("on");render();};$("rng").appendChild(b);});
+[...$("tgl").children].forEach(b=>b.onclick=()=>{MODE=b.dataset.k;[...$("tgl").children].forEach(x=>x.classList.remove("on"));b.classList.add("on");render();});
+[...$("cmodes").children].forEach(b=>b.onclick=()=>{VIEW=b.dataset.m;[...$("cmodes").children].forEach(x=>x.classList.remove("on"));b.classList.add("on");$("tgl").style.visibility=(VIEW==="price")?"visible":"hidden";render();});
+$("lpool").textContent="basescan.org/address/"+POOL;$("lpool").href="https://basescan.org/address/"+POOL;
+$("ltok").textContent="basescan.org/token/"+WMORM;$("ltok").href="https://basescan.org/token/"+WMORM;
+$("luni").href="https://app.uniswap.org/swap?chain=base&inputCurrency="+USDC+"&outputCurrency="+WMORM;
 
-(async()=>{
-  await loadData();render();
-  await tickLive();
-  setInterval(tickLive,15000);                 // live price 15s
-  setInterval(async()=>{if(await loadData())render();},60000); // history/stats refresh 60s
-})();
+/* ================= SWAP ================= */
+let DIR="buy", slip=1, quote=null, qSeq=0, quoting=false, qTimer=null;
+function payTok(){return DIR==="buy"?{a:USDC,s:"USDC",d:6,ic:"uc",t:"$"}:{a:WMORM,s:"wMORM",d:18,ic:"wm",t:"M"};}
+function recvTok(){return DIR==="buy"?{a:WMORM,s:"wMORM",d:18,ic:"wm",t:"M"}:{a:USDC,s:"USDC",d:6,ic:"uc",t:"$"};}
+function renderTokens(){const p=payTok(),r=recvTok();
+  $("payTok").textContent=p.s;$("payIc").textContent=p.t;$("payIc").className="ic "+p.ic;
+  $("recvTok").textContent=r.s;$("recvIc").textContent=r.t;$("recvIc").className="ic "+r.ic;
+  $("uniLink").href="https://app.uniswap.org/swap?chain=base&inputCurrency="+p.a+"&outputCurrency="+r.a;showBalances();}
+function showBalances(){if(!account){$("payBal").textContent="—";$("recvBal").textContent="—";return;}
+  const pb=DIR==="buy"?ethers.formatUnits(bal.usdc,6):ethers.formatUnits(bal.wm,18);
+  const rb=DIR==="buy"?ethers.formatUnits(bal.wm,18):ethers.formatUnits(bal.usdc,6);
+  $("payBal").textContent="残高 "+fmt(pb,2);$("recvBal").textContent="残高 "+fmt(rb,2);}
+function onPayInput(){clearTimeout(qTimer);const v=parseFloat($("payIn").value);const p=payTok();
+  $("payUsd").textContent=v>0?("≈ $"+fmt((DIR==="buy"?v:v*spot),2)):"";
+  quote=null;qSeq++;
+  if(!(v>0)){quoting=false;$("recvOut").value="";$("recvUsd").textContent="";$("sinfo").style.display="none";updateSlide();return;}
+  quoting=true;$("recvOut").value="…";$("sinfo").style.display="none";updateSlide();
+  qTimer=setTimeout(runQuote,320);}
+async function runQuote(){
+  const v=parseFloat($("payIn").value);if(!(v>0))return;
+  const seq=++qSeq;quoting=true;$("recvOut").value="見積り中…";updateSlide();const p=payTok(),r=recvTok();
+  try{
+    const q=new ethers.Contract(QUOTER,QUOTER_ABI,ro);
+    const amountIn=ethers.parseUnits(v.toFixed(p.d),p.d);if(amountIn===0n)throw new Error("__small");
+    const res=await q.quoteExactInputSingle.staticCall({tokenIn:p.a,tokenOut:r.a,amountIn,fee:FEE,sqrtPriceLimitX96:0});
+    if(seq!==qSeq)return;
+    const out=res[0],after=res[1];const outNum=Number(ethers.formatUnits(out,r.d));
+    const minOut=out-(out*BigInt(Math.round(slip*100))/10000n);
+    const pAfter=priceFromSqrt(after);const impact=spot>0?Math.abs(pAfter-spot)/spot*100:0;
+    quote={out,min:minOut,outNum,impact,rDec:r.d,amountIn,payA:p.a,recvA:r.a};
+    $("swMsg").className="msg";$("swMsg").textContent="";
+    $("recvOut").value=fmt(outNum,6);$("recvUsd").textContent="≈ $"+fmt((DIR==="buy"?outNum*spot:outNum),2);
+    const eff=DIR==="buy"?(v/outNum):(outNum/v);$("iRate").textContent="1 wMORM = $"+eff.toFixed(6);
+    const im=$("iImpact");im.textContent="−"+impact.toFixed(2)+"%";im.className="imp"+(impact>=15?" crit":impact>=5?" hi":"");
+    $("iFee").textContent="1% / "+slip+"%";$("iMin").textContent=fmt(Number(ethers.formatUnits(minOut,r.d)),4)+" "+r.s;
+    $("sinfo").style.display="";
+  }catch(e){if(seq===qSeq){quote=null;$("recvOut").value="";$("recvUsd").textContent="";$("sinfo").style.display="none";
+    const small=(""+(e&&e.message)).indexOf("__small")>=0;$("swMsg").className="msg err";$("swMsg").textContent=small?"金額が小さすぎます":"見積りを取得できませんでした。少し待って再入力してください。";}}
+  finally{if(seq===qSeq){quoting=false;updateSlide();}}
+}
+$("flip").onclick=()=>{DIR=DIR==="buy"?"sell":"buy";qSeq++;quote=null;quoting=false;renderTokens();$("payIn").value="";$("recvOut").value="";$("payUsd").textContent="";$("recvUsd").textContent="";$("sinfo").style.display="none";updateSlide();};
+$("maxBtn").onclick=()=>{if(!account)return;$("payIn").value=DIR==="buy"?ethers.formatUnits(bal.usdc,6):ethers.formatUnits(bal.wm,18);onPayInput();};
+$("payIn").addEventListener("input",onPayInput);
+$("gear").onclick=()=>$("slip").classList.toggle("on");
+[...$("slip").children].forEach(b=>b.onclick=()=>{slip=parseFloat(b.dataset.s);[...$("slip").children].forEach(x=>x.classList.remove("on"));b.classList.add("on");if(quote)runQuote();});
+function updateSlide(){const sl=$("slide");
+  if(!account){sl.classList.add("disabled");$("slLab").textContent="ウォレットを接続";return;}
+  if(quoting){sl.classList.add("disabled");$("slLab").textContent="見積り中…";return;}
+  if(!(quote&&parseFloat($("payIn").value)>0)){sl.classList.add("disabled");$("slLab").textContent="金額を入力";return;}
+  sl.classList.remove("disabled");$("slLab").textContent="スワイプでスワップ →";}
+(function initSlide(){const sl=$("slide"),knob=$("knob"),fill=sl.querySelector(".fill");
+  let drag=false,x=0,max=0,ox=0,busy=false;
+  const apply=()=>{knob.style.transform="translateX("+x+"px)";fill.style.width=(52+x)+"px";};
+  function down(e){if(busy||sl.classList.contains("disabled")){if(!account)connect();return;}
+    drag=true;max=sl.clientWidth-56;ox=(e.clientX!=null?e.clientX:e.touches[0].clientX)-x;try{knob.setPointerCapture(e.pointerId);}catch(_){}}
+  function move(e){if(!drag)return;const cx=(e.clientX!=null?e.clientX:e.touches[0].clientX);x=Math.max(0,Math.min(max,cx-ox));apply();}
+  async function up(){if(!drag)return;drag=false;
+    if(x>=max*0.92){x=max;apply();busy=true;sl.classList.add("busy");await doSwap(reset);}
+    else{x=0;knob.style.transition="transform .18s";fill.style.transition="width .18s";apply();setTimeout(()=>{knob.style.transition="";fill.style.transition="";},200);}}
+  function reset(){busy=false;sl.classList.remove("busy");x=0;apply();updateSlide();}
+  knob.addEventListener("pointerdown",down);window.addEventListener("pointermove",move);window.addEventListener("pointerup",up);})();
+async function doSwap(done){const msg=$("swMsg");msg.className="msg";
+  try{if(!signer)throw new Error("ウォレット未接続");if(!quote)throw new Error("金額を入力してください");
+    const amountIn=quote.amountIn,tokenIn=quote.payA,tokenOut=quote.recvA;
+    if((tokenIn===USDC?bal.usdc:bal.wm)<amountIn)throw new Error("残高が不足しています");
+    const tin=new ethers.Contract(tokenIn,ERC20_ABI,signer);const cur=await tin.allowance(account,ROUTER);
+    if(cur<amountIn){msg.textContent="① トークン利用を承認中…（ウォレットで承認）";const ap=await tin.approve(ROUTER,amountIn);await ap.wait();}
+    msg.textContent="② スワップを送信中…";const rt=new ethers.Contract(ROUTER,ROUTER_ABI,signer);
+    const tx=await rt.exactInputSingle({tokenIn,tokenOut,fee:FEE,recipient:account,amountIn,amountOutMinimum:quote.min,sqrtPriceLimitX96:0});
+    await tx.wait();msg.className="msg ok";
+    msg.innerHTML="スワップ完了 ✓ <a href='https://basescan.org/tx/"+tx.hash+"' target='_blank' rel='noopener' style='color:var(--blue)'>取引</a>";
+    $("payIn").value="";$("recvOut").value="";$("payUsd").textContent="";$("recvUsd").textContent="";$("sinfo").style.display="none";quote=null;await refreshBal();
+  }catch(e){msg.className="msg err";msg.textContent="失敗: "+(e.shortMessage||e.reason||e.message||e);}
+  done&&done();}
+
+/* ================= BRIDGE ================= */
+const B32="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+function b32d(s){s=s.toUpperCase().replace(/=+$/,"");let bits=0,val=0;const o=[];
+  for(const c of s){const i=B32.indexOf(c);if(i<0)throw new Error("使えない文字が含まれます");val=(val<<5)|i;bits+=5;if(bits>=8){bits-=8;o.push((val>>>bits)&0xff);}}return Uint8Array.from(o);}
+function mormB20(a){a=(a||"").trim();if(!a.startsWith("m0r"))throw new Error("m0r… で始まるアドレスを入力してください");
+  const r=b32d(a.slice(3));if(r.length!==20)throw new Error("アドレスが正しくありません");return "0x"+[...r].map(b=>b.toString(16).padStart(2,"0")).join("");}
+$("fwdFill").onclick=()=>{if(account){$("fwdTo").value=account;syncFwd();}};
+function syncFwd(){const to=($("fwdTo").value||"").trim(),amt=($("fwdAmt").value||"").trim();
+  const q=new URLSearchParams();if(/^0x[0-9a-fA-F]{40}$/.test(to))q.set("to",to);if(amt)q.set("amount",amt);
+  const qs=q.toString();$("fwdGo").href="https://morm.one/account.html"+(qs?("?"+qs):"")+"#bridge";}
+$("fwdTo").addEventListener("input",syncFwd);$("fwdAmt").addEventListener("input",syncFwd);
+$("exitAmt").addEventListener("input",()=>{const v=Math.floor(parseFloat($("exitAmt").value));$("exitRcv").innerHTML="受け取り: <b>"+((v>0)?v+" MORM":"—")+"</b>";});
+async function doExit(){if(!signer)return;const msg=$("exitMsg");msg.className="msg";msg.style.textAlign="left";
+  try{const b20=mormB20($("exitAddr").value.trim());const amt=parseFloat($("exitAmt").value);if(!(amt>0))throw new Error("戻す量を入力してください");
+    const whole=Math.floor(amt);if(whole<1)throw new Error("1 wMORM 以上を入力してください");
+    const amountWei=ethers.parseUnits(String(whole),18);const br=new ethers.Contract(BRIDGE,BRIDGE_ABI,signer);
+    if(await br.paused())throw new Error("ブリッジが一時停止中です");const minE=await br.minExit();if(amountWei<minE)throw new Error("最小 "+ethers.formatUnits(minE,18)+" wMORM から");
+    msg.textContent="送信中… "+whole+" wMORM を戻しています";const tx=await br.exit(amountWei,b20);await tx.wait();
+    msg.className="msg ok";msg.style.textAlign="left";
+    msg.innerHTML="完了 ✓ 数ブロック後に <b>"+whole+" MORM</b> が着金します。 <a href='https://basescan.org/tx/"+tx.hash+"' target='_blank' rel='noopener' style='color:var(--blue)'>取引</a>";
+    $("exitAmt").value="";$("exitRcv").innerHTML="受け取り: <b>—</b>";refreshBal();
+  }catch(e){msg.className="msg err";msg.style.textAlign="left";msg.textContent="失敗: "+(e.shortMessage||e.reason||e.message);}}
+$("exitBtn").onclick=doExit;
+
+/* deep-link ?m0r= → ブリッジタブ + 戻す prefill */
+(function(){try{const q=new URLSearchParams(location.search);const m=(q.get("m0r")||"").trim(),a=(q.get("amount")||"").trim();
+  const wantSwap=(location.hash==="#swap"),wantBridge=(location.hash==="#bridge"||m.startsWith("m0r"));
+  if(m.startsWith("m0r")){$("exitAddr").value=m;if(a){$("exitAmt").value=a;$("exitAmt").dispatchEvent(new Event("input"));}}
+  if(wantBridge)setTab("bridge");else if(wantSwap)setTab("swap");
+}catch(e){}})();
+
+$("foot").innerHTML="価格・受取は Uniswap 実プール由来。ブリッジは <b>3-of-5</b> マルチシグのリレーヤが実行。Base mainnet の実トークンです。<br>"+
+ "<a href='https://basescan.org/token/"+WMORM+"' target='_blank' rel='noopener'>wMORM 契約</a> · <a href='https://basescan.org/address/"+BRIDGE+"' target='_blank' rel='noopener'>ブリッジ契約</a>";
+
+renderTokens();updateSlide();
+(async()=>{await loadData();await tick();render();
+  setInterval(tick,15000);setInterval(async()=>{if(await loadData()&&TAB==="chart")render();},60000);})();
 </script></body></html>
