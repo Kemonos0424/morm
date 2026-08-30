@@ -142,3 +142,25 @@ forge script script/SeedPool.s.sol --rpc-url "$RPC_URL" --broadcast
 - token0=wMORM `0x7fEf…` / token1=USDC `0x8335…`・**価格 $0.010000**・reserves **10,000 wMORM + 100 USDC**・liquidity≈1e15。
 - POOL_BLOCK=**50606455**（market チャートの増分取得起点）。deploy tx: `0xf8bd04fb…`(approve)/`0x0ed26ec6…`/`0x7cc308f5…`(create)/`0x124bc473…`(mint)。
 - wMORM 入手経路: L1 treasury→10,000 MORM を `bridge_burn`(tx 8d95fb71) → mainnet relayer(3-of-5) が `mintFromBurn` で deployer に 10,000 wMORM。
+
+---
+## USDm（USDC 1:1 裏付けラッパー・Phase B①）
+`src/USDm.sol` = deposit(USDC)→mint USDm / withdraw→burn USDm→USDC。decimals 6・完全裏付け・
+**admin/owner なし（トラストレス）**・totalSupply は常に保有 USDC で裏付け。ペッグは USDC 償還のみ（アルゴリズム/MORM 担保ではない）。
+
+**デプロイ（★ユーザー broadcast）**
+```bash
+cd ~/Desktop/MORM/morm-chain
+set -a; source ../.mainnet-deploy.env; set +a          # USDC_ADDR=0x8335…(native USDC) を含む
+export DEPLOYER_PK=<deployer秘密鍵>                     # 例: RTF から
+forge script script/DeployUSDm.s.sol --rpc-url "$RPC_URL"            # ドライラン
+forge script script/DeployUSDm.s.sol --rpc-url "$RPC_URL" --broadcast # 本番
+```
+ログの **USDm アドレス**を控える。検証: `cast call <USDm> "backing()(uint256,uint256)" --rpc-url $RPC_URL`（USDC held / outstanding）。
+
+**使い方**: `USDC.approve(USDm, amt)` → `USDm.deposit(amt)` で 1:1 mint、`USDm.withdraw(amt)` で 1:1 償還。
+
+**残（Phase B②以降）**
+- ★**監査**: 実資金を扱うステーブルなので mainnet 本格運用前に第三者監査＋コンプラ確認（規制上 blocklist/pause が要るなら reviewed v2 で追加。v1 は意図的にトラストレス）。
+- **L1 ミラー**: USDm を MORM L1 の `account_tokens` にミラーするには EVM 側 lock/escrow ブリッジ＋relayer の USDm 対応が必要（wMORM の mint 型 bridge とは別＝lock 型）。別途実装。
+- **JPYm**: USDC 裏付けでは JPY ペッグに FX リスク。JPY 準備金 or FX ヘッジ方式を決定してから。
