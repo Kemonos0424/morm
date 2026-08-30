@@ -66,6 +66,8 @@ a{color:var(--blue);text-decoration:none}
 .kv .k{color:var(--faint);min-width:46px;font-weight:700;flex:0 0 auto}
 .kv .v{font-family:ui-monospace,monospace;color:var(--soft);word-break:break-all}
 .kv .v a,.kv .v .lk{color:var(--blue)}
+.cp{border:none;background:transparent;color:var(--faint);cursor:pointer;font-size:12px;padding:0 3px;line-height:1;vertical-align:baseline}
+.cp:hover{color:var(--blue)}.cp.ok{color:var(--green)}
 </style>
 <div class="wrap">
   <div class="top">
@@ -138,11 +140,13 @@ function kindTag(k,name){
 }
 function q(s){return (s||"").toLowerCase();}
 function hit(txt){return !Q||q(txt).includes(Q);}
-function acell(a){ // clickable m0r (filter) or basescan link for 0x
+function cp(full){return full?" <button class='cp' data-copy='"+full+"' title='コピー' aria-label='コピー'>⧉</button>":"";}
+function acell(a){ // clickable m0r (filter) or basescan link for 0x, + copy button (full value)
   if(!a)return "—";
-  return String(a).startsWith("0x")
+  const disp=String(a).startsWith("0x")
     ? (bx("/address/"+a)+short(a)+"</a>")
     : "<span class='lk' data-q='"+a+"'>"+short(a)+"</span>";
+  return disp+cp(a);
 }
 
 function drawStats(){
@@ -162,8 +166,9 @@ function drawBridges(){
   const rows=(D.bridges||[]).filter(b=>hit((b.from||"")+(b.to||"")+(b.l1Tx||"")+(b.baseTx||"")+(b.asset||"")));
   if(!rows.length){$("brList").innerHTML="<div class='mut'>該当するブリッジがありません</div>";return;}
   $("brList").innerHTML=rows.map(b=>{
-    const txcell=b.baseTx?(bx("/tx/"+b.baseTx)+"Base で見る ↗</a>")
-                         :"<span class='lk' data-q='"+(b.l1Tx||"")+"'>"+short(b.l1Tx,8)+"</span>";
+    const txfull=b.baseTx||b.l1Tx;
+    const txcell=(b.baseTx?(bx("/tx/"+b.baseTx)+"Base で見る ↗</a>")
+                          :"<span class='lk' data-q='"+(b.l1Tx||"")+"'>"+short(b.l1Tx,8)+"</span>")+cp(txfull);
     return "<div class='row'>"
       +"<div class='r1'>"+flow(b.dir)+"<span class='amt'>"+amtBridge(b)+"</span>"
         +"<span class='sp'></span>"+stTag(b.status)+"<span class='when'>"+ago(b.ts)+"</span></div>"
@@ -184,7 +189,7 @@ function drawTxs(){
         +"<span class='sp'></span><span class='when'>#"+num(t.height)+" ・ "+ago(t.ts)+"</span></div>"
       +"<div class='kv'><span class='k'>差出人</span><span class='v'>"+acell(t.sender)+"</span></div>"
       +(t.to?"<div class='kv'><span class='k'>宛先</span><span class='v'>"+acell(t.to)+"</span></div>":"")
-      +"<div class='kv'><span class='k'>取引</span><span class='v'>"+short(t.hash,8)+"</span></div>"
+      +"<div class='kv'><span class='k'>取引</span><span class='v'>"+short(t.hash,8)+cp(t.hash)+"</span></div>"
       +"</div>";
   }).join("");
 }
@@ -195,11 +200,15 @@ function drawBlocks(){
     +"<div class='r1'><span class='dir'>#"+num(b.height)+"</span><span class='tag k'>"+b.txs+" 取引</span>"
       +"<span class='sp'></span><span class='when'>"+ago(b.ts)+"</span></div>"
     +"<div class='kv'><span class='k'>作成者</span><span class='v'>"+acell(b.producer)+"</span></div>"
-    +"<div class='kv'><span class='k'>ハッシュ</span><span class='v'>"+short(b.hash,8)+"</span></div>"
+    +"<div class='kv'><span class='k'>ハッシュ</span><span class='v'>"+short(b.hash,8)+cp(b.hash)+"</span></div>"
     +"</div>").join("");
 }
 function drawAll(){drawStats();drawBridges();drawTxs();drawBlocks();
-  document.querySelectorAll(".lk").forEach(el=>el.onclick=()=>{$("q").value=el.dataset.q;Q=q(el.dataset.q);drawAll();});}
+  document.querySelectorAll(".lk").forEach(el=>el.onclick=()=>{$("q").value=el.dataset.q;Q=q(el.dataset.q);drawAll();});
+  document.querySelectorAll(".cp").forEach(el=>el.onclick=(e)=>{e.stopPropagation();const v=el.dataset.copy;
+    const done=()=>{const o=el.textContent;el.textContent="✓";el.classList.add("ok");setTimeout(()=>{el.textContent=o;el.classList.remove("ok");},1000);};
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(v).then(done).catch(()=>{});}
+    else{const t=document.createElement("textarea");t.value=v;document.body.appendChild(t);t.select();try{document.execCommand("copy");done();}catch(_){}document.body.removeChild(t);}});}
 
 function setTab(t){TAB=t;
   document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===t));
