@@ -7,10 +7,10 @@
 //   env MORM_PRICE_OVERRIDE_USD    : force usdPerMorm (test/emergency)
 //   env MORM_RESERVE_USDC_OVERRIDE : force the USDC reserve (test/emergency)
 
-const RPC   = process.env.BASE_SEPOLIA_RPC || 'https://sepolia.base.org';
-const POOL  = process.env.MORM_POOL_ADDR   || '0x9E62498516742EC84F3BC71cDB7b2a172dfA5789';
-const WMORM = process.env.MORM_WMORM_ADDR  || '0x5cd8053c2fb44a3107109A22dD8529F67751c74C';
-const USDC  = process.env.MORM_USDC_ADDR   || '0x2B6648CD0c0bd8e1e50AdCB0F154692a0F90f453';
+const RPC   = process.env.MORM_RPC || 'https://mainnet.base.org';
+const POOL  = process.env.MORM_POOL_ADDR   || '0x6615fC0239eDDb27A8fF2D774C438e68C4599A55';
+const WMORM = process.env.MORM_WMORM_ADDR  || '0x7fEf327a811e73F06cccF0De9db022e739d5076d';
+const USDC  = process.env.MORM_USDC_ADDR   || '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 const INITIAL_RATE = 0.01;
 
 let _id = 1;
@@ -29,7 +29,7 @@ async function rpc(method, params) {
 function priceFromSqrt(sqrtHex) {
   const sqrt = BigInt(sqrtHex);
   const r = Number(sqrt) / 2 ** 96;
-  return (1e18 / (r * r)) / 1e6;
+  return (r * r) * 1e12;  // mainnet: wMORM=token0 → USDC per wMORM
 }
 
 // Returns { usdPerMorm, usdcReserve (or null if unknown), source }.

@@ -8,10 +8,11 @@ export const dynamic = 'force-dynamic';
 // USDC-per-wMORM (== USD-per-MORM at the 1:1 wMORM<->MORM mirror). Read-only,
 // so CORS is open ("*") and the CDN caches it briefly.
 
-const RPC   = process.env.BASE_SEPOLIA_RPC || 'https://sepolia.base.org';
-const POOL  = process.env.MORM_POOL_ADDR   || '0x9E62498516742EC84F3BC71cDB7b2a172dfA5789';
-const WMORM = process.env.MORM_WMORM_ADDR  || '0x5cd8053c2fb44a3107109A22dD8529F67751c74C';
-const USDC  = process.env.MORM_USDC_ADDR   || '0x2B6648CD0c0bd8e1e50AdCB0F154692a0F90f453';
+// ★Base mainnet（2026-08 本番プール）。旧 testnet 既定値から更新。
+const RPC   = process.env.MORM_RPC          || 'https://mainnet.base.org';
+const POOL  = process.env.MORM_POOL_ADDR    || '0x6615fC0239eDDb27A8fF2D774C438e68C4599A55';
+const WMORM = process.env.MORM_WMORM_ADDR   || '0x7fEf327a811e73F06cccF0De9db022e739d5076d';
+const USDC  = process.env.MORM_USDC_ADDR    || '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 const INITIAL_RATE = 0.01; // issuance reference; market floats around it
 
 const CORS = {
@@ -35,11 +36,11 @@ async function rpc(method, params) {
   return j.result;
 }
 
-// USDC(6 dec)=token0, wMORM(18 dec)=token1 → USDC per wMORM = (1e18/priceRaw)/1e6
+// ★mainnet プールは wMORM(18 dec)=token0, USDC(6 dec)=token1 → USDC per wMORM = praw*1e12
 function priceFromSqrt(sqrtHex) {
   const sqrt = BigInt(sqrtHex);
   const r = Number(sqrt) / 2 ** 96;
-  return (1e18 / (r * r)) / 1e6;
+  return (r * r) * 1e12;
 }
 
 export async function OPTIONS() {
@@ -60,7 +61,7 @@ export async function GET() {
     const body = {
       ok: true,
       pair: 'wMORM/USDC',
-      chain: 'base-sepolia',
+      chain: 'base',
       usdPerMorm: price,      // USD per 1 MORM (via wMORM mirror)
       price,                  // alias
       pool: POOL,
@@ -78,7 +79,7 @@ export async function GET() {
     return NextResponse.json({
       ok: false,
       pair: 'wMORM/USDC',
-      chain: 'base-sepolia',
+      chain: 'base',
       usdPerMorm: INITIAL_RATE,
       price: INITIAL_RATE,
       pool: POOL,
