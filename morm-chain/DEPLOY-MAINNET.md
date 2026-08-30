@@ -186,4 +186,6 @@ forge script script/DeployUSDmLockBridge.s.sol --rpc-url "$RPC_URL" --broadcast 
 ```
 ログの **USDmLockBridge アドレス**を控える→`.mainnet-deploy.env` に USDM_BRIDGE_ADDR 追記。
 
+★USDmLockBridge デプロイ済(2026-08-30): `0x87cD170BA7a82a0049F2fF36aa926033A5f9C26e`(token=USDm・5署名3-of-5・guardian 0xC04E・maxUnlock 1e12・escrowed0・tx 0x3d959c9c blk50634534)。
+
 **残（Stage 2 = relayer 拡張・私が実装）**: export_relayer に USDm 経路追加＝(a) Base `Locked` イベント→L1 `BRIDGE_MINT(token=USDm)`(treasury 署名) (b) L1 `bridge_burns(token=USDm)`→`USDmLockBridge.unlock`(5署名)。digest purpose="USDmLockBridge:unlock"。既存の chunked getLogs / 署名収集を流用。
