@@ -116,6 +116,21 @@ TREASURY_SIGNER_SEEDS = [s.strip() for s in os.environ.get("TREASURY_SIGNER_SEED
 TREASURY_MS_THRESHOLD = int(os.environ.get("TREASURY_MS_THRESHOLD", "2"))
 BRIDGE_MINT_KIND = 20
 
+# ── USDm lock/unlock (escrow) bridge — ADDITIVE mirror path ────────────────
+# USDm is a USDC-backed 1:1 wrapper already on Base, so its bridge ESCROWS
+# (never mints) the token: Base lock → L1 credit (account_tokens[USDm]),
+# L1 burn(token=USDm) → threshold-signed unlock() releases escrow. Reuses the
+# same EVM signer set (3-of-5) + treasury credit path as wMORM — only the
+# unlock digest purpose differs. Leave USDM_BRIDGE_ADDR unset to disable every
+# USDm path entirely (existing wMORM forward/exit stay byte-for-byte unchanged).
+USDM_BRIDGE_ADDR    = os.environ.get("USDM_BRIDGE_ADDR", "")   # unset ⇒ USDm disabled
+USDM_ADDR           = os.environ.get("USDM_ADDR", "")          # USDm ERC-20 (L1 token_address mirror)
+USDM_TOKEN          = os.environ.get("USDM_TOKEN", "USDm")     # L1 mirror symbol
+USDM_UNLOCK_PURPOSE = "USDmLockBridge:unlock"
+# USDm is 6-dec on Base and mirrored 1:1 in base units on L1 (no scaling ⇒
+# exact value, no dust). START cursor for the Locked scan is separate from the
+# wMORM Exit cursor so the two directions never interfere.
+
 def _keys(env: str) -> list[str]:
     return [k.strip() for k in os.environ.get(env, "").split(",") if k.strip()]
 
@@ -149,12 +164,35 @@ class Signer:
         sig = self.acct.sign_message(encode_defunct(primitive=digest)).signature
         return bytes(sig)
 
+    def verify_and_sign_usdm_unlock(self, bridge_addr, recipient, amount,
+                                    burn_id_bytes, burn_row) -> bytes | None:
+        """USDm escrow release: re-verify the L1 burn (recipient + amount +
+        token=USDm) before signing the unlock digest. USDm is mirrored 1:1 in
+        base units, so the signed amount equals the L1 burn amount exactly."""
+        if (Web3.to_checksum_address(burn_row["evm_recipient"]) != recipient
+                or int(burn_row["amount"]) != amount
+                or (burn_row.get("token") or "") != USDM_TOKEN):
+            return None
+        digest = unlock_digest(bridge_addr, recipient, amount, burn_id_bytes)
+        sig = self.acct.sign_message(encode_defunct(primitive=digest)).signature
+        return bytes(sig)
+
 
 def mint_digest(bridge_addr, recipient, amount, burn_id_bytes) -> bytes:
     """Must byte-match MORMExportBridge.mintDigest()."""
     return Web3.keccak(abi_encode(
         ["address", "uint256", "string", "address", "uint256", "bytes32"],
         [Web3.to_checksum_address(bridge_addr), CHAIN_ID, MINT_PURPOSE,
+         recipient, amount, burn_id_bytes]))
+
+
+def unlock_digest(bridge_addr, recipient, amount, burn_id_bytes) -> bytes:
+    """Must byte-match USDmLockBridge.unlockDigest():
+    keccak(abi.encode(address(this), block.chainid, "USDmLockBridge:unlock",
+    recipient, amount, l1BurnId))."""
+    return Web3.keccak(abi_encode(
+        ["address", "uint256", "string", "address", "uint256", "bytes32"],
+        [Web3.to_checksum_address(bridge_addr), CHAIN_ID, USDM_UNLOCK_PURPOSE,
          recipient, amount, burn_id_bytes]))
 
 
@@ -208,6 +246,29 @@ class ExportRelayer:
         for row in get_morm("/bridge/burns").get("burns", []):
             if row.get("evm_unlocked"):
                 self.handled_burns.add(row["burn_tx_hash"])
+
+        # ── USDm escrow bridge (additive; disabled unless USDM_BRIDGE_ADDR set) ──
+        self.usdm_bridge = None
+        if USDM_BRIDGE_ADDR:
+            self.usdm_bridge_addr = Web3.to_checksum_address(USDM_BRIDGE_ADDR)
+            uart = json.loads((ROOT / "morm-chain" / "out" /
+                               "USDmLockBridge.sol" / "USDmLockBridge.json").read_text())
+            self.usdm_bridge = self.w3.eth.contract(address=self.usdm_bridge_addr, abi=uart["abi"])
+            _u = _load_state()
+            if _u.get("usdm_last_block") is not None:
+                self.usdm_last_block = max(0, int(_u["usdm_last_block"]) - REORG_BUFFER)
+                print(f"[export] USDm resume usdm_last_block={self.usdm_last_block} "
+                      f"(state -{REORG_BUFFER} reorg buffer)")
+            else:
+                self.usdm_last_block = int(os.environ.get("USDM_START_BLOCK",
+                                                          str(self.w3.eth.block_number)))
+            self.handled_locks: set[str] = set()
+            self.handled_usdm_burns: set[str] = set()
+            for row in get_morm("/bridge/burns").get("burns", []):
+                if (row.get("token") or "") == USDM_TOKEN and row.get("evm_unlocked"):
+                    self.handled_usdm_burns.add(row["burn_tx_hash"])
+            print(f"[export] USDm mirror ENABLED bridge={self.usdm_bridge_addr} "
+                  f"token={USDM_TOKEN} token_address={USDM_ADDR or '(none)'}")
 
     # ── forward: L1 burn -> EVM mint wMORM ────────────────────────────────
     def poll_l1_burns(self):
@@ -300,14 +361,19 @@ class ExportRelayer:
         self.last_block = safe + 1
         _save_state({"last_block": self.last_block})
 
-    def _credit_l1(self, morm_addr, l1_amount, evm_id):
+    def _credit_l1(self, morm_addr, l1_amount, evm_id, token="MORM", token_address=None):
         """Reverse L1 credit (BRIDGE_MINT). Uses the treasury multisig
         (MULTISIG_TX cosigned by >= threshold registered signers) when
         TREASURY_SIGNER_SEEDS is configured; else the legacy single-key path.
-        BRIDGE_MINT's evm_lock_id makes this idempotent on the L1 side."""
+        BRIDGE_MINT's evm_lock_id makes this idempotent on the L1 side.
+        token/token_address default to native MORM (wMORM exit path unchanged);
+        for the USDm mirror pass token='USDm', token_address=USDM_ADDR ⇒ a pure
+        account_tokens mirror with no treasury balance draw."""
         crypto, Transaction = _l1()
         inner_payload = {"to": morm_addr, "amount": int(l1_amount),
-                         "evm_lock_id": evm_id, "token": "MORM"}
+                         "evm_lock_id": evm_id, "token": token}
+        if token_address:
+            inner_payload["token_address"] = token_address
         if self.treasury_signer_seeds:
             # M-of-N: cosign multisig_signing_bytes bound to the treasury nonce,
             # then submit the MULTISIG_TX as one of the registered signers.
@@ -329,9 +395,91 @@ class ExportRelayer:
         nonce = get_morm(f"/account/{self.treasury_addr}")["nonce"]
         tx = Transaction.bridge_mint(
             self.treasury_pub, nonce, to=morm_addr, amount=int(l1_amount),
-            evm_lock_id=evm_id, token="MORM", token_address=None,
+            evm_lock_id=evm_id, token=token, token_address=token_address,
         ).sign(self.treasury_seed)
         return post_morm("/tx", tx.to_dict())
+
+    # ── USDm forward: Base Locked -> L1 credit account_tokens[USDm] ─────────
+    def poll_evm_locks(self):
+        if not self.usdm_bridge:
+            return
+        head = self.w3.eth.block_number
+        safe = head - EVM_CONFIRMS
+        if safe < self.usdm_last_block:
+            return
+        crypto, _ = _l1()
+        events = []
+        _frm = self.usdm_last_block
+        while _frm <= safe:                       # ≤EVM_LOG_CHUNK blocks/getLogs (free-tier cap)
+            _to = min(_frm + EVM_LOG_CHUNK - 1, safe)
+            events += self.usdm_bridge.events.Locked().get_logs(from_block=_frm, to_block=_to)
+            _frm = _to + 1
+        for ev in events:
+            evm_id = f"usdmlock:{ev.transactionHash.hex()}:{ev.logIndex}"
+            if evm_id in self.handled_locks:
+                continue
+            if not self.treasury_addr or not (self.treasury_seed or self.treasury_signer_seeds):
+                print("[export] no treasury credentials — cannot credit USDm, skipping lock")
+                continue
+            morm_addr = crypto.bytes20_to_address(bytes(ev.args["mormAddress"]))
+            amount = int(ev.args["amount"])       # USDm base units (6dec) — mirrored 1:1
+            if amount <= 0:
+                self.handled_locks.add(evm_id)
+                continue
+            print(f"[export] USDm Lock → credit {amount} {USDM_TOKEN}-units to {morm_addr} "
+                  f"(evm_id={evm_id[:30]}…)")
+            try:
+                self._credit_l1(morm_addr, amount, evm_id,
+                                token=USDM_TOKEN, token_address=(USDM_ADDR or None))
+                self.handled_locks.add(evm_id)
+            except Exception as e:
+                print(f"[export]   USDm credit failed: {e}")
+        self.usdm_last_block = safe + 1
+        _save_state({"usdm_last_block": self.usdm_last_block})
+
+    # ── USDm reverse: L1 burn(token=USDm) -> Base unlock() releases escrow ──
+    def poll_l1_usdm_burns(self):
+        if not self.usdm_bridge:
+            return
+        burns = get_morm("/bridge/burns?only_pending=1").get("burns", [])
+        for b in burns:
+            h = b["burn_tx_hash"]
+            if h in self.handled_usdm_burns or (b.get("token") or "") != USDM_TOKEN:
+                continue
+            recipient = Web3.to_checksum_address(b["evm_recipient"])
+            amount = int(b["amount"])             # USDm base units, released 1:1
+            burn_id = bytes.fromhex(h)
+            # already released on-chain? (crash-recovery / idempotency)
+            if self.usdm_bridge.functions.unlockedBurn(burn_id).call():
+                self._confirm_usdm_burn(h)
+                continue
+            sigs: dict[str, bytes] = {}
+            for s in self.signers:
+                sig = s.verify_and_sign_usdm_unlock(self.usdm_bridge_addr, recipient,
+                                                    amount, burn_id, b)
+                if sig:
+                    sigs[s.address] = sig
+                if len(sigs) >= THRESHOLD:
+                    break
+            if len(sigs) < THRESHOLD:
+                print(f"[export] usdm burn {h[:16]}… insufficient valid signers "
+                      f"({len(sigs)}/{THRESHOLD}) — skipping")
+                continue
+            ordered = order_sigs(self.signers, sigs)
+            print(f"[export] L1 USDm burn → unlock {amount} {USDM_TOKEN}-units to {recipient} "
+                  f"(burnId={h[:16]}…, {len(ordered)} sigs)")
+            try:
+                self._send(self.usdm_bridge.functions.unlock(recipient, amount, burn_id, ordered))
+                self._confirm_usdm_burn(h)
+            except Exception as e:
+                print(f"[export]   usdm unlock failed: {e}")
+
+    def _confirm_usdm_burn(self, h):
+        try:
+            post_morm("/bridge/burn-confirmed", {"burn_tx_hash": h})
+        except Exception:
+            pass
+        self.handled_usdm_burns.add(h)
 
     def _send(self, fn):
         built = fn.build_transaction({
@@ -355,6 +503,8 @@ class ExportRelayer:
             try:
                 self.poll_l1_burns()
                 self.poll_evm_exits()
+                self.poll_l1_usdm_burns()   # no-op unless USDM_BRIDGE_ADDR set
+                self.poll_evm_locks()       # no-op unless USDM_BRIDGE_ADDR set
             except Exception as e:
                 print(f"[export] poll error: {e}")
             time.sleep(POLL_INTERVAL)
@@ -376,9 +526,25 @@ def selftest():
     onchain = bridge.functions.mintDigest(recipient, amount, burn_id).call()
     local = mint_digest(BRIDGE_ADDR, recipient, amount, burn_id)
     ok = bytes(onchain) == bytes(local)
-    print("on-chain:", Web3.to_hex(onchain))
-    print("local   :", Web3.to_hex(local))
-    print("MATCH" if ok else "MISMATCH")
+    print("[wMORM mint] on-chain:", Web3.to_hex(onchain))
+    print("[wMORM mint] local   :", Web3.to_hex(local))
+    print("[wMORM mint]", "MATCH" if ok else "MISMATCH")
+
+    # USDm unlock digest parity (only if the escrow bridge is configured)
+    if USDM_BRIDGE_ADDR:
+        uart = json.loads((ROOT / "morm-chain" / "out" /
+                           "USDmLockBridge.sol" / "USDmLockBridge.json").read_text())
+        ub = w3.eth.contract(address=Web3.to_checksum_address(USDM_BRIDGE_ADDR), abi=uart["abi"])
+        u_amount = 1_000_000                       # 1 USDm (6dec)
+        u_burn = Web3.keccak(text="selftest-usdm-unlock")
+        u_onchain = ub.functions.unlockDigest(recipient, u_amount, u_burn).call()
+        u_local = unlock_digest(USDM_BRIDGE_ADDR, recipient, u_amount, u_burn)
+        u_ok = bytes(u_onchain) == bytes(u_local)
+        print("[USDm unlock] on-chain:", Web3.to_hex(u_onchain))
+        print("[USDm unlock] local   :", Web3.to_hex(u_local))
+        print("[USDm unlock]", "MATCH" if u_ok else "MISMATCH")
+        ok = ok and u_ok
+
     sys.exit(0 if ok else 1)
 
 
@@ -390,6 +556,8 @@ if __name__ == "__main__":
         r = ExportRelayer()
         r.poll_l1_burns()
         r.poll_evm_exits()
+        r.poll_l1_usdm_burns()   # no-op unless USDM_BRIDGE_ADDR set
+        r.poll_evm_locks()       # no-op unless USDM_BRIDGE_ADDR set
         print("[export] once: done")
     else:
         ExportRelayer().run()

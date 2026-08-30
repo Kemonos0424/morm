@@ -76,7 +76,7 @@ canvas{width:100%;height:340px;display:block;touch-action:none}
 .tok .usd{font-size:11.5px;color:var(--faint);font-weight:700;margin-top:3px;min-height:14px}
 .pill{display:flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 12px 6px 7px;font-weight:800;font-size:15px;box-shadow:var(--shs);white-space:nowrap}
 .pill .ic{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#fff}
-.ic.wm{background:linear-gradient(135deg,var(--magenta),var(--blue))}.ic.uc{background:#2775CA}
+.ic.wm{background:linear-gradient(135deg,var(--magenta),var(--blue))}.ic.uc{background:#2775CA}.ic.um{background:linear-gradient(135deg,#2775CA,#6B2CE6)}
 .flipwrap{display:flex;justify-content:center;height:0;position:relative;z-index:2}
 .flip{position:relative;top:-13px;width:38px;height:38px;border-radius:12px;border:4px solid var(--card);background:var(--ink);color:var(--paper);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:var(--shs)}
 .flip:active{transform:scale(.92)}
@@ -124,6 +124,7 @@ input.tx.plain{padding-right:13px}input.tx:focus{border-color:var(--magenta);box
   <div class="hbal" id="hbal">
     <div><span>ETH（手数料）</span><b id="bEth">—</b></div>
     <div><span>USDC</span><b id="bUsdc">—</b></div>
+    <div><span>USDm</span><b id="bUsdm2">—</b></div>
     <div><span>wMORM</span><b id="bWm">—</b></div>
   </div>
 
@@ -163,6 +164,7 @@ input.tx.plain{padding-right:13px}input.tx:focus{border-color:var(--magenta);box
   <section class="tab" id="tabSwap">
     <div class="swap">
       <div class="hd"><h2>スワップ</h2><div class="gear" id="gear" title="スリッページ設定">⚙</div></div>
+      <div class="modes" id="smode"><button data-sm="wmorm" class="on">wMORM（Uniswap）</button><button data-sm="usdm">USDC ⇄ USDm（1:1）</button></div>
       <div class="tok">
         <div class="rowt"><span>支払う</span><span><span id="payBal">—</span> <button class="mx" id="maxBtn">最大</button></span></div>
         <div class="rowb"><input id="payIn" inputmode="decimal" placeholder="0" autocomplete="off"><span class="pill" id="payPill"><span class="ic uc" id="payIc">$</span><span id="payTok">USDC</span></span></div>
@@ -189,6 +191,8 @@ input.tx.plain{padding-right:13px}input.tx:focus{border-color:var(--magenta);box
 
   <!-- ============ BRIDGE ============ -->
   <section class="tab" id="tabBridge">
+    <div class="modes" id="bmode"><button data-bm="wmorm" class="on">wMORM ↔ 本体</button><button data-bm="usdm">USDm ↔ 本体</button></div>
+    <div id="brWmorm">
     <div class="card">
       <div class="chead"><h2>持ち出す</h2><span class="dir">本体 <i>→</i> Base</span></div>
       <p class="lead">本体（MORM）を Base の wMORM に変えます。安全のため <b>morm.one</b>（パスキー）で実行します。</p>
@@ -210,6 +214,27 @@ input.tx.plain{padding-right:13px}input.tx:focus{border-color:var(--magenta);box
       <button class="btn blue" id="exitBtn" style="margin-top:14px" disabled>先にウォレットを接続</button>
       <div class="msg" id="exitMsg" style="text-align:left">戻すと数ブロック後に本体の MORM 口座（m0r…）へ着金します（1 wMORM = 1 MORM・端数切り捨て）。</div>
     </div>
+    </div><!-- /brWmorm -->
+
+    <div id="brUsdm" style="display:none">
+    <div class="card">
+      <div class="chead"><h2>USDm を本体（L1）へ持ち込む</h2><span class="dir">Base <i>→</i> 本体</span></div>
+      <p class="lead">Base の <b>USDm</b> を本体（L1）に 1:1 で持ち込みます。ウォレットで承認 → ロックすると、リレーヤ（3-of-5）が本体の口座へ USDm を着金します。</p>
+      <label>本体の受け取りアドレス（m0r…）</label>
+      <input class="tx plain" id="lockAddr" placeholder="m0r…" spellcheck="false" autocapitalize="off">
+      <label>持ち込む量</label>
+      <div class="field"><input class="tx" id="lockAmt" inputmode="decimal" placeholder="0"><span class="suf">USDm</span></div>
+      <div class="rcv" id="lockBal">残高: <b>—</b></div>
+      <button class="btn blue" id="lockBtn" style="margin-top:14px" disabled>先にウォレットを接続</button>
+      <div class="msg" id="lockMsg" style="text-align:left">USDm が無い場合は「スワップ」タブの <b>USDC ⇄ USDm（1:1）</b> で用意できます。</div>
+    </div>
+    <div class="card">
+      <div class="chead"><h2>本体から Base に戻す</h2><span class="dir">本体 <i>→</i> Base</span></div>
+      <p class="lead">本体（L1）の USDm を Base に戻すには、<b>morm.one</b>（パスキー）で USDm の戻し（BRIDGE_BURN）を実行します。数ブロック後、リレーヤ（3-of-5）が Base の指定アドレスへ USDm を解放（unlock）します。</p>
+      <a class="btn mag" id="usdmBackGo" href="https://morm.one/account.html#bridge" target="_blank" rel="noopener" style="margin-top:6px">morm.one で戻す →</a>
+      <div class="note">1 USDm(L1) = 1 USDm(Base)・エスクロー解放のため <b>1:1・端数なし</b>。</div>
+    </div>
+    </div><!-- /brUsdm -->
   </section>
 
   <div class="foot" id="foot"></div>
@@ -223,19 +248,23 @@ const CHAIN_ID=8453, CHAIN_HEX="0x2105";
 const WMORM="0x7fEf327a811e73F06cccF0De9db022e739d5076d";
 const USDC ="0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const BRIDGE="0x08Adb8d2c67491249C20edE2A7460d9f4Bd3907A";
+const USDM ="0xd65896532806030878DB852F3f5216Bc917FD376";        // MORM USD (USDC 1:1 wrapper, 6dec)
+const USDMBRIDGE="0x87cD170BA7a82a0049F2fF36aa926033A5f9C26e";   // USDm escrow bridge (Base↔L1)
 const POOL ="0x6615fC0239eDDb27A8fF2D774C438e68C4599A55";
 const ROUTER="0x2626664c2603336E57B271c5C0b26F421741e481";
 const QUOTER="0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a";
 const FEE=10000;
 const DATA_URL="market-data.json";
 const ERC20_ABI=["function balanceOf(address) view returns (uint256)","function allowance(address,address) view returns (uint256)","function approve(address,uint256) returns (bool)"];
+const USDM_ABI=["function deposit(uint256)","function withdraw(uint256)","function balanceOf(address) view returns (uint256)","function allowance(address,address) view returns (uint256)","function approve(address,uint256) returns (bool)"];
+const USDMBRIDGE_ABI=["function lock(uint256 amount, bytes20 mormAddress)","function paused() view returns (bool)","function minLock() view returns (uint256)"];
 const BRIDGE_ABI=["function exit(uint256 amount, bytes20 mormAddress)","function minExit() view returns (uint256)","function paused() view returns (bool)"];
 const QUOTER_ABI=["function quoteExactInputSingle((address tokenIn,address tokenOut,uint256 amountIn,uint24 fee,uint160 sqrtPriceLimitX96)) returns (uint256 amountOut,uint160 sqrtPriceX96After,uint32 t,uint256 g)"];
 const ROUTER_ABI=["function exactInputSingle((address tokenIn,address tokenOut,uint24 fee,address recipient,uint256 amountIn,uint256 amountOutMinimum,uint160 sqrtPriceLimitX96)) payable returns (uint256)"];
 const ro=new ethers.JsonRpcProvider(RPC,CHAIN_ID);
 const $=id=>document.getElementById(id);
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-let signer=null, account=null, spot=0.01, bal={eth:0n,usdc:0n,wm:0n};
+let signer=null, account=null, spot=0.01, bal={eth:0n,usdc:0n,wm:0n,usdm:0n};
 function priceFromSqrt(sq){const r=Number(sq)/2**96;return r*r*1e12;}
 const fmt=(n,d)=>{n=Number(n);return n>=1000?n.toLocaleString(undefined,{maximumFractionDigits:2}):n.toFixed(d);};
 function fmtN(n){n=Number(n);return n>=1e6?(n/1e6).toFixed(2)+"M":n>=1000?n.toLocaleString(undefined,{maximumFractionDigits:0}):n.toFixed(2);}
@@ -266,6 +295,7 @@ async function connect(){
     $("who").textContent=account.slice(0,7)+"…"+account.slice(-5)+" ✓";
     $("connect").textContent="接続済み";$("connect").disabled=true;$("hbal").classList.add("on");
     $("exitBtn").disabled=false;$("exitBtn").textContent="本体（MORM）へ戻す";
+    $("lockBtn").disabled=false;$("lockBtn").textContent="USDm を持ち込む";
     if($("fwdTo").value==="")$("fwdTo").value=account,syncFwd();
     eth.on&&eth.on("accountsChanged",()=>location.reload());eth.on&&eth.on("chainChanged",()=>location.reload());
     await refreshBal();updateSlide();
@@ -273,10 +303,10 @@ async function connect(){
 }
 $("connect").onclick=connect;
 async function refreshBal(){if(!account)return;
-  try{const u=new ethers.Contract(USDC,ERC20_ABI,ro),w=new ethers.Contract(WMORM,ERC20_ABI,ro);
-    const [e,ub,wb]=await Promise.all([ro.getBalance(account),u.balanceOf(account),w.balanceOf(account)]);
-    bal={eth:e,usdc:ub,wm:wb};
-    $("bEth").textContent=fmt(ethers.formatEther(e),4);$("bUsdc").textContent=fmt(ethers.formatUnits(ub,6),2);$("bWm").textContent=fmt(ethers.formatUnits(wb,18),2);
+  try{const u=new ethers.Contract(USDC,ERC20_ABI,ro),w=new ethers.Contract(WMORM,ERC20_ABI,ro),m=new ethers.Contract(USDM,ERC20_ABI,ro);
+    const [e,ub,wb,mb]=await Promise.all([ro.getBalance(account),u.balanceOf(account),w.balanceOf(account),m.balanceOf(account)]);
+    bal={eth:e,usdc:ub,wm:wb,usdm:mb};
+    $("bEth").textContent=fmt(ethers.formatEther(e),4);$("bUsdc").textContent=fmt(ethers.formatUnits(ub,6),2);$("bUsdm2").textContent=fmt(ethers.formatUnits(mb,6),2);$("bWm").textContent=fmt(ethers.formatUnits(wb,18),2);
     showBalances();}catch(e){}}
 
 /* ================= CHART ================= */
@@ -361,21 +391,30 @@ $("ltok").textContent="basescan.org/token/"+WMORM;$("ltok").href="https://basesc
 $("luni").href="https://app.uniswap.org/swap?chain=base&inputCurrency="+USDC+"&outputCurrency="+WMORM;
 
 /* ================= SWAP ================= */
-let DIR="buy", slip=1, quote=null, qSeq=0, quoting=false, qTimer=null;
-function payTok(){return DIR==="buy"?{a:USDC,s:"USDC",d:6,ic:"uc",t:"$"}:{a:WMORM,s:"wMORM",d:18,ic:"wm",t:"M"};}
-function recvTok(){return DIR==="buy"?{a:WMORM,s:"wMORM",d:18,ic:"wm",t:"M"}:{a:USDC,s:"USDC",d:6,ic:"uc",t:"$"};}
+let DIR="buy", SMODE="wmorm", slip=1, quote=null, qSeq=0, quoting=false, qTimer=null;
+const T_USDC={a:USDC,s:"USDC",d:6,ic:"uc",t:"$"};
+const T_WM  ={a:WMORM,s:"wMORM",d:18,ic:"wm",t:"M"};
+const T_USDM={a:USDM,s:"USDm",d:6,ic:"um",t:"$"};
+function payTok(){return SMODE==="usdm"?(DIR==="buy"?T_USDC:T_USDM):(DIR==="buy"?T_USDC:T_WM);}
+function recvTok(){return SMODE==="usdm"?(DIR==="buy"?T_USDM:T_USDC):(DIR==="buy"?T_WM:T_USDC);}
+function balRaw(tk){return tk.a===USDC?bal.usdc:tk.a===WMORM?bal.wm:tk.a===USDM?bal.usdm:0n;}
+function balOf(tk){return ethers.formatUnits(balRaw(tk),tk.d);}
+function usdVal(tk,v){return tk.a===WMORM?v*spot:v;}   // USDC/USDm are $1
 function renderTokens(){const p=payTok(),r=recvTok();
   $("payTok").textContent=p.s;$("payIc").textContent=p.t;$("payIc").className="ic "+p.ic;
   $("recvTok").textContent=r.s;$("recvIc").textContent=r.t;$("recvIc").className="ic "+r.ic;
   $("uniLink").href="https://app.uniswap.org/swap?chain=base&inputCurrency="+p.a+"&outputCurrency="+r.a;showBalances();}
 function showBalances(){if(!account){$("payBal").textContent="—";$("recvBal").textContent="—";return;}
-  const pb=DIR==="buy"?ethers.formatUnits(bal.usdc,6):ethers.formatUnits(bal.wm,18);
-  const rb=DIR==="buy"?ethers.formatUnits(bal.wm,18):ethers.formatUnits(bal.usdc,6);
-  $("payBal").textContent="残高 "+fmt(pb,2);$("recvBal").textContent="残高 "+fmt(rb,2);}
-function onPayInput(){clearTimeout(qTimer);const v=parseFloat($("payIn").value);const p=payTok();
-  $("payUsd").textContent=v>0?("≈ $"+fmt((DIR==="buy"?v:v*spot),2)):"";
+  $("payBal").textContent="残高 "+fmt(balOf(payTok()),2);$("recvBal").textContent="残高 "+fmt(balOf(recvTok()),2);syncLockBal();}
+function syncLockBal(){if($("lockBal"))$("lockBal").innerHTML="残高: <b>"+(account?fmt(ethers.formatUnits(bal.usdm,6),2)+" USDm":"—")+"</b>";}
+function onPayInput(){clearTimeout(qTimer);const v=parseFloat($("payIn").value);const p=payTok(),r=recvTok();
+  $("payUsd").textContent=v>0?("≈ $"+fmt(usdVal(p,v),2)):"";
   quote=null;qSeq++;
   if(!(v>0)){quoting=false;$("recvOut").value="";$("recvUsd").textContent="";$("sinfo").style.display="none";updateSlide();return;}
+  if(SMODE==="usdm"){                                   // 1:1 wrap/unwrap — no pool, no slippage
+    const amountIn=ethers.parseUnits(v.toFixed(p.d),p.d);
+    quote={out:amountIn,min:amountIn,outNum:v,impact:0,rDec:r.d,amountIn,payA:p.a,recvA:r.a};
+    quoting=false;$("recvOut").value=fmt(v,6);$("recvUsd").textContent="≈ $"+fmt(v,2);$("sinfo").style.display="none";updateSlide();return;}
   quoting=true;$("recvOut").value="…";$("sinfo").style.display="none";updateSlide();
   qTimer=setTimeout(runQuote,320);}
 async function runQuote(){
@@ -401,7 +440,11 @@ async function runQuote(){
   finally{if(seq===qSeq){quoting=false;updateSlide();}}
 }
 $("flip").onclick=()=>{DIR=DIR==="buy"?"sell":"buy";qSeq++;quote=null;quoting=false;renderTokens();$("payIn").value="";$("recvOut").value="";$("payUsd").textContent="";$("recvUsd").textContent="";$("sinfo").style.display="none";updateSlide();};
-$("maxBtn").onclick=()=>{if(!account)return;$("payIn").value=DIR==="buy"?ethers.formatUnits(bal.usdc,6):ethers.formatUnits(bal.wm,18);onPayInput();};
+$("maxBtn").onclick=()=>{if(!account)return;$("payIn").value=balOf(payTok());onPayInput();};
+[...$("smode").children].forEach(b=>b.onclick=()=>{SMODE=b.dataset.sm;[...$("smode").children].forEach(x=>x.classList.remove("on"));b.classList.add("on");
+  DIR="buy";qSeq++;quote=null;quoting=false;$("slip").classList.remove("on");
+  const usd=SMODE==="usdm";$("gear").style.display=usd?"none":"";$("uniLink").style.display=usd?"none":"";
+  renderTokens();$("payIn").value="";$("recvOut").value="";$("payUsd").textContent="";$("recvUsd").textContent="";$("sinfo").style.display="none";updateSlide();});
 $("payIn").addEventListener("input",onPayInput);
 $("gear").onclick=()=>$("slip").classList.toggle("on");
 [...$("slip").children].forEach(b=>b.onclick=()=>{slip=parseFloat(b.dataset.s);[...$("slip").children].forEach(x=>x.classList.remove("on"));b.classList.add("on");if(quote)runQuote();});
@@ -424,7 +467,20 @@ function updateSlide(){const sl=$("slide");
 async function doSwap(done){const msg=$("swMsg");msg.className="msg";
   try{if(!signer)throw new Error("ウォレット未接続");if(!quote)throw new Error("金額を入力してください");
     const amountIn=quote.amountIn,tokenIn=quote.payA,tokenOut=quote.recvA;
-    if((tokenIn===USDC?bal.usdc:bal.wm)<amountIn)throw new Error("残高が不足しています");
+    if(balRaw(payTok())<amountIn)throw new Error("残高が不足しています");
+    if(SMODE==="usdm"){                                 // USDC ⇄ USDm 1:1 (deposit/withdraw)
+      const m=new ethers.Contract(USDM,USDM_ABI,signer);
+      if(tokenIn===USDC){                               // USDC -> USDm (deposit)
+        const u=new ethers.Contract(USDC,ERC20_ABI,signer);const cur=await u.allowance(account,USDM);
+        if(cur<amountIn){msg.textContent="① USDC 利用を承認中…（ウォレットで承認）";const ap=await u.approve(USDM,amountIn);await ap.wait();}
+        msg.textContent="② USDm に変換中…";const tx=await m.deposit(amountIn);await tx.wait();
+        msg.className="msg ok";msg.innerHTML="変換完了 ✓ USDC → USDm <a href='https://basescan.org/tx/"+tx.hash+"' target='_blank' rel='noopener' style='color:var(--blue)'>取引</a>";
+      }else{                                            // USDm -> USDC (withdraw, no approve needed)
+        msg.textContent="② USDC に戻し中…";const tx=await m.withdraw(amountIn);await tx.wait();
+        msg.className="msg ok";msg.innerHTML="変換完了 ✓ USDm → USDC <a href='https://basescan.org/tx/"+tx.hash+"' target='_blank' rel='noopener' style='color:var(--blue)'>取引</a>";
+      }
+      $("payIn").value="";$("recvOut").value="";$("payUsd").textContent="";$("recvUsd").textContent="";quote=null;await refreshBal();done&&done();return;
+    }
     const tin=new ethers.Contract(tokenIn,ERC20_ABI,signer);const cur=await tin.allowance(account,ROUTER);
     if(cur<amountIn){msg.textContent="① トークン利用を承認中…（ウォレットで承認）";const ap=await tin.approve(ROUTER,amountIn);await ap.wait();}
     msg.textContent="② スワップを送信中…";const rt=new ethers.Contract(ROUTER,ROUTER_ABI,signer);
@@ -458,6 +514,25 @@ async function doExit(){if(!signer)return;const msg=$("exitMsg");msg.className="
     $("exitAmt").value="";$("exitRcv").innerHTML="受け取り: <b>—</b>";refreshBal();
   }catch(e){msg.className="msg err";msg.style.textAlign="left";msg.textContent="失敗: "+(e.shortMessage||e.reason||e.message);}}
 $("exitBtn").onclick=doExit;
+
+/* ---- USDm bridge (Base → 本体 L1 : lock) ---- */
+async function doLock(){if(!signer)return;const msg=$("lockMsg");msg.className="msg";msg.style.textAlign="left";
+  try{const b20=mormB20($("lockAddr").value.trim());
+    const v=parseFloat($("lockAmt").value);if(!(v>0))throw new Error("持ち込む量を入力してください");
+    const amountUnits=ethers.parseUnits(v.toFixed(6),6);if(amountUnits<=0n)throw new Error("金額が小さすぎます");
+    if(bal.usdm<amountUnits)throw new Error("USDm 残高が不足しています（スワップタブで USDC→USDm 可）");
+    const br=new ethers.Contract(USDMBRIDGE,USDMBRIDGE_ABI,signer);
+    if(await br.paused())throw new Error("ブリッジが一時停止中です");
+    const u=new ethers.Contract(USDM,USDM_ABI,signer);const cur=await u.allowance(account,USDMBRIDGE);
+    if(cur<amountUnits){msg.textContent="① USDm 利用を承認中…（ウォレットで承認）";const ap=await u.approve(USDMBRIDGE,amountUnits);await ap.wait();}
+    msg.textContent="② "+v+" USDm をロック中…";const tx=await br.lock(amountUnits,b20);await tx.wait();
+    msg.className="msg ok";msg.style.textAlign="left";
+    msg.innerHTML="完了 ✓ 数ブロック後に本体へ <b>"+v+" USDm</b> が着金します。 <a href='https://basescan.org/tx/"+tx.hash+"' target='_blank' rel='noopener' style='color:var(--blue)'>取引</a>";
+    $("lockAmt").value="";refreshBal();
+  }catch(e){msg.className="msg err";msg.style.textAlign="left";msg.textContent="失敗: "+(e.shortMessage||e.reason||e.message);}}
+$("lockBtn").onclick=doLock;
+[...$("bmode").children].forEach(b=>b.onclick=()=>{const m=b.dataset.bm;[...$("bmode").children].forEach(x=>x.classList.remove("on"));b.classList.add("on");
+  $("brWmorm").style.display=(m==="usdm")?"none":"";$("brUsdm").style.display=(m==="usdm")?"":"none";});
 
 /* deep-link ?m0r= → ブリッジタブ + 戻す prefill */
 (function(){try{const q=new URLSearchParams(location.search);const m=(q.get("m0r")||"").trim(),a=(q.get("amount")||"").trim();
