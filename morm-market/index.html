@@ -108,12 +108,26 @@ input.tx.plain{padding-right:13px}input.tx:focus{border-color:var(--magenta);box
 .note{font-size:12px;color:var(--soft);background:var(--card2);border:1px solid var(--line2);border-radius:11px;padding:11px 13px;margin-top:11px;line-height:1.6}.note a{color:var(--blue);text-decoration:none}
 .foot{margin-top:18px;font-size:12px;color:var(--faint);line-height:1.8;text-align:center}.foot a{color:var(--blue);text-decoration:none}
 @media(min-width:720px){.wrap{max-width:540px;padding-top:26px}}
+.help{border:1px solid var(--line);background:var(--card);color:var(--soft);border-radius:999px;font-size:11.5px;font-weight:800;padding:6px 11px;cursor:pointer;white-space:nowrap}
+#brHelp{display:block;width:100%;margin:0 0 12px;text-align:center}
+.tutback{position:fixed;inset:0;background:#0008;backdrop-filter:blur(3px);display:none;align-items:flex-end;justify-content:center;z-index:50}
+.tutback.on{display:flex}
+.tut{background:var(--card);color:var(--ink);width:100%;max-width:540px;max-height:86vh;overflow:auto;border-radius:20px 20px 0 0;padding:20px 20px 24px;box-shadow:0 -10px 40px #0006}
+@media(min-width:720px){.tutback{align-items:center}.tut{border-radius:20px}}
+.tut h3{margin:0 0 6px;font-size:18px;font-weight:900}
+.tut h4{margin:16px 0 4px;font-size:13.5px;font-weight:900;color:var(--magenta)}
+.tut p,.tut li{font-size:13px;color:var(--soft);margin:4px 0}
+.tut b{color:var(--ink)}
+.tut ul{margin:4px 0;padding-left:18px}
+.tut .x{float:right;border:none;background:var(--card2);color:var(--ink);border-radius:999px;width:32px;height:32px;font-size:17px;font-weight:800;cursor:pointer;line-height:1}
+.tut .done{margin-top:18px}
 </style></head><body>
 <div class="wrap">
   <div class="top">
     <span class="logo">M<b>0</b>RM</span>
     <span class="pair">MORM / USD</span>
     <span class="sp"></span>
+    <button class="help" id="tutOpen" type="button">？ 使い方</button>
     <span class="chip net">BASE · MAINNET</span>
   </div>
 
@@ -191,53 +205,84 @@ input.tx.plain{padding-right:13px}input.tx:focus{border-color:var(--magenta);box
 
   <!-- ============ BRIDGE ============ -->
   <section class="tab" id="tabBridge">
-    <div class="modes" id="bmode"><button data-bm="wmorm" class="on">wMORM ↔ 本体</button><button data-bm="usdm">USDm ↔ 本体</button></div>
+    <div class="modes" id="bmode"><button data-bm="wmorm" class="on">wMORM</button><button data-bm="usdm">USDm</button></div>
+    <button class="help" id="brHelp" type="button">？ ブリッジの使い方</button>
     <div id="brWmorm">
     <div class="card">
-      <div class="chead"><h2>持ち出す</h2><span class="dir">本体 <i>→</i> Base</span></div>
-      <p class="lead">本体（MORM）を Base の wMORM に変えます。安全のため <b>morm.one</b>（パスキー）で実行します。</p>
+      <div class="chead"><h2>MORM <i>→</i> Base</h2><span class="dir">wMORM</span></div>
+      <p class="lead">MORM を Base 上の <b>wMORM</b> にブリッジします。<b>morm.one</b>（パスキー）で実行します。</p>
       <label>受け取る Base アドレス（0x…）</label>
       <div class="rowf"><input class="tx plain" id="fwdTo" placeholder="0x…" spellcheck="false" autocapitalize="off"><button class="cbtn" id="fwdFill" style="flex:0 0 auto">接続先</button></div>
-      <label>持ち出す量</label>
+      <label>量</label>
       <div class="field"><input class="tx" id="fwdAmt" inputmode="numeric" placeholder="0"><span class="suf">MORM</span></div>
-      <a class="btn mag" id="fwdGo" href="https://morm.one/account.html#bridge" target="_blank" rel="noopener" style="margin-top:14px">morm.one で実行する →</a>
+      <a class="btn mag" id="fwdGo" href="https://morm.one/account.html#bridge" target="_blank" rel="noopener" style="margin-top:14px">morm.one でブリッジ →</a>
       <div class="note">口座がまだの方は <a href="https://morm.one/" target="_blank" rel="noopener">morm.one でパスキー口座を作成</a>。</div>
     </div>
     <div class="card">
-      <div class="chead"><h2>本体に戻す</h2><span class="dir">Base <i>→</i> 本体</span></div>
-      <p class="lead">Base の wMORM を本体（MORM）に戻します。ウォレットを接続して実行します。</p>
-      <label>戻す量</label>
+      <div class="chead"><h2>Base <i>→</i> MORM</h2><span class="dir">wMORM</span></div>
+      <p class="lead">Base の <b>wMORM</b> を MORM にブリッジします。ウォレットを接続して実行します。</p>
+      <label>量</label>
       <div class="field"><input class="tx" id="exitAmt" inputmode="numeric" placeholder="0"><span class="suf">wMORM</span></div>
       <div class="rcv" id="exitRcv">受け取り: <b>—</b></div>
-      <label>本体の受け取りアドレス（m0r…）</label>
+      <label>受け取り MORM アドレス（m0r…）</label>
       <input class="tx plain" id="exitAddr" placeholder="m0r…" spellcheck="false" autocapitalize="off">
       <button class="btn blue" id="exitBtn" style="margin-top:14px" disabled>先にウォレットを接続</button>
-      <div class="msg" id="exitMsg" style="text-align:left">戻すと数ブロック後に本体の MORM 口座（m0r…）へ着金します（1 wMORM = 1 MORM・端数切り捨て）。</div>
+      <div class="msg" id="exitMsg" style="text-align:left">送信後、数ブロックで MORM（m0r…）に着金します（1 wMORM = 1 MORM）。</div>
     </div>
     </div><!-- /brWmorm -->
 
     <div id="brUsdm" style="display:none">
     <div class="card">
-      <div class="chead"><h2>USDm を本体（L1）へ持ち込む</h2><span class="dir">Base <i>→</i> 本体</span></div>
-      <p class="lead">Base の <b>USDm</b> を本体（L1）に 1:1 で持ち込みます。ウォレットで承認 → ロックすると、リレーヤ（3-of-5）が本体の口座へ USDm を着金します。</p>
-      <label>本体の受け取りアドレス（m0r…）</label>
+      <div class="chead"><h2>Base <i>→</i> MORM</h2><span class="dir">USDm</span></div>
+      <p class="lead"><b>USDm</b> を Base から MORM にブリッジします（1:1）。承認 → ブリッジで、数ブロック後に受け取りアドレスへ着金します。</p>
+      <label>受け取り MORM アドレス（m0r…）</label>
       <input class="tx plain" id="lockAddr" placeholder="m0r…" spellcheck="false" autocapitalize="off">
-      <label>持ち込む量</label>
+      <label>量</label>
       <div class="field"><input class="tx" id="lockAmt" inputmode="decimal" placeholder="0"><span class="suf">USDm</span></div>
       <div class="rcv" id="lockBal">残高: <b>—</b></div>
       <button class="btn blue" id="lockBtn" style="margin-top:14px" disabled>先にウォレットを接続</button>
-      <div class="msg" id="lockMsg" style="text-align:left">USDm が無い場合は「スワップ」タブの <b>USDC ⇄ USDm（1:1）</b> で用意できます。</div>
+      <div class="msg" id="lockMsg" style="text-align:left">USDm が無いときは「スワップ」で <b>USDC → USDm</b>。</div>
     </div>
     <div class="card">
-      <div class="chead"><h2>本体から Base に戻す</h2><span class="dir">本体 <i>→</i> Base</span></div>
-      <p class="lead">本体（L1）の USDm を Base に戻すには、<b>morm.one</b>（パスキー）で USDm の戻し（BRIDGE_BURN）を実行します。数ブロック後、リレーヤ（3-of-5）が Base の指定アドレスへ USDm を解放（unlock）します。</p>
-      <a class="btn mag" id="usdmBackGo" href="https://morm.one/account.html#bridge" target="_blank" rel="noopener" style="margin-top:6px">morm.one で戻す →</a>
-      <div class="note">1 USDm(L1) = 1 USDm(Base)・エスクロー解放のため <b>1:1・端数なし</b>。</div>
+      <div class="chead"><h2>MORM <i>→</i> Base</h2><span class="dir">USDm</span></div>
+      <p class="lead">MORM の <b>USDm</b> を Base にブリッジするには <b>morm.one</b>（パスキー）で実行します。数ブロック後、Base の指定アドレスへ届きます。</p>
+      <a class="btn mag" id="usdmBackGo" href="https://morm.one/account.html#bridge" target="_blank" rel="noopener" style="margin-top:6px">morm.one でブリッジ →</a>
+      <div class="note">1:1・端数なし。</div>
     </div>
     </div><!-- /brUsdm -->
   </section>
 
   <div class="foot" id="foot"></div>
+</div>
+
+<div class="tutback" id="tutBack">
+  <div class="tut" id="tut">
+    <button class="x" id="tutX" type="button" aria-label="閉じる">×</button>
+    <h3>MORM マーケットの使い方</h3>
+    <p>MORM は独自チェーン。Base 上ではその価値を <b>wMORM</b>（＝MORM）、ドルの価値を <b>USDm</b>（USDC 裏付け・1:1）で扱えます。</p>
+    <h4>チャート</h4>
+    <p>MORM の価格と流通量をリアルタイム表示（Uniswap 実プール直読み）。</p>
+    <h4>スワップ</h4>
+    <ul>
+      <li><b>wMORM</b>：USDC ⇄ wMORM を Uniswap の実プールで交換。スライドで承認します。</li>
+      <li><b>USDC ⇄ USDm（1:1）</b>：ドルの安定トークン USDm に即時変換（手数料・スリッページなし）。</li>
+    </ul>
+    <h4>ブリッジ（Base ⇄ MORM）</h4>
+    <ul>
+      <li><b>wMORM</b>：MORM → Base は <b>morm.one</b>（パスキー）、Base → MORM はウォレットで。</li>
+      <li><b>USDm</b>：Base → MORM はウォレットで承認 → ブリッジ、MORM → Base は <b>morm.one</b> で。</li>
+    </ul>
+    <p>いずれも数ブロック後にリレーヤ（3-of-5 マルチシグ）が着金させます。</p>
+    <h4>用語</h4>
+    <ul>
+      <li><b>MORM</b>：本体チェーンの通貨</li>
+      <li><b>wMORM</b>：Base 上の MORM（1:1）</li>
+      <li><b>USDm</b>：Base / MORM 上のドル（USDC 裏付け・1:1）</li>
+    </ul>
+    <h4>必要なもの</h4>
+    <p>ウォレット（MetaMask 等）と、ガス用の Base の ETH。</p>
+    <button class="btn mag done" id="tutDone" type="button">はじめる</button>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
@@ -294,8 +339,8 @@ async function connect(){
     signer=await bp.getSigner();account=await signer.getAddress();
     $("who").textContent=account.slice(0,7)+"…"+account.slice(-5)+" ✓";
     $("connect").textContent="接続済み";$("connect").disabled=true;$("hbal").classList.add("on");
-    $("exitBtn").disabled=false;$("exitBtn").textContent="本体（MORM）へ戻す";
-    $("lockBtn").disabled=false;$("lockBtn").textContent="USDm を持ち込む";
+    $("exitBtn").disabled=false;$("exitBtn").textContent="ブリッジ";
+    $("lockBtn").disabled=false;$("lockBtn").textContent="ブリッジ";
     if($("fwdTo").value==="")$("fwdTo").value=account,syncFwd();
     eth.on&&eth.on("accountsChanged",()=>location.reload());eth.on&&eth.on("chainChanged",()=>location.reload());
     await refreshBal();updateSlide();
@@ -527,12 +572,21 @@ async function doLock(){if(!signer)return;const msg=$("lockMsg");msg.className="
     if(cur<amountUnits){msg.textContent="① USDm 利用を承認中…（ウォレットで承認）";const ap=await u.approve(USDMBRIDGE,amountUnits);await ap.wait();}
     msg.textContent="② "+v+" USDm をロック中…";const tx=await br.lock(amountUnits,b20);await tx.wait();
     msg.className="msg ok";msg.style.textAlign="left";
-    msg.innerHTML="完了 ✓ 数ブロック後に本体へ <b>"+v+" USDm</b> が着金します。 <a href='https://basescan.org/tx/"+tx.hash+"' target='_blank' rel='noopener' style='color:var(--blue)'>取引</a>";
+    msg.innerHTML="完了 ✓ 数ブロック後に MORM へ <b>"+v+" USDm</b> が着金します。 <a href='https://basescan.org/tx/"+tx.hash+"' target='_blank' rel='noopener' style='color:var(--blue)'>取引</a>";
     $("lockAmt").value="";refreshBal();
   }catch(e){msg.className="msg err";msg.style.textAlign="left";msg.textContent="失敗: "+(e.shortMessage||e.reason||e.message);}}
 $("lockBtn").onclick=doLock;
 [...$("bmode").children].forEach(b=>b.onclick=()=>{const m=b.dataset.bm;[...$("bmode").children].forEach(x=>x.classList.remove("on"));b.classList.add("on");
   $("brWmorm").style.display=(m==="usdm")?"none":"";$("brUsdm").style.display=(m==="usdm")?"":"none";});
+
+/* ================= TUTORIAL ================= */
+function openTut(){$("tutBack").classList.add("on");}
+function closeTut(){$("tutBack").classList.remove("on");try{localStorage.setItem("morm_tut_seen","1");}catch(e){}}
+$("tutOpen").onclick=openTut;$("brHelp").onclick=openTut;
+$("tutX").onclick=closeTut;$("tutDone").onclick=closeTut;
+$("tutBack").addEventListener("click",e=>{if(e.target===$("tutBack"))closeTut();});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeTut();});
+try{if(!localStorage.getItem("morm_tut_seen"))openTut();}catch(e){}
 
 /* deep-link ?m0r= → ブリッジタブ + 戻す prefill */
 (function(){try{const q=new URLSearchParams(location.search);const m=(q.get("m0r")||"").trim(),a=(q.get("amount")||"").trim();
