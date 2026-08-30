@@ -1,6 +1,6 @@
 // Server-side price + pool-reserve reader for the cash-out valve. Mirrors the
 // math in app/api/price/route.js (Uniswap v3 slot0 + pool token balances on
-// Base Sepolia) but returns the USDC reserve too, and supports env overrides
+// Base mainnet) but returns the USDC reserve too, and supports env overrides
 // for tests / emergencies. The public /api/price route is intentionally left
 // untouched — this is a separate, valve-facing reader.
 //

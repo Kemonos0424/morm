@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 // Public price oracle: reads the live wMORM/USDC price straight from the
-// Uniswap v3 pool on Base Sepolia (slot0 + pool token balances), server-side,
+// Uniswap v3 pool on Base mainnet (slot0 + pool token balances), server-side,
 // so any origin can consume it without the RPC's CORS/UA restrictions. Returns
 // USDC-per-wMORM (== USD-per-MORM at the 1:1 wMORM<->MORM mirror). Read-only,
 // so CORS is open ("*") and the CDN caches it briefly.
