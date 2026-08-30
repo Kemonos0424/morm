@@ -169,3 +169,21 @@ forge script script/DeployUSDm.s.sol --rpc-url "$RPC_URL" --broadcast # 本番
 - **USDm**: `0xd65896532806030878DB852F3f5216Bc917FD376`（"MORM USD"/USDm/6dec・backedBy=native USDC 0x8335…）
 - 検証済: usdc()=USDC・totalSupply 0・backing 0/0（未 deposit）。tx `0x5ef09f2a…` blk 50633459。
 - 使い方: `USDC.approve(USDm, amt)` → `USDm.deposit(amt)`（1:1 mint）／`USDm.withdraw(amt)`（1:1 償還）。
+
+## USDm L1 ミラー（Phase B②）— USDmLockBridge（escrow・3-of-5）
+`src/USDmLockBridge.sol` = USDm を escrow する lock/unlock 型ブリッジ（USDm は既存なので mint せず**ロック**）。
+Base→L1: `lock(amount, m0r)`=escrow＋Locked→relayer が L1 `BRIDGE_MINT(token=USDm)` で account_tokens に credit。
+L1→Base: L1 `BRIDGE_BURN(token=USDm)`→relayer が **3-of-5 署名**で `unlock(recipient,amount,burnId,sigs)`＝escrow 解放。
+署名=既存5鍵(3-of-5)・guardian pause・velocity cap(maxUnlockPerWindow)・idempotent(unlockedBurn)・CEI。
+
+**デプロイ（★ユーザー broadcast）** — env は wMORM bridge と共通(SIGNERS/THRESHOLD/GUARDIAN/WINDOW_LEN)＋USDM_ADDR:
+```bash
+cd ~/Desktop/MORM/morm-chain
+set -a; source ../.mainnet-deploy.env; set +a
+export DEPLOYER_PK=<deployer秘密鍵>
+forge script script/DeployUSDmLockBridge.s.sol --rpc-url "$RPC_URL"             # dry
+forge script script/DeployUSDmLockBridge.s.sol --rpc-url "$RPC_URL" --broadcast # 本番
+```
+ログの **USDmLockBridge アドレス**を控える→`.mainnet-deploy.env` に USDM_BRIDGE_ADDR 追記。
+
+**残（Stage 2 = relayer 拡張・私が実装）**: export_relayer に USDm 経路追加＝(a) Base `Locked` イベント→L1 `BRIDGE_MINT(token=USDm)`(treasury 署名) (b) L1 `bridge_burns(token=USDm)`→`USDmLockBridge.unlock`(5署名)。digest purpose="USDmLockBridge:unlock"。既存の chunked getLogs / 署名収集を流用。
