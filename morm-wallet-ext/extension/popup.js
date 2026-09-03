@@ -28,14 +28,31 @@ const store = {
 const $ = (id) => document.getElementById(id);
 const SECTIONS = ["secOnboard", "secCreatePw", "secReveal", "secImport", "secLocked", "secHome"];
 function show(id) { SECTIONS.forEach((s) => $(s).classList.toggle("on", s === id)); }
-function bgSend(msg) {
-  return new Promise((res) => chrome.runtime.sendMessage(msg, (r) => res(chrome.runtime.lastError ? null : r)));
+// Unlocked session lives in chrome.storage.session (RAM only, never disk,
+// cleared when the browser closes) so it survives MV3 service-worker eviction —
+// unlike an in-SW variable, which vanishes after ~30s idle and caused
+// "ロックされています" at sign time. Idle auto-lock via a lockAt timestamp.
+const SESSION_KEY = "session";
+const IDLE_MS = 5 * 60 * 1000;
+async function sessionGet() {
+  try {
+    const o = await chrome.storage.session.get(SESSION_KEY);
+    const s = o[SESSION_KEY];
+    if (!s) return null;
+    if (Date.now() > s.lockAt) { await chrome.storage.session.remove(SESSION_KEY); return null; }
+    return s;
+  } catch { return null; }
 }
+async function sessionSet(sess) {
+  await chrome.storage.session.set({ [SESSION_KEY]: { ...sess, lockAt: Date.now() + IDLE_MS } });
+}
+async function sessionClear() { try { await chrome.storage.session.remove(SESSION_KEY); } catch {} }
+
 let currentAddress = null;
 let currentAcc = null; // last fetched account state (balance/nonce/evmAddress/baseUnitsPerMorm)
 
 async function goHome(session, kindLabel) {
-  await bgSend({ type: "setUnlocked", ...session });
+  await sessionSet(session);
   currentAddress = session.address;
   $("homeAddr").textContent = session.address;
   $("homeKind").textContent = kindLabel || "";
@@ -187,8 +204,9 @@ $("btnSendGo").onclick = async () => {
   $("btnSendGo").disabled = true;
   let seed;
   try {
-    const session = await bgSend({ type: "getSession" });
+    const session = await sessionGet();
     if (!session?.seedHex) throw new Error("ロックされています。解錠し直してください");
+    await sessionSet(session); // touch: extend idle lock on activity
     // Fresh nonce right before signing (avoids stale-nonce rejects).
     const acc = await getAccountState(API_BASE, currentAddress);
     const nonce = Number(acc.chain?.nonce ?? 0);
@@ -209,10 +227,10 @@ $("btnSendGo").onclick = async () => {
 
 // ---- routing ---------------------------------------------------------------
 async function route() {
-  const state = await bgSend({ type: "getState" });
-  if (state && !state.locked && state.address) {
-    currentAddress = state.address;
-    $("homeAddr").textContent = state.address;
+  const s = await sessionGet();
+  if (s && s.address) {
+    currentAddress = s.address;
+    $("homeAddr").textContent = s.address;
     resetSend();
     show("secHome");
     refreshBalance();
@@ -396,8 +414,9 @@ $("btnBridgeGo").onclick = async () => {
   $("btnBridgeGo").disabled = true;
   let seed;
   try {
-    const session = await bgSend({ type: "getSession" });
+    const session = await sessionGet();
     if (!session?.seedHex) throw new Error("ロックされています。解錠し直してください");
+    await sessionSet(session); // touch: extend idle lock on activity
     const acc = await getAccountState(API_BASE, currentAddress);
     const nonce = Number(acc.chain?.nonce ?? 0);
     const body = buildBridgeBurn({ senderPubkeyHex: session.pubkeyHex, nonce, amount: bridgeCtx.amountBase, evmRecipient: bridgeCtx.evm });
@@ -433,7 +452,7 @@ $("btnUnlockPasskey").onclick = async () => {
     await goHome(s, "パスキー保護");
   } catch (e) { $("upwErr").textContent = "解錠に失敗: " + String(e.message || e); }
 };
-$("btnLock").onclick = async () => { await bgSend({ type: "lock" }); await route(); };
+$("btnLock").onclick = async () => { await sessionClear(); await route(); };
 
 // ---- password show/hide toggles -------------------------------------------
 document.querySelectorAll("button.eye").forEach((btn) => {
