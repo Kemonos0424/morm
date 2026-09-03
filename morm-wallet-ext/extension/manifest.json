@@ -19,7 +19,9 @@
   "host_permissions": [
     "https://api.morm.one/*",
     "https://l1.morm.one/*",
-    "https://node.morm.one/*"
+    "https://node.morm.one/*",
+    "https://morm.one/*",
+    "https://www.morm.one/*"
   ],
   "externally_connectable": {
     "matches": [
