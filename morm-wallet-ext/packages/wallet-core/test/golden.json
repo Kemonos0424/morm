@@ -1,0 +1,126 @@
+{
+  "note": "MORM wallet-core golden vectors. Generated from morm-l1 Python. Test-only seeds.",
+  "address_prefix": "m0r",
+  "vectors": [
+    {
+      "seed_hex": "0000000000000000000000000000000000000000000000000000000000000000",
+      "pubkey_hex": "3b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da29",
+      "address": "m0rgecoufbcfnn6ctgdd42kc2qseh4ujqpd",
+      "recovery_key": "morm-rk1-aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa",
+      "tx": {
+        "kind": 6,
+        "sender": "3b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da29",
+        "nonce": 0,
+        "amount_str": "1000",
+        "payload": {
+          "to": "m0rvbrmrsbjqpsdwtj3cukh6kvu43fxor7w",
+          "amount": 1000
+        },
+        "signing_bytes_utf8": "{\"kind\":6,\"nonce\":0,\"payload\":{\"amount\":1000,\"to\":\"m0rvbrmrsbjqpsdwtj3cukh6kvu43fxor7w\"},\"sender\":\"3b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da29\"}",
+        "signing_bytes_hex": "7b226b696e64223a362c226e6f6e6365223a302c227061796c6f6164223a7b22616d6f756e74223a313030302c22746f223a226d30727662726d7273626a7170736477746a3363756b68366b7675343366786f723777227d2c2273656e646572223a2233623661323762636365623661343264363261336138643032613666306437333635333231353737316465323433613633616330343861313862353964613239227d",
+        "signature_hex": "c122534c5f6f71aab41aacc9adf10ddf9354d524ae5ef8d69b15a766b212b16c63dc1f0bc75c4e6f45c5a3e3ed89a9cf7b9062c9f74e2f2baf92d0fc5081c908",
+        "tx_hash_hex": "44d5deb1d865ae3f457f4c6fb8acb869dccd1f93bf0b09e7fc9caa24c256d54c"
+      },
+      "bridge_burn": {
+        "kind": 21,
+        "sender": "3b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da29",
+        "nonce": 0,
+        "amount_str": "1000",
+        "evm_recipient": "0x5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a",
+        "token": "MORM",
+        "signing_bytes_utf8": "{\"kind\":21,\"nonce\":0,\"payload\":{\"amount\":1000,\"evm_recipient\":\"0x5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a\",\"token\":\"MORM\"},\"sender\":\"3b6a27bcceb6a42d62a3a8d02a6f0d73653215771de243a63ac048a18b59da29\"}",
+        "signature_hex": "0fa988a7e69346b5bf3d433b4824088fb62330d2d217fd45d0ceed38ece6a1bd533e4fc2f919c470f31b4e8bcf310d7c744e29de1c9ae332ca0cd44664d2da08"
+      }
+    },
+    {
+      "seed_hex": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "pubkey_hex": "76a1592044a6e4f511265bca73a604d90b0529d1df602be30a19a9257660d1f5",
+      "address": "m0rcj2ka5kgpbte2jsv2drdhkr3tib5ehxu",
+      "recovery_key": "morm-rk1-7777 7777 7777 7777 7777 7777 7777 7777 7777 7777 7777 7777 777q",
+      "tx": {
+        "kind": 6,
+        "sender": "76a1592044a6e4f511265bca73a604d90b0529d1df602be30a19a9257660d1f5",
+        "nonce": 1,
+        "amount_str": "2000",
+        "payload": {
+          "to": "m0rty7lluryf4ft4ew3uk5uf4pxete6zzsm",
+          "amount": 2000
+        },
+        "signing_bytes_utf8": "{\"kind\":6,\"nonce\":1,\"payload\":{\"amount\":2000,\"to\":\"m0rty7lluryf4ft4ew3uk5uf4pxete6zzsm\"},\"sender\":\"76a1592044a6e4f511265bca73a604d90b0529d1df602be30a19a9257660d1f5\"}",
+        "signing_bytes_hex": "7b226b696e64223a362c226e6f6e6365223a312c227061796c6f6164223a7b22616d6f756e74223a323030302c22746f223a226d30727479376c6c7572796634667434657733756b357566347078657465367a7a736d227d2c2273656e646572223a2237366131353932303434613665346635313132363562636137336136303464393062303532396431646636303262653330613139613932353736363064316635227d",
+        "signature_hex": "6c6d21fa6d107660b195a821260714e5cb272119e0b6cbaab59227bc8a5df043a87f5c893846a71ee7bfa5fc6840f758e9a3ab193b659be41caee20d93fbf20c",
+        "tx_hash_hex": "d37d3de2c27462397fe6da3aae10495df718f5bf706f3189d6a78c0a1dc7bbca"
+      },
+      "bridge_burn": {
+        "kind": 21,
+        "sender": "76a1592044a6e4f511265bca73a604d90b0529d1df602be30a19a9257660d1f5",
+        "nonce": 1,
+        "amount_str": "2000",
+        "evm_recipient": "0xa5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5",
+        "token": "MORM",
+        "signing_bytes_utf8": "{\"kind\":21,\"nonce\":1,\"payload\":{\"amount\":2000,\"evm_recipient\":\"0xa5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5\",\"token\":\"MORM\"},\"sender\":\"76a1592044a6e4f511265bca73a604d90b0529d1df602be30a19a9257660d1f5\"}",
+        "signature_hex": "90cc319f802fd54bd1e476f5a56f75041ba95adbc8236e5e6a342c0291a47a2d338bfc02344d76908e26792df656a3c7ec5a46e0f6e7db37f111f1feb161320f"
+      }
+    },
+    {
+      "seed_hex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "pubkey_hex": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+      "address": "m0rxhclljnf6nfj76zrtek4hfajy7ip6iyk",
+      "recovery_key": "morm-rk1-aeba gbaf aydq qcik bmga 2dqp cair eeyu culb ogaz dinr yhi6 d4qa",
+      "tx": {
+        "kind": 6,
+        "sender": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+        "nonce": 2,
+        "amount_str": "3000",
+        "payload": {
+          "to": "m0rjiipykh2ebwjbjjluxdgwk42mimwcije",
+          "amount": 3000
+        },
+        "signing_bytes_utf8": "{\"kind\":6,\"nonce\":2,\"payload\":{\"amount\":3000,\"to\":\"m0rjiipykh2ebwjbjjluxdgwk42mimwcije\"},\"sender\":\"79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664\"}",
+        "signing_bytes_hex": "7b226b696e64223a362c226e6f6e6365223a322c227061796c6f6164223a7b22616d6f756e74223a333030302c22746f223a226d30726a696970796b68326562776a626a6a6c75786467776b34326d696d7763696a65227d2c2273656e646572223a2237396235353632653866653635346639343037386231313265386139386261373930316638353361653639356265643765306533393130626164303439363634227d",
+        "signature_hex": "885f312c47201bc7a97e70d6c4775e78fadf002a133d81fffa7f40871aaf2f1728e3b2d4ae972be055e3f9192ba002290080cd4a4a61eeec10eade24c0ef0d0e",
+        "tx_hash_hex": "bafa51d7c4db06fc86761f547d04d4c6e8fc7a0d14146e7a32d2b42a232f95dd"
+      },
+      "bridge_burn": {
+        "kind": 21,
+        "sender": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+        "nonce": 2,
+        "amount_str": "3000",
+        "evm_recipient": "0x5b58595e5f5c5d52535051565754554a4b48494e",
+        "token": "MORM",
+        "signing_bytes_utf8": "{\"kind\":21,\"nonce\":2,\"payload\":{\"amount\":3000,\"evm_recipient\":\"0x5b58595e5f5c5d52535051565754554a4b48494e\",\"token\":\"MORM\"},\"sender\":\"79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664\"}",
+        "signature_hex": "0cce0b7483f94944a6491b0ef21d93481707c2d6047a8a5d241503be2e0cc113d40585841681b2040e8c7dfeec8bbce5e69564ee9947d942e87b7c71e89b500d"
+      }
+    },
+    {
+      "seed_hex": "8f3c1d9e5a7b0246c8e1f0a3b5d7091133557799bbddff0022446688aaccee01",
+      "pubkey_hex": "893e1b5a3b3a4bc7ed33b08f1c5250025a4a1805bc2356b798757e8f2c6427a7",
+      "address": "m0rhpeewhjez2dmobmsz2sqkrixjmyhu4ux",
+      "recovery_key": "morm-rk1-r46b 3hs2 pmbe nshb 6cr3 lvyj cezv k54z xpo7 6abc irti rkwm 5yaq",
+      "tx": {
+        "kind": 6,
+        "sender": "893e1b5a3b3a4bc7ed33b08f1c5250025a4a1805bc2356b798757e8f2c6427a7",
+        "nonce": 3,
+        "amount_str": "12345678901234567890",
+        "payload": {
+          "to": "m0rou4nw63euiyk4foks4lmlz7amc6xsl7a",
+          "amount": 12345678901234567890
+        },
+        "signing_bytes_utf8": "{\"kind\":6,\"nonce\":3,\"payload\":{\"amount\":12345678901234567890,\"to\":\"m0rou4nw63euiyk4foks4lmlz7amc6xsl7a\"},\"sender\":\"893e1b5a3b3a4bc7ed33b08f1c5250025a4a1805bc2356b798757e8f2c6427a7\"}",
+        "signing_bytes_hex": "7b226b696e64223a362c226e6f6e6365223a332c227061796c6f6164223a7b22616d6f756e74223a31323334353637383930313233343536373839302c22746f223a226d30726f75346e773633657569796b34666f6b73346c6d6c7a37616d633678736c3761227d2c2273656e646572223a2238393365316235613362336134626337656433336230386631633532353030323561346131383035626332333536623739383735376538663263363432376137227d",
+        "signature_hex": "4fc68d52aa11991254a940b52979eda4dc5ea7b2f7cf006b6e34b49de5a66d0061308b660cfc8afbfefea6ae332e93eec334004db80284384be91aaff15c6302",
+        "tx_hash_hex": "ddcf8701ab012eb6a0fe0fd126629f19798af15e0bbbdda41e985848052210e3"
+      },
+      "bridge_burn": {
+        "kind": 21,
+        "sender": "893e1b5a3b3a4bc7ed33b08f1c5250025a4a1805bc2356b798757e8f2c6427a7",
+        "nonce": 3,
+        "amount_str": "12345678901234567890",
+        "evm_recipient": "0xd56647c40021581c92bbaaf9ef8d534b690f2dc3",
+        "token": "MORM",
+        "signing_bytes_utf8": "{\"kind\":21,\"nonce\":3,\"payload\":{\"amount\":12345678901234567890,\"evm_recipient\":\"0xd56647c40021581c92bbaaf9ef8d534b690f2dc3\",\"token\":\"MORM\"},\"sender\":\"893e1b5a3b3a4bc7ed33b08f1c5250025a4a1805bc2356b798757e8f2c6427a7\"}",
+        "signature_hex": "0e12ccc5336a99cc48ac46b7837b265f2718507c45ac96d58e6e35ab361e26348fc5cc04de57a5315c2d9a4af153bb5d8eb140e3ed66ea781bd1fc08ecdf4808"
+      }
+    }
+  ]
+}

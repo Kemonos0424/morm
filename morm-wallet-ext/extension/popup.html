@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MORM Wallet</title>
+  <style>
+    /* morm.one design language: cream paper, black ink, 3px hard borders,
+       squared corners, heavy uppercase headings, magenta primary. */
+    :root {
+      color-scheme: light dark;
+      --paper:#F4F2EA; --card:#FBFAF4; --ink:#0C0C0E; --ink-soft:#4A4A4E; --line:#0C0C0E;
+      --magenta:#EC1E79; --green:#0EA24A;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --paper:#0C0C0E; --card:#151517; --ink:#F4F2EA; --ink-soft:#B7B7B0; --line:#F4F2EA;
+        --magenta:#FF3E93; --green:#22C466;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      width: 340px; margin: 0; padding: 18px; background: var(--paper); color: var(--ink);
+      font: 14px/1.55 "Helvetica Neue", Helvetica, "Inter", Arial, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+    }
+    h1 {
+      font-size: 14px; margin: 0 0 14px; text-transform: uppercase; letter-spacing: .14em;
+      font-weight: 800; border-bottom: 3px solid var(--line); padding-bottom: 10px;
+      display: flex; align-items: baseline; gap: 8px;
+    }
+    h1 .v { opacity:.5; font-weight:700; font-size:11px; letter-spacing:.06em; }
+    section { display:none; }
+    section.on { display:block; }
+    label {
+      display:block; margin:12px 0 4px; font-size:11px; font-weight:700;
+      text-transform:uppercase; letter-spacing:.08em; color:var(--ink-soft);
+    }
+    input {
+      font:inherit; width:100%; padding:10px; border:3px solid var(--line); border-radius:0;
+      background:var(--card); color:var(--ink);
+    }
+    input:focus { outline:none; border-color:var(--magenta); }
+    button {
+      font:inherit; font-weight:700; padding:11px 12px; border:3px solid var(--line); border-radius:0;
+      background:var(--card); color:var(--ink); cursor:pointer; width:100%; margin-top:10px;
+    }
+    button:active { transform: translate(1px,1px); }
+    button.primary { background:var(--magenta); color:#fff; border-color:var(--line); text-transform:uppercase; letter-spacing:.06em; }
+    button.link { border:none; width:auto; padding:4px; margin:0; color:var(--magenta); text-decoration:underline; font-weight:700; }
+    button:disabled { opacity:.45; cursor:default; }
+    .addr { font-family: ui-monospace,"SF Mono",Menlo,monospace; font-size:12px; word-break:break-all; background:var(--card); border:3px solid var(--line); padding:9px; }
+    .muted { opacity:.65; font-size:12px; }
+    .warn { color:var(--ink); background:transparent; border:3px solid var(--magenta); padding:9px; font-size:12px; }
+    .rk { font-family:ui-monospace,monospace; font-size:12px; word-break:break-all; background:var(--card); border:3px solid var(--line); padding:10px; letter-spacing:.02em; }
+    .rk.masked { filter: blur(5px); user-select:none; }
+    .row { display:flex; gap:8px; align-items:center; }
+    .row button { margin-top:0; }
+    .err { color:#dc2626; font-size:12px; min-height:16px; margin-top:6px; }
+    .pill { display:inline-block; padding:3px 9px; border:2px solid var(--line); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; }
+    .pill.open { background:var(--green); color:#fff; }
+    .sep { border:none; border-top:3px solid var(--line); margin:14px 0; }
+    .pwrow { display:flex; gap:6px; align-items:stretch; }
+    .pwrow input { flex:1; }
+    button.eye { width:auto; padding:0 12px; margin-top:0; font-size:16px; line-height:1; }
+    .tabs { display:flex; gap:8px; margin:2px 0 12px; }
+    .tabs .tab { margin-top:0; }
+    .tabs .tab.on { background:var(--ink); color:var(--paper); }
+  </style>
+</head>
+<body>
+  <h1>MORM Wallet <span class="v">v0.0.1</span></h1>
+
+  <!-- 1. onboarding -->
+  <section id="secOnboard">
+    <p class="muted">MORM のノンカストディアル・ウォレット。鍵はこの端末内にのみ暗号化保管されます。</p>
+    <button class="primary" id="btnNewPasskey">パスキーで新規作成（推奨・morm.one と同一）</button>
+    <button id="btnNewPassword">パスワードで新規作成</button>
+    <hr class="sep" />
+    <button id="btnImport">リカバリーキーで復元</button>
+    <div class="err" id="onboardErr"></div>
+  </section>
+
+  <!-- 2. create with password -->
+  <section id="secCreatePw">
+    <label>ウォレットのパスワード（この端末の解錠用）</label>
+    <div class="pwrow">
+      <input id="cpw1" type="password" autocomplete="new-password" placeholder="8文字以上" />
+      <button type="button" class="eye" data-for="cpw1" aria-label="パスワード表示切替" aria-pressed="false">👁</button>
+    </div>
+    <label>パスワード（確認）</label>
+    <div class="pwrow">
+      <input id="cpw2" type="password" autocomplete="new-password" />
+      <button type="button" class="eye" data-for="cpw2" aria-label="パスワード表示切替" aria-pressed="false">👁</button>
+    </div>
+    <div class="err" id="cpwErr"></div>
+    <button class="primary" id="btnCreateGo">作成する</button>
+    <button class="link" id="btnCreateBack">戻る</button>
+  </section>
+
+  <!-- 3. reveal recovery key ONCE -->
+  <section id="secReveal">
+    <p class="warn">これがあなたの<b>リカバリーキー</b>です。秘密鍵そのもの。表示は一度だけ。紙に控え、誰にも共有しないでください。スクショはクラウド流出の恐れがあり非推奨です。</p>
+    <label>アドレス</label>
+    <div class="addr" id="revAddr"></div>
+    <label>リカバリーキー</label>
+    <div class="rk masked" id="revRk"></div>
+    <div class="row" style="margin-top:8px">
+      <button id="btnRevToggle">表示</button>
+      <button id="btnRevCopy">コピー</button>
+    </div>
+    <div class="muted" id="copyNote"></div>
+    <label class="row" style="margin-top:12px; gap:8px; align-items:flex-start">
+      <input id="revAck" type="checkbox" style="width:auto;margin-top:3px" />
+      <span>リカバリーキーを安全に控えました</span>
+    </label>
+    <button class="primary" id="btnRevDone" disabled>完了</button>
+  </section>
+
+  <!-- 4. import -->
+  <section id="secImport">
+    <label>リカバリーキー（morm-rk1-… / 64hex）</label>
+    <input id="impRk" type="text" autocomplete="off" spellcheck="false" placeholder="morm-rk1-…" />
+    <div class="err" id="impErr"></div>
+    <button class="primary" id="btnImpPasskey">パスキーで保護して復元（morm.one と同一）</button>
+    <hr class="sep" />
+    <label>パスワードで保護する場合</label>
+    <div class="pwrow">
+      <input id="ipw1" type="password" autocomplete="new-password" placeholder="8文字以上" />
+      <button type="button" class="eye" data-for="ipw1" aria-label="パスワード表示切替" aria-pressed="false">👁</button>
+    </div>
+    <button id="btnImpPassword">パスワードで保護して復元</button>
+    <button class="link" id="btnImportBack">戻る</button>
+  </section>
+
+  <!-- 5. locked -->
+  <section id="secLocked">
+    <div id="lockPasskey" style="display:none">
+      <p class="muted">パスキーで解錠します（morm.one と同じ生体認証）。</p>
+      <button class="primary" id="btnUnlockPasskey">パスキーで解錠</button>
+    </div>
+    <div id="lockPassword" style="display:none">
+      <label>パスワードで解錠</label>
+      <div class="pwrow">
+        <input id="upw" type="password" autocomplete="current-password" />
+        <button type="button" class="eye" data-for="upw" aria-label="パスワード表示切替" aria-pressed="false">👁</button>
+      </div>
+      <button class="primary" id="btnUnlock">解錠</button>
+    </div>
+    <div class="err" id="upwErr"></div>
+    <hr class="sep" />
+    <p class="muted">パスワード／パスキーを忘れた・端末を変えた場合は、リカバリーキーで再設定できます（サーバーでのリセットはできません）。</p>
+    <button id="btnForgot">リカバリーキーで再設定</button>
+  </section>
+
+  <!-- 6. unlocked -->
+  <section id="secHome">
+    <p><span class="pill open">解錠済み</span> <span class="muted" id="homeKind"></span></p>
+
+    <label>残高</label>
+    <div class="addr" id="homeBal">…</div>
+
+    <label>あなたのアドレス（受取）</label>
+    <div class="addr" id="homeAddr"></div>
+    <div class="row" style="margin-top:6px">
+      <button id="btnCopyAddr">アドレスをコピー</button>
+      <button id="btnRefresh">残高更新</button>
+    </div>
+    <div class="muted" id="homeMsg"></div>
+
+    <hr class="sep" />
+
+    <div class="tabs">
+      <button id="tabSend" class="tab on">送金</button>
+      <button id="tabBridge" class="tab">ブリッジ</button>
+      <button id="tabNode" class="tab">ノード</button>
+    </div>
+
+    <!-- view: send (L1 内の送金) -->
+    <div id="viewSend">
+      <div id="sendInput">
+        <label>送金先（@ハンドル または m0r… アドレス）</label>
+        <input id="toInput" type="text" autocomplete="off" spellcheck="false" placeholder="@alice または m0r…" />
+        <label>金額（MORM）</label>
+        <input id="amtInput" type="text" inputmode="decimal" autocomplete="off" placeholder="0" />
+        <div class="err" id="sendErr"></div>
+        <button class="primary" id="btnSendReview">内容を確認</button>
+      </div>
+      <div id="sendConfirm" style="display:none">
+        <p class="warn">送金内容をご確認ください。MORM アドレスは訂正できません（誤送金は取り消せません）。</p>
+        <label>送金先</label>
+        <div class="addr" id="cfTo"></div>
+        <div class="muted" id="cfHandle"></div>
+        <label>金額</label>
+        <div class="addr" id="cfAmt"></div>
+        <label>種別</label>
+        <div class="addr">TRANSFER (kind 6)</div>
+        <div class="err" id="cfErr"></div>
+        <button class="primary" id="btnSendGo">署名して送信</button>
+        <button class="link" id="btnSendCancel">戻る</button>
+      </div>
+      <div id="sendResult" style="display:none">
+        <p class="pill open">送信しました</p>
+        <label>tx hash</label>
+        <div class="addr" id="rsHash"></div>
+        <button id="btnSendMore">続けて送金</button>
+      </div>
+    </div>
+
+    <!-- view: bridge (L1 -> Base: MORM を burn → wMORM を連携済み Base アドレスへ) -->
+    <div id="viewBridge" style="display:none">
+      <div id="brNoEvm" style="display:none">
+        <p class="warn">Base(0x) 受取先が未連携です。連携には Base 側の署名が必要なため morm.one で行います。</p>
+        <button id="btnLinkEvm">morm.one で Base アドレスを連携 ↗</button>
+      </div>
+      <div id="brInput">
+        <label>受取先（Base・連携済み）</label>
+        <div class="addr" id="brEvm">…</div>
+        <label>金額（MORM → Base の wMORM）</label>
+        <input id="brAmt" type="text" inputmode="decimal" autocomplete="off" placeholder="0" />
+        <div class="err" id="brErr"></div>
+        <button class="primary" id="btnBridgeReview">内容を確認</button>
+      </div>
+      <div id="brConfirm" style="display:none">
+        <p class="warn">L1 の MORM を burn し、リレーヤーが Base の wMORM を払い出します。取り消せません。反映まで数分かかります。</p>
+        <label>受取先（Base）</label><div class="addr" id="brcfTo"></div>
+        <label>金額</label><div class="addr" id="brcfAmt"></div>
+        <label>種別</label><div class="addr">BRIDGE_BURN (kind 21)</div>
+        <div class="err" id="brcfErr"></div>
+        <button class="primary" id="btnBridgeGo">署名してブリッジ</button>
+        <button class="link" id="btnBridgeCancel">戻る</button>
+      </div>
+      <div id="brResult" style="display:none">
+        <p class="pill open">ブリッジ送信</p>
+        <label>tx hash</label><div class="addr" id="brHash"></div>
+        <p class="muted">Base への反映はリレーヤー経由で数分かかります。</p>
+        <button id="btnBridgeMore">続ける</button>
+      </div>
+    </div>
+
+    <!-- view: node (read-only status + push-based reward history) -->
+    <div id="viewNode" style="display:none">
+      <div class="muted" id="nodeMsg">読み込み中…</div>
+      <div id="nodeList"></div>
+      <div id="nodeEmit"></div>
+      <button id="btnNodeRefresh">更新</button>
+    </div>
+
+    <hr class="sep" />
+    <label>Base（EVM）側の操作</label>
+    <div class="row">
+      <button id="btnSwapHO">スワップ ↗</button>
+      <button id="btnDepositHO">Base から入金 ↗</button>
+    </div>
+    <p class="muted">スワップ・Base→MORM 入金は MetaMask 等で morm.one 上で実行します。</p>
+
+    <hr class="sep" />
+    <button id="btnLock">ロック</button>
+  </section>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

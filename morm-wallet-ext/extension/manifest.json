@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "MORM Wallet",
+  "version": "0.0.1",
+  "description": "MORM 純正ウォレット — m0r アカウントの保管・送受金。morm.one と同一 passkey で解錠。",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApkAzzvh1LUqD2N/W5Kw9bXq6BhoiwoWNXSZr4J289XCUJcvndxDKeqLhnioxoDM7Esz4hnoyER3er0NLF5/J8zenzn3dy6EswCLRUUxrucsGmReVRkfPJ7JtxesAk2XOTFEG8HQxlkt2Xa4c16boOEib73829oczcbj7j4TgaWezOAciqvjrceVLRZXenT1HOiZiSi/s2n3qgTJVOGt8Avf6btHPENBPyaDvuKlCacTgjL5Sin1AxRH+COrDpmBz8IPyALWAcUQV5jtzK6ZA6M5FtkRITUVan3KSitYMtqLpBTYU6UAP9GOl03GD3lHEfD9oMmKODf3GBNzWVEh//QIDAQAB",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "MORM Wallet"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": [
+    "storage",
+    "clipboardWrite"
+  ],
+  "host_permissions": [
+    "https://api.morm.one/*",
+    "https://l1.morm.one/*",
+    "https://node.morm.one/*"
+  ],
+  "externally_connectable": {
+    "matches": [
+      "https://morm.one/*",
+      "https://www.morm.one/*"
+    ]
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src https://api.morm.one https://l1.morm.one https://node.morm.one"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

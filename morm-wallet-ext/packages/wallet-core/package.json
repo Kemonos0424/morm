@@ -1,0 +1,17 @@
+{
+  "name": "@morm/wallet-core",
+  "version": "0.0.1",
+  "description": "Framework-agnostic MORM wallet primitives (ed25519 keys, m0r addresses, canonical tx signing, morm-rk1 recovery, AES-GCM vault). Byte-for-byte compatible with morm-l1 and morm.one/account.html.",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": ["src"],
+  "scripts": {
+    "test": "node --test",
+    "golden": "python3 ../../tools/gen_golden.py"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}
