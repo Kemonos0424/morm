@@ -112,6 +112,13 @@ async function loadNodes() {
   } catch (e) { $("nodeMsg").textContent = "取得失敗: " + String(e.message || e); }
 }
 $("btnNodeRefresh").onclick = loadNodes;
+// B1: bind this wallet as the node reward address via node.morm.one (member sets
+// reward-address = this m0r). Copy the address, then open node.morm.one.
+$("btnCopyMorm").onclick = async () => {
+  try { await navigator.clipboard.writeText(currentAddress || ""); $("nodeConnectMsg").textContent = "m0r をコピーしました。node.morm.one の報酬アドレス欄に貼り付けてください。"; }
+  catch { $("nodeConnectMsg").textContent = "コピーできませんでした。"; }
+};
+$("btnOpenNode").onclick = () => window.open(NODE_BASE, "_blank");
 
 // ---- Base handoffs ---------------------------------------------------------
 $("btnSwapHO").onclick = () => window.open(MARKET_URL, "_blank");
