@@ -50,6 +50,19 @@ async function sessionClear() { try { await chrome.storage.session.remove(SESSIO
 
 let currentAddress = null;
 let currentAcc = null; // last fetched account state (balance/nonce/evmAddress/baseUnitsPerMorm)
+let currentKdf = null; // "pbkdf2" | "prf" — how the stored seed is protected
+
+// Reflect / update the "protection method" control on the home screen. The
+// switch re-encrypts the CURRENTLY UNLOCKED seed (from the session) with the
+// other method — no recovery key needed.
+async function refreshProtection() {
+  const rec = await loadRecord(store);
+  currentKdf = rec?.kdf || null;
+  $("protMethod").textContent = "保護: " + (currentKdf === "prf" ? "パスキー" : "パスワード");
+  $("btnSwitchProt").textContent = currentKdf === "prf" ? "パスワードに切り替え" : "パスキーに切り替え";
+  $("switchPwForm").style.display = "none";
+  $("spw1").value = ""; $("spw2").value = "";
+}
 
 async function goHome(session, kindLabel) {
   await sessionSet(session);
@@ -59,6 +72,7 @@ async function goHome(session, kindLabel) {
   resetSend();
   show("secHome");
   refreshBalance();
+  refreshProtection();
 }
 
 // ---- balance / receive -----------------------------------------------------
@@ -136,6 +150,54 @@ $("btnCopyMorm").onclick = async () => {
   catch { $("nodeConnectMsg").textContent = "コピーできませんでした。"; }
 };
 $("btnOpenNode").onclick = () => window.open(NODE_BASE, "_blank");
+
+// ---- switch protection method (password <-> passkey) -----------------------
+$("btnSwitchProt").onclick = async () => {
+  $("protMsg").textContent = "";
+  if (currentKdf === "prf") {
+    // -> password: reveal the inline form (needs a new password).
+    $("switchPwForm").style.display = "block";
+    return;
+  }
+  // -> passkey: re-encrypt the current seed with a passkey (no recovery key).
+  const session = await sessionGet();
+  if (!session?.seedHex) return void ($("protMsg").textContent = "ロックされています。解錠し直してください");
+  await sessionSet(session);
+  $("btnSwitchProt").disabled = true;
+  let seed;
+  try {
+    seed = hexToBytes(session.seedHex);
+    const { credId, prf } = await createPasskey();
+    await protectWithPRF(store, seed, prf, bytesToB64u(credId));
+    await refreshProtection();
+    $("protMsg").textContent = "パスキー保護に切り替えました。";
+  } catch (e) {
+    $("protMsg").textContent = "切り替え失敗: " + String(e.message || e);
+  } finally {
+    if (seed) seed.fill(0);
+    $("btnSwitchProt").disabled = false;
+  }
+};
+$("btnSwitchPwCancel").onclick = () => { $("switchPwForm").style.display = "none"; $("spw1").value = ""; $("spw2").value = ""; };
+$("btnSwitchPwGo").onclick = async () => {
+  const p1 = $("spw1").value, p2 = $("spw2").value;
+  if (p1.length < 8) return void ($("protMsg").textContent = "パスワードは8文字以上");
+  if (p1 !== p2) return void ($("protMsg").textContent = "パスワードが一致しません");
+  const session = await sessionGet();
+  if (!session?.seedHex) return void ($("protMsg").textContent = "ロックされています。解錠し直してください");
+  await sessionSet(session);
+  let seed;
+  try {
+    seed = hexToBytes(session.seedHex);
+    await protectSeedWithPassword(store, seed, p1);
+    await refreshProtection();
+    $("protMsg").textContent = "パスワード保護に切り替えました。";
+  } catch (e) {
+    $("protMsg").textContent = "切り替え失敗: " + String(e.message || e);
+  } finally {
+    if (seed) seed.fill(0);
+  }
+};
 
 // ---- Base handoffs ---------------------------------------------------------
 $("btnSwapHO").onclick = () => window.open(MARKET_URL, "_blank");
@@ -234,6 +296,7 @@ async function route() {
     resetSend();
     show("secHome");
     refreshBalance();
+    refreshProtection();
     return;
   }
   const rec = await loadRecord(store);

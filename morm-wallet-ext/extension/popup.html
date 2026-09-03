@@ -263,6 +263,24 @@
     <p class="muted">スワップ・Base→MORM 入金は MetaMask 等で morm.one 上で実行します。</p>
 
     <hr class="sep" />
+    <div class="row">
+      <span class="muted" id="protMethod">保護: …</span>
+      <button id="btnSwitchProt" style="width:auto">パスキーに切り替え</button>
+    </div>
+    <div id="switchPwForm" style="display:none">
+      <label>新しいパスワード</label>
+      <div class="pwrow">
+        <input id="spw1" type="password" autocomplete="new-password" placeholder="8文字以上" />
+        <button type="button" class="eye" data-for="spw1" aria-label="パスワード表示切替" aria-pressed="false">👁</button>
+      </div>
+      <label>パスワード（確認）</label>
+      <input id="spw2" type="password" autocomplete="new-password" />
+      <button class="primary" id="btnSwitchPwGo">パスワード保護に切り替え</button>
+      <button class="link" id="btnSwitchPwCancel">やめる</button>
+    </div>
+    <div class="muted" id="protMsg"></div>
+
+    <hr class="sep" />
     <button id="btnLock">ロック</button>
   </section>
 
