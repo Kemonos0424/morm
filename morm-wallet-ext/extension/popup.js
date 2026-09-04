@@ -523,7 +523,7 @@ document.querySelectorAll("button.eye").forEach((btn) => {
     const inp = document.getElementById(btn.dataset.for);
     const reveal = inp.type === "password";
     inp.type = reveal ? "text" : "password";
-    btn.textContent = reveal ? "🙈" : "👁";
+    btn.textContent = reveal ? "隠す" : "表示";
     btn.setAttribute("aria-pressed", String(reveal));
     inp.focus();
   };

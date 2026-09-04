@@ -10,12 +10,13 @@
     "android": "npm run sync && npx cap open android"
   },
   "dependencies": {
+    "@capacitor/android": "^6",
     "@capacitor/core": "^6",
-    "@capacitor/preferences": "^6",
     "@capacitor/ios": "^6",
-    "@capacitor/android": "^6"
+    "@capacitor/preferences": "^6"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^6"
   }
 }
