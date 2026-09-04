@@ -49,7 +49,26 @@ cd ios/App && LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 pod install
 ```
 
 ### Android
-Needs Android Studio + SDK (`ANDROID_HOME`). Then `npx cap add android`.
+Android Studio + SDK required. Set env, add the platform, build & run:
+```bash
+export ANDROID_HOME="$HOME/Library/Android/sdk"
+export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
+
+npm run build:www
+npx cap add android                                   # first time
+npx @capacitor/assets generate --android \
+  --iconBackgroundColor '#0C0C0E' --splashBackgroundColor '#0C0C0E' \
+  --splashBackgroundColorDark '#0C0C0E'
+( cd android && ./gradlew assembleDebug )             # -> app/build/outputs/apk/debug/app-debug.apk
+
+emulator -avd <name> &                                # emulator -list-avds
+adb wait-for-device
+adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+adb shell am start -n one.morm.wallet/.MainActivity
+```
+Verified on an emulator: create → home, balance loaded via CapacitorHttp, wallet
+stored in Android Keystore (capacitor-secure-storage-plugin), QR/tabs all work.
 
 ## Status
 - ✅ Capacitor project scaffolded; deps installed; **iOS platform added + pods installed**.
