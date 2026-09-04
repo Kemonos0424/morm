@@ -1,0 +1,10 @@
+{
+  "appId": "one.morm.wallet",
+  "appName": "MORM Wallet",
+  "webDir": "www",
+  "ios": { "contentInset": "always" },
+  "android": {},
+  "plugins": {
+    "CapacitorHttp": { "enabled": true }
+  }
+}

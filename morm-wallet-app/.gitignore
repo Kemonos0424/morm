@@ -1,0 +1,11 @@
+node_modules/
+ios/
+android/
+www/walletcore/
+www/popup.js
+www/wallet.js
+www/passkey.js
+www/config.js
+www/index.html
+www/icons/
+.DS_Store

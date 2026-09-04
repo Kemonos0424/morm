@@ -1,0 +1,21 @@
+{
+  "name": "morm-wallet-app",
+  "version": "0.0.1",
+  "description": "MORM Wallet mobile app (Capacitor) — wraps the wallet web UI + @morm/wallet-core, with native storage.",
+  "private": true,
+  "scripts": {
+    "build:www": "node tools/build_app.mjs",
+    "sync": "npm run build:www && npx cap sync",
+    "ios": "npm run sync && npx cap open ios",
+    "android": "npm run sync && npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6",
+    "@capacitor/preferences": "^6",
+    "@capacitor/ios": "^6",
+    "@capacitor/android": "^6"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6"
+  }
+}
