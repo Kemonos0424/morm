@@ -25,6 +25,13 @@ cpSync(join(extWeb, "icons"), join(www, "icons"), { recursive: true });
 // index.html = popup.html + chrome-shim (before popup.js) + mobile layout.
 let html = readFileSync(join(extWeb, "popup.html"), "utf8");
 
+// App viewport: disable pinch/double-tap zoom and the input-focus auto-zoom
+// (native apps don't zoom the whole UI); handle the notch with viewport-fit.
+html = html.replace(
+  '<meta name="viewport" content="width=device-width, initial-scale=1" />',
+  '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />'
+);
+
 // Mobile layout: the extension fixes body width:340px; make it responsive.
 const mobileCss = `
   <style>
@@ -32,6 +39,10 @@ const mobileCss = `
     body { width: 100% !important; max-width: 520px; margin: 0 auto; min-height: 100vh;
            padding-top: max(18px, env(safe-area-inset-top)); }
     html, body { -webkit-text-size-adjust: 100%; }
+    /* >=16px inputs stop iOS from zooming when a field is focused */
+    input, select, textarea { font-size: 16px; }
+    /* no grey tap flash / long-press callout on an app-like UI */
+    * { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
   </style>`;
 html = html.replace("</style>", "</style>" + mobileCss);
 
