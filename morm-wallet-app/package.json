@@ -13,7 +13,8 @@
     "@capacitor/android": "^6",
     "@capacitor/core": "^6",
     "@capacitor/ios": "^6",
-    "@capacitor/preferences": "^6"
+    "@capacitor/preferences": "^6",
+    "capacitor-secure-storage-plugin": "^0.10.0"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
