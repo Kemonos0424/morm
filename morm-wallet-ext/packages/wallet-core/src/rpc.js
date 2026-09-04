@@ -40,6 +40,13 @@ export async function resolveHandle(apiBase, handle) {
   return data;
 }
 
+// GET {api}/api/wallet/history/{address} -> { address, items:[{txHash,direction,counterparty,amount,kind,at}] }
+export async function getHistory(apiBase, address) {
+  const { ok, status, data } = await getJson(`${trim(apiBase)}/api/wallet/history/${encodeURIComponent(address)}`);
+  if (!ok) throw new Error(data.error || `history HTTP ${status}`);
+  return data;
+}
+
 // POST {api}/api/wallet/submit-tx with a signed TRANSFER (kind 6).
 export async function submitTransfer(apiBase, signedTx) {
   const { ok, status, data } = await getJson(`${trim(apiBase)}/api/wallet/submit-tx`, {

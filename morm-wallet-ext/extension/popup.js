@@ -9,7 +9,7 @@ import {
 } from "./wallet.js";
 import { webauthnSupported, createPasskey, passkeyPRF } from "./passkey.js";
 import {
-  getAccountState, resolveHandle, submitTransfer, submitBridgeBurn, getNodes,
+  getAccountState, resolveHandle, submitTransfer, submitBridgeBurn, getNodes, getHistory,
   buildTransfer, buildBridgeBurn, signTx, mormToBaseUnits, formatBaseUnits, isValidMormAddress, hexToBytes,
 } from "./walletcore/index.js";
 import { API_BASE, NODE_BASE } from "./config.js";
@@ -28,6 +28,17 @@ const store = {
 const $ = (id) => document.getElementById(id);
 const SECTIONS = ["secOnboard", "secCreatePw", "secReveal", "secImport", "secLocked", "secHome"];
 function show(id) { SECTIONS.forEach((s) => $(s).classList.toggle("on", s === id)); }
+
+// Transient success/info toast.
+let _toastTimer = null;
+function toast(msg) {
+  const t = $("toast");
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add("show");
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.remove("show"), 2600);
+}
 // Unlocked session lives in chrome.storage.session (RAM only, never disk,
 // cleared when the browser closes) so it survives MV3 service-worker eviction —
 // unlike an in-SW variable, which vanishes after ~30s idle and caused
@@ -102,15 +113,44 @@ function setTab(which) {
   $("tabSend").classList.toggle("on", which === "send");
   $("tabBridge").classList.toggle("on", which === "bridge");
   $("tabNode").classList.toggle("on", which === "node");
+  $("tabHistory").classList.toggle("on", which === "history");
   $("viewSend").style.display = which === "send" ? "block" : "none";
   $("viewBridge").style.display = which === "bridge" ? "block" : "none";
   $("viewNode").style.display = which === "node" ? "block" : "none";
+  $("viewHistory").style.display = which === "history" ? "block" : "none";
   if (which === "bridge") syncBridgeEvm();
   if (which === "node") loadNodes();
+  if (which === "history") loadHistory();
 }
 $("tabSend").onclick = () => setTab("send");
 $("tabBridge").onclick = () => setTab("bridge");
 $("tabNode").onclick = () => setTab("node");
+$("tabHistory").onclick = () => setTab("history");
+
+// ---- history view ----------------------------------------------------------
+function shortAddr(a) { return typeof a === "string" && a.length > 14 ? a.slice(0, 8) + "…" + a.slice(-4) : (a || "—"); }
+async function loadHistory() {
+  if (!currentAddress) return;
+  $("histMsg").textContent = "読み込み中…";
+  $("histList").innerHTML = "";
+  try {
+    const d = await getHistory(API_BASE, currentAddress);
+    const base = currentAcc?.baseUnitsPerMorm || 1;
+    if (!d.items?.length) { $("histMsg").textContent = "取引履歴はまだありません。"; return; }
+    $("histMsg").textContent = "";
+    $("histList").innerHTML = d.items.map((it) => {
+      const io = it.direction === "in";
+      const sign = io ? "+" : "−";
+      const when = (it.at || "").slice(0, 16).replace("T", " ");
+      return `<div class="hist">
+        <div><div class="amt ${io ? "in" : "out"}">${sign}${formatBaseUnits(it.amount, base)} MORM</div>
+        <div class="muted">${esc(it.kind || "transfer")} · ${esc(when)}</div></div>
+        <div class="cp">${io ? "from" : "to"} ${esc(shortAddr(it.counterparty))}</div>
+      </div>`;
+    }).join("");
+  } catch (e) { $("histMsg").textContent = "取得失敗: " + String(e.message || e); }
+}
+$("btnHistRefresh").onclick = loadHistory;
 
 // ---- node view (read-only; rewards are push-based, no claim) ---------------
 function esc(s) { return String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
@@ -146,7 +186,7 @@ $("btnNodeRefresh").onclick = loadNodes;
 // B1: bind this wallet as the node reward address via node.morm.one (member sets
 // reward-address = this m0r). Copy the address, then open node.morm.one.
 $("btnCopyMorm").onclick = async () => {
-  try { await navigator.clipboard.writeText(currentAddress || ""); $("nodeConnectMsg").textContent = "m0r をコピーしました。node.morm.one の報酬アドレス欄に貼り付けてください。"; }
+  try { await navigator.clipboard.writeText(currentAddress || ""); $("nodeConnectMsg").textContent = "node.morm.one の報酬アドレス欄に貼り付けてください。"; toast("m0r をコピーしました"); }
   catch { $("nodeConnectMsg").textContent = "コピーできませんでした。"; }
 };
 $("btnOpenNode").onclick = () => window.open(NODE_BASE, "_blank");
@@ -170,7 +210,7 @@ $("btnSwitchProt").onclick = async () => {
     const { credId, prf } = await createPasskey();
     await protectWithPRF(store, seed, prf, bytesToB64u(credId));
     await refreshProtection();
-    $("protMsg").textContent = "パスキー保護に切り替えました。";
+    $("protMsg").textContent = "パスキー保護に切り替えました。"; toast("パスキー保護に切り替えました");
   } catch (e) {
     $("protMsg").textContent = "切り替え失敗: " + String(e.message || e);
   } finally {
@@ -191,7 +231,7 @@ $("btnSwitchPwGo").onclick = async () => {
     seed = hexToBytes(session.seedHex);
     await protectSeedWithPassword(store, seed, p1);
     await refreshProtection();
-    $("protMsg").textContent = "パスワード保護に切り替えました。";
+    $("protMsg").textContent = "パスワード保護に切り替えました。"; toast("パスワード保護に切り替えました");
   } catch (e) {
     $("protMsg").textContent = "切り替え失敗: " + String(e.message || e);
   } finally {
@@ -205,8 +245,8 @@ $("btnDepositHO").onclick = () => window.open(MARKET_URL, "_blank");
 $("btnLinkEvm").onclick = () => window.open(LINK_EVM_URL, "_blank");
 $("btnRefresh").onclick = refreshBalance;
 $("btnCopyAddr").onclick = async () => {
-  try { await navigator.clipboard.writeText(currentAddress || ""); $("homeMsg").textContent = "アドレスをコピーしました。"; }
-  catch { $("homeMsg").textContent = "コピーできませんでした。"; }
+  try { await navigator.clipboard.writeText(currentAddress || ""); toast("アドレスをコピーしました"); }
+  catch { toast("コピーできませんでした"); }
 };
 
 // ---- send ------------------------------------------------------------------
@@ -279,6 +319,7 @@ $("btnSendGo").onclick = async () => {
     $("rsHash").textContent = res.txHash || "(受理)";
     $("sendConfirm").style.display = "none";
     $("sendResult").style.display = "block";
+    toast("送信しました ✓");
   } catch (e) {
     $("cfErr").textContent = "送信失敗: " + String(e.message || e);
   } finally {
@@ -489,6 +530,7 @@ $("btnBridgeGo").onclick = async () => {
     $("brHash").textContent = res.txHash || res.tx_hash || "(受理)";
     $("brConfirm").style.display = "none";
     $("brResult").style.display = "block";
+    toast("ブリッジを送信しました ✓");
   } catch (e) {
     $("brcfErr").textContent = "ブリッジ失敗: " + String(e.message || e);
   } finally {

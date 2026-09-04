@@ -62,9 +62,18 @@
     .pwrow { display:flex; gap:6px; align-items:stretch; }
     .pwrow input { flex:1; }
     button.eye { width:auto; padding:0 12px; margin-top:0; font-size:16px; line-height:1; }
-    .tabs { display:flex; gap:8px; margin:2px 0 12px; }
-    .tabs .tab { margin-top:0; }
+    .tabs { display:flex; gap:6px; margin:2px 0 12px; }
+    .tabs .tab { margin-top:0; width:auto; flex:1 1 0; min-width:0; padding:11px 4px; font-size:13px; }
     .tabs .tab.on { background:var(--ink); color:var(--paper); }
+    .hist { display:flex; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid #8884; font-size:12px; }
+    .hist .amt { font-weight:800; white-space:nowrap; }
+    .hist .amt.in { color:var(--green); } .hist .amt.out { color:var(--magenta); }
+    .hist .cp { font-family:ui-monospace,monospace; word-break:break-all; opacity:.8; }
+    #toast { position:fixed; left:50%; bottom:22px; transform:translateX(-50%) translateY(16px);
+      background:var(--ink); color:var(--paper); padding:10px 16px; font-size:13px; font-weight:700;
+      border:3px solid var(--line); max-width:88%; text-align:center; z-index:100;
+      opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; }
+    #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
   </style>
 </head>
 <body>
@@ -173,6 +182,7 @@
       <button id="tabSend" class="tab on">送金</button>
       <button id="tabBridge" class="tab">ブリッジ</button>
       <button id="tabNode" class="tab">ノード</button>
+      <button id="tabHistory" class="tab">履歴</button>
     </div>
 
     <!-- view: send (L1 内の送金) -->
@@ -254,6 +264,13 @@
       <div class="muted" id="nodeConnectMsg"></div>
     </div>
 
+    <!-- view: history (recent txs relayed via the dashboard) -->
+    <div id="viewHistory" style="display:none">
+      <div class="muted" id="histMsg">読み込み中…</div>
+      <div id="histList"></div>
+      <button id="btnHistRefresh">更新</button>
+    </div>
+
     <hr class="sep" />
     <label>Base（EVM）側の操作</label>
     <div class="row">
@@ -263,6 +280,7 @@
     <p class="muted">スワップ・Base→MORM 入金は MetaMask 等で morm.one 上で実行します。</p>
 
     <hr class="sep" />
+    <label>設定</label>
     <div class="row">
       <span class="muted" id="protMethod">保護: …</span>
       <button id="btnSwitchProt" style="width:auto">パスキーに切り替え</button>
@@ -284,6 +302,7 @@
     <button id="btnLock">ロック</button>
   </section>
 
+  <div id="toast"></div>
   <script type="module" src="popup.js"></script>
 </body>
 </html>

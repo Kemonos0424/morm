@@ -13,5 +13,5 @@ export {
   encryptSeed, decryptSeed, newSalt,
   bytesToB64u, b64uToBytes,
 } from "./vault.js";
-export { getAccountState, submitTransfer, submitBridgeBurn, resolveHandle, getNodes } from "./rpc.js";
+export { getAccountState, submitTransfer, submitBridgeBurn, resolveHandle, getNodes, getHistory } from "./rpc.js";
 export { mormToBaseUnits, formatBaseUnits } from "./units.js";
