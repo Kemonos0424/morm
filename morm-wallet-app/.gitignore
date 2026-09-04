@@ -9,3 +9,4 @@ www/config.js
 www/index.html
 www/icons/
 .DS_Store
+www/qr.min.js

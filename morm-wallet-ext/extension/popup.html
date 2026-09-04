@@ -74,6 +74,8 @@
       border:3px solid var(--line); max-width:88%; text-align:center; z-index:100;
       opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; }
     #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+    .qrcanvas { background:#fff; padding:8px; border:3px solid var(--line); display:inline-block; line-height:0; }
+    .qrcanvas svg { display:block; width:180px; height:180px; }
   </style>
 </head>
 <body>
@@ -173,6 +175,10 @@
     <div class="row" style="margin-top:6px">
       <button id="btnCopyAddr">アドレスをコピー</button>
       <button id="btnRefresh">残高更新</button>
+    </div>
+    <button id="btnReceiveQR">QR で受取</button>
+    <div id="qrBox" style="display:none; margin-top:8px; text-align:center">
+      <div class="qrcanvas" id="qrCanvas"></div>
     </div>
     <div class="muted" id="homeMsg"></div>
 
@@ -303,6 +309,7 @@
   </section>
 
   <div id="toast"></div>
+  <script src="qr.min.js"></script>
   <script type="module" src="popup.js"></script>
 </body>
 </html>

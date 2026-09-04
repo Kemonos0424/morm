@@ -16,7 +16,7 @@ const www = join(root, "www");
 execSync("node tools/build_ext.mjs", { cwd: ext, stdio: "ignore" });
 
 // Reuse the extension's JS/assets verbatim.
-for (const f of ["popup.js", "wallet.js", "passkey.js", "config.js"]) {
+for (const f of ["popup.js", "wallet.js", "passkey.js", "config.js", "qr.min.js"]) {
   cpSync(join(extWeb, f), join(www, f));
 }
 cpSync(join(extWeb, "walletcore"), join(www, "walletcore"), { recursive: true });

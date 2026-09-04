@@ -244,6 +244,26 @@ $("btnSwapHO").onclick = () => window.open(MARKET_URL, "_blank");
 $("btnDepositHO").onclick = () => window.open(MARKET_URL, "_blank");
 $("btnLinkEvm").onclick = () => window.open(LINK_EVM_URL, "_blank");
 $("btnRefresh").onclick = refreshBalance;
+
+// Receive QR (vendored qrcode.js exposes the global `qrcode`).
+function renderReceiveQR() {
+  const box = $("qrCanvas");
+  if (typeof qrcode !== "function") { box.textContent = "QR 利用不可"; return; }
+  try {
+    const qr = qrcode(0, "M");
+    qr.addData(currentAddress || "");
+    qr.make();
+    box.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+  } catch (e) { box.textContent = "QR 生成失敗"; }
+}
+$("btnReceiveQR").onclick = () => {
+  const b = $("qrBox");
+  const show = b.style.display === "none";
+  b.style.display = show ? "block" : "none";
+  $("btnReceiveQR").textContent = show ? "QR を隠す" : "QR で受取";
+  if (show) renderReceiveQR();
+};
+
 $("btnCopyAddr").onclick = async () => {
   try { await navigator.clipboard.writeText(currentAddress || ""); toast("アドレスをコピーしました"); }
   catch { toast("コピーできませんでした"); }
