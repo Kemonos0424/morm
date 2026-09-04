@@ -58,7 +58,7 @@
     .err { color:#dc2626; font-size:12px; min-height:16px; margin-top:6px; }
     .pill { display:inline-block; padding:3px 9px; border:2px solid var(--line); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; }
     .pill.open { background:var(--green); color:#fff; }
-    .sep { border:none; border-top:3px solid var(--line); margin:14px 0; }
+    .sep { border:none; border-top:2px solid var(--line); margin:16px 0; opacity:.85; }
     .pwrow { display:flex; gap:6px; align-items:stretch; }
     .pwrow input { flex:1; }
     button.eye { width:auto; padding:0 12px; margin-top:0; font-size:16px; line-height:1; }
@@ -84,7 +84,8 @@
   <!-- 1. onboarding -->
   <section id="secOnboard">
     <p class="muted">MORM のノンカストディアル・ウォレット。鍵はこの端末内にのみ暗号化保管されます。</p>
-    <button class="primary" id="btnNewPasskey">パスキーで新規作成（推奨・morm.one と同一）</button>
+    <button class="primary" id="btnNewPasskey">パスキーで新規作成（推奨）</button>
+    <div class="muted" style="margin-top:6px">morm.one と同じパスキー（生体認証）で解錠できます。</div>
     <button id="btnNewPassword">パスワードで新規作成</button>
     <hr class="sep" />
     <button id="btnImport">リカバリーキーで復元</button>
@@ -132,7 +133,7 @@
     <label>リカバリーキー（morm-rk1-… / 64hex）</label>
     <input id="impRk" type="text" autocomplete="off" spellcheck="false" placeholder="morm-rk1-…" />
     <div class="err" id="impErr"></div>
-    <button class="primary" id="btnImpPasskey">パスキーで保護して復元（morm.one と同一）</button>
+    <button class="primary" id="btnImpPasskey">パスキーで保護して復元</button>
     <hr class="sep" />
     <label>パスワードで保護する場合</label>
     <div class="pwrow">
