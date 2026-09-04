@@ -14,22 +14,30 @@ the fields below.
 
 ## 1. Package
 
-Zip the built extension (with `walletcore/` present — it is gitignored, so build
-first):
+The Chrome Web Store **rejects a manifest that contains a `"key"` field**
+("マニフェストでは key フィールドを使用できません"). Our dev manifest keeps `key`
+(to pin the unpacked ID) — so the STORE zip must be built with `key` stripped:
 
 ```bash
 cd morm-wallet-ext
-node tools/build_ext.mjs
-( cd extension && zip -r ../morm-wallet.zip . -x '.*' )
+node tools/build_ext.mjs                       # copy wallet-core -> extension/walletcore
+rm -rf /tmp/store-pkg && cp -R extension /tmp/store-pkg
+# remove the key field for the store build only
+python3 - /tmp/store-pkg/manifest.json <<'PY'
+import json,sys; p=sys.argv[1]; m=json.load(open(p)); m.pop('key',None)
+json.dump(m,open(p,'w'),ensure_ascii=False,indent=2); open(p,'a').write('\n')
+PY
+( cd /tmp/store-pkg && zip -rq "$OLDPWD/morm-wallet-store.zip" . -x '.*' )
 ```
 
-Upload `morm-wallet.zip`.
+Upload `morm-wallet-store.zip`.
 
 ### Extension ID / signing key
-`manifest.json` contains a `"key"` (public key) that pins the ID
-`enmmpmpjbdplcglnncnkjbebehddbeka`. Keep the matching **private key**
-`morm-ext-key.pem` (currently in your scratchpad, NOT in the repo) safe — it
-maintains the same ID across dev and store. Do **not** commit it.
+Removing `key` means **the store assigns its own extension ID** (different from
+the unpacked dev ID `enmmpmpjbdplcglnncnkjbebehddbeka`). This does NOT affect
+passkey unlock — it depends on the `morm.one` host permission, not the ID. Keep
+`morm-ext-key.pem` (in your scratchpad, NOT in the repo) only if you also want a
+stable unpacked dev ID; the store does not use it.
 
 ## 2. Listing text
 
