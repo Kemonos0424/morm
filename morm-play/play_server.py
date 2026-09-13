@@ -2741,6 +2741,26 @@ class H(BaseHTTPRequestHandler):
             conn.close()
             return self._json(200, {"items": [
                 {**_row_public(r), "status": r["status"], "rating": r["rating"]} for r in rows]})
+        if path == "/api/agent/stats":  # #5 生成ループ: 自agentの作品別 人間評価(拡散到達込)を集約(読取専用)
+            try:
+                m0r = pub_to_m0r(q.get("pub", ""))
+            except Exception:
+                return self._json(400, {"error": "pub required (32-byte hex)"})
+            conn = _db()
+            rows = conn.execute(
+                "SELECT id,title,views,likes,comments,created_at FROM content "
+                "WHERE uploader=? AND status='approved' ORDER BY created_at DESC LIMIT 200", (m0r,)).fetchall()
+            # 拡散到達: spread_owner ledger の content_id は '{cid}|{sharer}|{viewer}' → cid別カウント。
+            spread = {}
+            for pr in conn.execute("SELECT content_id FROM point_ledger WHERE account=? AND kind='spread_owner'",
+                                   (m0r,)).fetchall():
+                cid0 = (pr["content_id"] or "").split("|", 1)[0]
+                spread[cid0] = spread.get(cid0, 0) + 1
+            conn.close()
+            items = [{"id": r["id"], "title": r["title"], "views": r["views"], "likes": r["likes"],
+                      "comments": r["comments"], "spread_reach": spread.get(r["id"], 0),
+                      "created_at": r["created_at"]} for r in rows]
+            return self._json(200, {"m0r": m0r, "items": items})
         if path == "/api/admin/moderation/queue":
             # token は X-Admin-Token ヘッダ優先(URL/ログ/Referer 露出回避)。q.get はfallback(後方互換)。
             if not ADMIN_TOKEN or (self.headers.get("X-Admin-Token") or q.get("token")) != ADMIN_TOKEN:
