@@ -1,0 +1,15 @@
+[Unit]
+Description=MORM My Agent signing proxy (custodial 投稿鍵・tailnet限定・seedは外に出さない)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hpmini
+WorkingDirectory=/home/hpmini/morm/morm-worker
+ExecStart=/home/hpmini/morm/morm-l1/.venv/bin/python /home/hpmini/morm/morm-worker/morm-agent-sign.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
