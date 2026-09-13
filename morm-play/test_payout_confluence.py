@@ -45,10 +45,11 @@ def main():
     c.execute("UPDATE accounts SET is_agent=1, owner_m0r='' WHERE m0r=?", (BOT2,))  # agentだがowner未設定
     c.commit(); c.close()
 
-    # 各作者に「人間評価が付いた作品」を用意(views/likes)
-    add_content(ps, BOT, "aaa", views=3, likes=2)     # earned=5
+    # 各作者に作品を用意。earnings は views×VIEW_RATE + 適格like×LIKE_RATE。
+    # ここは合流ルーティング検証が目的なので views で金額を決める(like適格性はL1/L2側の別テスト)。
+    add_content(ps, BOT, "aaa", views=5, likes=0)     # earned=5
     add_content(ps, BOT2, "bbb", views=4, likes=0)    # earned=4
-    add_content(ps, HUMAN, "ccc", views=1, likes=1)   # earned=2
+    add_content(ps, HUMAN, "ccc", views=2, likes=0)   # earned=2
 
     r1 = ps.payout(BOT)
     r2 = ps.payout(BOT2)

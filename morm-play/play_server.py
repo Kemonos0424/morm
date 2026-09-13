@@ -62,6 +62,10 @@ POINT_WINDOW_SEC = int(os.environ.get("PT_WINDOW_SEC", str(72 * 3600)))   # 72h(
 POINT_72H_CAP = int(os.environ.get("PT_72H_CAP", "100"))        # 72h窓あたりの獲得上限(反farm)
 POINT_SETTLE_INTERVAL = int(os.environ.get("PT_SETTLE_INTERVAL", str(72 * 3600)))  # 集計・配分の周期
 POINT_TICK_SEC = int(os.environ.get("PT_TICK_SEC", "1800"))     # 集計デーモンのチェック間隔
+# --- 不正検知(L1)/報酬適格性(L2): 使い捨てシビルの報酬farmを弾く ------------------
+REWARD_MIN_AGE_DAYS = int(os.environ.get("REWARD_MIN_AGE_DAYS", "3"))  # 口座作成からこの日数で適格
+REWARD_MIN_TRUST = int(os.environ.get("REWARD_MIN_TRUST", "10"))       # trust_score下限(tier1相当)
+FRAUD_LOG = os.environ.get("FRAUD_LOG", "on")                          # fraud_signals 記録のon/off
 # --- Phase 2: 予算上限つき比例配分(固定レートの代替) ------------------------
 # EMISSION_MODE=fixed(既定=従来: points//POINT_PER_MORM の固定レート)
 #             =proportional(Payout_i = B_EPOCH × P_i / ΣP。総発行B固定=参加者増でも暴走なし)
@@ -340,6 +344,10 @@ def _init_db():
         if col not in have:
             conn.execute(f"ALTER TABLE content ADD COLUMN {col} {ddl}")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_content_media_sha ON content(media_sha)")
+    conn.execute("CREATE TABLE IF NOT EXISTS fraud_signals("
+                 "id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER, kind TEXT,"
+                 "subject TEXT, target TEXT, content_id TEXT, detail TEXT)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_fraud_ts ON fraud_signals(ts DESC)")
     conn.execute("UPDATE content SET status='approved' WHERE status IS NULL OR status=''")
     # accounts: 年齢認証カラム
     have_acc = {r[1] for r in conn.execute("PRAGMA table_info(accounts)").fetchall()}
@@ -635,10 +643,16 @@ def earnings(m0r):
     """作品の再生数×VIEW_RATE + いいね数×LIKE_RATE = 獲得MORM(整数)。paid/pending も返す。"""
     conn = _db()
     rows = conn.execute("SELECT views,likes FROM content WHERE uploader=? AND status='approved'", (m0r,)).fetchall()
+    # L2: いいね報酬は【適格な人間】からのみ算入(シビルの偽likeで creator/プールを水増しさせない)。
+    lk = conn.execute(
+        "SELECT COUNT(*) FROM likes k "
+        "JOIN content c ON c.id=k.id AND c.uploader=? AND c.status='approved' "
+        "JOIN accounts a ON a.m0r=k.account "
+        "WHERE a.age_verified=1 OR a.trust_score>=? OR a.staked_morm>0 OR a.created_at<=?",
+        (m0r, REWARD_MIN_TRUST, int(time.time()) - REWARD_MIN_AGE_DAYS * 86400)).fetchone()[0]
     p = conn.execute("SELECT paid_morm FROM payouts WHERE account=?", (m0r,)).fetchone()
     conn.close()
     v = sum(r["views"] for r in rows)
-    lk = sum(r["likes"] for r in rows)
     earned = int(v * VIEW_RATE + lk * LIKE_RATE)
     paid = p["paid_morm"] if p else 0
     return {"views": v, "likes": lk, "posts": len(rows),
@@ -1009,6 +1023,45 @@ def _payout_dest(m0r):
     return m0r
 
 
+def reward_eligible(m0r):
+    """報酬適格(L2): 使い捨てシビルを弾く。age_verified / trust≥N / staked>0 / 口座age≥N日 のいずれか。
+    未満の口座は操作(like等)自体は可能だが報酬(点/creator配分)には算入しない。"""
+    if not m0r:
+        return False
+    conn = _db()
+    try:
+        r = conn.execute("SELECT created_at,trust_score,staked_morm,age_verified "
+                         "FROM accounts WHERE m0r=?", (m0r,)).fetchone()
+    except Exception:
+        r = None
+    conn.close()
+    if not r:
+        return False
+    if r["age_verified"]:
+        return True
+    if (r["trust_score"] or 0) >= REWARD_MIN_TRUST:
+        return True
+    if (r["staked_morm"] or 0) > 0:
+        return True
+    if (int(time.time()) - (r["created_at"] or 0)) >= REWARD_MIN_AGE_DAYS * 86400:
+        return True
+    return False
+
+
+def log_fraud_signal(kind, subject="", target="", content_id="", detail=""):
+    """不正シグナル(L1)を記録。本来の操作は妨げない(可視化のみ)。"""
+    if FRAUD_LOG != "on":
+        return
+    try:
+        conn = _db()
+        conn.execute("INSERT INTO fraud_signals(ts,kind,subject,target,content_id,detail) "
+                     "VALUES(?,?,?,?,?,?)", (int(time.time()), kind, subject, target, content_id, detail))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+
 def payout(m0r):
     """未払いMORM(=earned-paid)を L1 送金し台帳を更新。冪等(paid累積)。
 
@@ -1248,6 +1301,10 @@ def grant_point(account, kind, content_id):
         c = conn.execute("SELECT uploader,status FROM content WHERE id=?", (content_id,)).fetchone()
         if not c or c["status"] != "approved" or c["uploader"] == account:
             return 0
+        # L2: 適格でない口座(新規シビル等)は操作可・報酬0。L1で記録。
+        if not reward_eligible(account):
+            log_fraud_signal("ineligible_engage", account, c["uploader"], content_id, kind)
+            return 0
         since = int(time.time()) - POINT_WINDOW_SEC
         earned = conn.execute("SELECT COALESCE(SUM(points),0) FROM point_ledger WHERE account=? AND ts>?",
                               (account, since)).fetchone()[0]
@@ -1284,6 +1341,10 @@ def grant_view_point(cid, viewer):
         creator = c["uploader"]
         if not creator or creator == viewer or not creator.startswith("m0r"):
             return 0  # 自己視聴・無効クリエイターは対象外
+        # L2: 適格でない視聴者からの view_by_other は creator報酬に算入しない。
+        if not reward_eligible(viewer):
+            log_fraud_signal("ineligible_view", viewer, creator, cid, "view")
+            return 0
         since = int(time.time()) - POINT_WINDOW_SEC
         earned = conn.execute("SELECT COALESCE(SUM(points),0) FROM point_ledger WHERE account=? AND ts>?",
                               (creator, since)).fetchone()[0]
@@ -2653,6 +2714,24 @@ class H(BaseHTTPRequestHandler):
             if not ADMIN_TOKEN or (self.headers.get("X-Admin-Token") or q.get("token")) != ADMIN_TOKEN:
                 return self._json(403, {"error": "forbidden"})
             return self._json(200, {"items": pull_pending(int(q.get("limit", "1")))})
+        if path == "/api/admin/fraud":  # L1: 不正シグナルの可視化(直近＋対象別集計)
+            if not ADMIN_TOKEN or (self.headers.get("X-Admin-Token") or q.get("token")) != ADMIN_TOKEN:
+                return self._json(403, {"error": "forbidden"})
+            win = int(q.get("window", str(72 * 3600)))
+            since = int(time.time()) - win
+            conn = _db()
+            recent = conn.execute("SELECT ts,kind,subject,target,content_id,detail FROM fraud_signals "
+                                  "WHERE ts>? ORDER BY ts DESC LIMIT 200", (since,)).fetchall()
+            # 対象クリエイター別の ineligible集中度(=シビル集中の疑い)
+            bytarget = conn.execute(
+                "SELECT target, COUNT(*) n, COUNT(DISTINCT subject) uniq FROM fraud_signals "
+                "WHERE ts>? AND kind IN ('ineligible_engage','ineligible_view') "
+                "GROUP BY target ORDER BY n DESC LIMIT 20", (since,)).fetchall()
+            conn.close()
+            return self._json(200, {
+                "window_sec": win,
+                "recent": [dict(r) for r in recent],
+                "by_target": [dict(r) for r in bytarget]})
         if path == "/api/admin/catalog":  # 再キャプション等の一括処理用(play_cid込み)
             # token は X-Admin-Token ヘッダ優先(URL/ログ/Referer 露出回避)。q.get はfallback(後方互換)。
             if not ADMIN_TOKEN or (self.headers.get("X-Admin-Token") or q.get("token")) != ADMIN_TOKEN:
