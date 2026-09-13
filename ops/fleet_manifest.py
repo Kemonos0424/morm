@@ -40,7 +40,7 @@ def turso(sql, args=None):
     return [dict(zip(cols, [dec(c) for c in row])) for row in res["rows"]]
 
 def main():
-    rows = turso("SELECT node_id, agent_m0r, pack_id FROM my_agents WHERE status='active' AND agent_m0r IS NOT NULL")
+    rows = turso("SELECT node_id, agent_m0r, pack_id, prod_credits FROM my_agents WHERE status='active' AND agent_m0r IS NOT NULL")
     manifest = []
     for r in rows:
         m0r = r["agent_m0r"]; sf = os.path.join(AGENTS_DIR, f"{m0r}.seed")
@@ -48,7 +48,8 @@ def main():
             print(f"# warn: vault欠落 {m0r}", file=sys.stderr); continue
         seed = bytes.fromhex(open(sf).read().strip())
         pub = crypto.pubkey_from_seed(seed).hex()
-        manifest.append({"agent_m0r": m0r, "pub": pub, "pack": r["pack_id"], "seed_file": sf})
+        manifest.append({"agent_m0r": m0r, "pub": pub, "pack": r["pack_id"], "seed_file": sf,
+                         "boost": int(r.get("prod_credits") or 0)})
     json.dump(manifest, sys.stdout, ensure_ascii=False, indent=2)
     print(f"\n# {len(manifest)} active agents", file=sys.stderr)
 
