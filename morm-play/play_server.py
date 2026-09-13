@@ -361,7 +361,8 @@ def _init_db():
                      ("ref_code", "TEXT DEFAULT ''"),
                      ("is_agent", "INTEGER DEFAULT 0"),   # 1=AI投稿エージェント(投稿可・評価不可)
                      ("node_id", "TEXT DEFAULT ''"),      # 紐付くMORM NODE(Phase2 報酬合流)
-                     ("owner_m0r", "TEXT DEFAULT ''")]:   # nodeのオーナー口座(報酬受取)
+                     ("owner_m0r", "TEXT DEFAULT ''"),    # nodeのオーナー口座(報酬受取)
+                     ("payout_hold", "INTEGER DEFAULT 0")]:  # L4: 1=払出し保留(共謀疑い等・admin/自動)
         if col not in have_acc:
             conn.execute(f"ALTER TABLE accounts ADD COLUMN {col} {ddl}")
     # remix_of/challenge 列が揃ってから index を作成(既存DBでも安全)
@@ -766,6 +767,7 @@ def account_public(acc):
             "is_agent": bool(_acc_col(acc, "is_agent", 0)),
             "node_id": _acc_col(acc, "node_id", ""),
             "owner_m0r": _acc_col(acc, "owner_m0r", ""),
+            "payout_hold": bool(_acc_col(acc, "payout_hold", 0)),
             "limits": {"posts_day": g["posts_day"], "max_dur": g["max_dur"],
                        "links": g["links"], "comments_day": g["comments_day"]},
             "posts_today": posts_today(acc["m0r"]),
@@ -1031,6 +1033,24 @@ def _payout_dest(m0r):
     return m0r
 
 
+def payout_held(m0r):
+    """L4: 払出し保留フラグ。earner か その着地先(owner) のどちらかが hold なら保留。"""
+    if not m0r:
+        return False
+    conn = _db()
+    try:
+        r = conn.execute("SELECT payout_hold FROM accounts WHERE m0r=?", (m0r,)).fetchone()
+    except Exception:
+        r = None
+    conn.close()
+    return bool(r and r["payout_hold"])
+
+
+def payout_blocked(m0r):
+    """earner または 着地先(owner) が hold なら送金保留(True)。"""
+    return payout_held(m0r) or payout_held(_payout_dest(m0r))
+
+
 def reward_eligible(m0r):
     """報酬適格(L2): 使い捨てシビルを弾く。age_verified / trust≥N / staked>0 / 口座age≥N日 のいずれか。
     未満の口座は操作(like等)自体は可能だが報酬(点/creator配分)には算入しない。"""
@@ -1082,6 +1102,9 @@ def payout(m0r):
         amt = e["pending_morm"]
         if amt < PAYOUT_MIN:
             return {"ok": True, "paid": 0, "pending": amt}
+        # L4: 保留中(共謀疑い等)は送金しない。台帳は不変=解除後に通常払出しで回収可。
+        if payout_blocked(m0r):
+            return {"ok": True, "paid": 0, "pending": amt, "held": True}
         now = int(time.time())
         conn = _db()
         # ① 予約(CAS): 送金前に paid を加算。earnings が読んだ paid を条件に条件付き更新/PK INSERT し、
@@ -1479,6 +1502,9 @@ def _settle_fixed():
     paid_accounts = 0
     paid_morm_total = 0
     for acct in accts:
+        # L4: 保留中(共謀疑い等)は集計せずスキップ=points は settled=0 のまま解除後に配分される。
+        if payout_blocked(acct):
+            continue
         conn = _db()
         rows = conn.execute("SELECT id,points FROM point_ledger WHERE account=? AND settled=0",
                             (acct,)).fetchall()
@@ -2804,6 +2830,36 @@ class H(BaseHTTPRequestHandler):
                 "window_sec": win,
                 "recent": [dict(r) for r in recent],
                 "by_target": [dict(r) for r in bytarget]})
+        if path == "/api/admin/collusion":  # L3: いいね集中度(=少数口座が特定creatorを回すowner-farming疑い)
+            if not ADMIN_TOKEN or (self.headers.get("X-Admin-Token") or q.get("token")) != ADMIN_TOKEN:
+                return self._json(403, {"error": "forbidden"})
+            min_likes = int(q.get("min", "8"))       # この件数以上を評価対象
+            ratio = float(q.get("ratio", "0.5"))     # uniq/total がこれ以下=集中(疑い)
+            conn = _db()
+            # creator別: 総いいね数・ユニークいいね者・最多いいね者の占有。likes(id,account)⋈content(uploader)。
+            rows = conn.execute(
+                "SELECT c.uploader creator, COUNT(*) nlikes, COUNT(DISTINCT k.account) nuniq, "
+                "MAX(a.owner_m0r) owner "
+                "FROM likes k JOIN content c ON c.id=k.id "
+                "LEFT JOIN accounts a ON a.m0r=c.uploader "
+                "GROUP BY c.uploader HAVING nlikes>=? ORDER BY nlikes DESC LIMIT 100", (min_likes,)).fetchall()
+            suspects = []
+            for r in rows:
+                conc = (r["nuniq"] / r["nlikes"]) if r["nlikes"] else 1.0
+                if conc <= ratio:   # ユニーク率が低い=少数が反復いいね
+                    # 最多いいね者
+                    top = conn.execute(
+                        "SELECT k.account acct, COUNT(*) n FROM likes k JOIN content c ON c.id=k.id "
+                        "WHERE c.uploader=? GROUP BY k.account ORDER BY n DESC LIMIT 1", (r["creator"],)).fetchone()
+                    s = {"creator": r["creator"], "owner": r["owner"] or "", "likes": r["nlikes"],
+                         "uniq_likers": r["nuniq"], "concentration": round(conc, 3),
+                         "top_liker": (top["acct"] if top else ""), "top_liker_likes": (top["n"] if top else 0)}
+                    suspects.append(s)
+                    log_fraud_signal("collusion_suspect", s["top_liker"], r["creator"], "",
+                                     f"conc={conc:.2f} likes={r['nlikes']} uniq={r['nuniq']}")
+            conn.close()
+            return self._json(200, {"min_likes": min_likes, "ratio": ratio,
+                                    "suspects": suspects, "count": len(suspects)})
         if path == "/api/admin/catalog":  # 再キャプション等の一括処理用(play_cid込み)
             # token は X-Admin-Token ヘッダ優先(URL/ログ/Referer 露出回避)。q.get はfallback(後方互換)。
             if not ADMIN_TOKEN or (self.headers.get("X-Admin-Token") or q.get("token")) != ADMIN_TOKEN:
@@ -2906,6 +2962,20 @@ class H(BaseHTTPRequestHandler):
             conn.commit()
             conn.close()
             return self._json(200, account_public(ensure_account(m0r)))
+        if path == "/api/admin/hold":  # L4: 払出し保留の設定/解除(共謀疑い口座・可逆)
+            if not ADMIN_TOKEN or data.get("token") != ADMIN_TOKEN:
+                return self._json(403, {"error": "forbidden"})
+            m0r = (data.get("m0r") or "").strip()
+            if not m0r.startswith("m0r"):
+                return self._json(400, {"error": "m0r required"})
+            conn = _db()
+            ensure_account(m0r)
+            conn.execute("UPDATE accounts SET payout_hold=? WHERE m0r=?", (1 if data.get("hold") else 0, m0r))
+            conn.commit()
+            conn.close()
+            log_fraud_signal("payout_hold_set" if data.get("hold") else "payout_hold_clear",
+                             m0r, "", "", "admin")
+            return self._json(200, {"ok": True, "m0r": m0r, "payout_hold": bool(data.get("hold"))})
         if path == "/api/admin/payout":  # 再生数・いいね数に応じた MORM 実配分(L1送金)
             if not ADMIN_TOKEN or data.get("token") != ADMIN_TOKEN:
                 return self._json(403, {"error": "forbidden"})
