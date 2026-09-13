@@ -1,0 +1,15 @@
+[Unit]
+Description=MORM My Agent provision worker (custodial 投稿鍵のみ・funds=self-custody)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hpmini
+WorkingDirectory=/home/hpmini/morm/morm-worker
+ExecStart=/home/hpmini/morm/morm-l1/.venv/bin/python /home/hpmini/morm/morm-worker/morm-agent-provision.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
