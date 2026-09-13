@@ -41,8 +41,8 @@ from mormcrypto import ed25519_pubkey, ed25519_sign, ed25519_verify, m0r_address
 GATEWAY = os.environ.get("GATEWAY", "http://100.80.207.111:8801")  # hpmini HLS encoder
 
 # --- MORM 報酬レート(1 MORM=$0.01・env で調整可) ---
-VIEW_RATE = float(os.environ.get("VIEW_RATE", "0.002"))   # MORM / 再生
-LIKE_RATE = float(os.environ.get("LIKE_RATE", "0.05"))    # MORM / いいね
+VIEW_RATE = float(os.environ.get("VIEW_RATE", "0.00002"))   # MORM / 再生 (実験期: 従来0.002の1/100)
+LIKE_RATE = float(os.environ.get("LIKE_RATE", "0.0005"))    # MORM / いいね (実験期: 従来0.05の1/100)
 # 実配分(L1直送金)
 MORM_L1_RPC = os.environ.get("MORM_L1_RPC", "http://127.0.0.1:8900")
 TREASURY_SEED_FILE = os.environ.get("TREASURY_SEED_FILE", os.path.expanduser("~/.morm-l1/producer.seed"))
@@ -56,7 +56,7 @@ POINT_VALUES = {"like": int(os.environ.get("PT_LIKE", "1")),
                 "view": int(os.environ.get("PT_VIEW", "1"))}   # 他者の有効再生→クリエイターへ
 # view_by_other 報酬(署名付き視聴のみ)。既定off=従来と完全同一(未署名視聴はview計数のみ・無報酬)。
 VIEW_EARN = os.environ.get("VIEW_EARN", "off")
-POINT_PER_MORM = int(os.environ.get("PT_PER_MORM", "5"))        # このポイントで 1 MORM
+POINT_PER_MORM = int(os.environ.get("PT_PER_MORM", "500"))      # このポイントで 1 MORM (実験期: 従来5の100倍=排出1/100)
 POINT_MIN_SETTLE = int(os.environ.get("PT_MIN_SETTLE", "5"))    # プール未満は次回へ繰越
 POINT_WINDOW_SEC = int(os.environ.get("PT_WINDOW_SEC", str(72 * 3600)))   # 72h(獲得上限の窓)
 POINT_72H_CAP = int(os.environ.get("PT_72H_CAP", "100"))        # 72h窓あたりの獲得上限(反farm)
@@ -335,16 +335,21 @@ def _init_db():
         ("comments", "INTEGER DEFAULT 0"), ("cover_ts", "REAL DEFAULT 0"),
         ("watch_sec", "REAL DEFAULT 0"), ("completions", "INTEGER DEFAULT 0"),
         ("remix_of", "TEXT DEFAULT ''"), ("challenge", "TEXT DEFAULT ''"),
+        ("media_sha", "TEXT DEFAULT ''"),   # 生mp4の sha256(同一素材dedup用)
     ]:
         if col not in have:
             conn.execute(f"ALTER TABLE content ADD COLUMN {col} {ddl}")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_content_media_sha ON content(media_sha)")
     conn.execute("UPDATE content SET status='approved' WHERE status IS NULL OR status=''")
     # accounts: 年齢認証カラム
     have_acc = {r[1] for r in conn.execute("PRAGMA table_info(accounts)").fetchall()}
     for col, ddl in [("age_verified", "INTEGER DEFAULT 0"),
                      ("age_method", "TEXT DEFAULT ''"), ("birth_year", "INTEGER DEFAULT 0"),
                      ("display_name", "TEXT DEFAULT ''"), ("bio", "TEXT DEFAULT ''"),
-                     ("ref_code", "TEXT DEFAULT ''")]:
+                     ("ref_code", "TEXT DEFAULT ''"),
+                     ("is_agent", "INTEGER DEFAULT 0"),   # 1=AI投稿エージェント(投稿可・評価不可)
+                     ("node_id", "TEXT DEFAULT ''"),      # 紐付くMORM NODE(Phase2 報酬合流)
+                     ("owner_m0r", "TEXT DEFAULT ''")]:   # nodeのオーナー口座(報酬受取)
         if col not in have_acc:
             conn.execute(f"ALTER TABLE accounts ADD COLUMN {col} {ddl}")
     # remix_of/challenge 列が揃ってから index を作成(既存DBでも安全)
@@ -736,6 +741,9 @@ def account_public(acc):
             "trust_score": acc["trust_score"], "staked_morm": acc["staked_morm"],
             "status": acc["status"], "verified": bool(acc["verified"]),
             "age_verified": bool(acc["age_verified"]),
+            "is_agent": bool(_acc_col(acc, "is_agent", 0)),
+            "node_id": _acc_col(acc, "node_id", ""),
+            "owner_m0r": _acc_col(acc, "owner_m0r", ""),
             "limits": {"posts_day": g["posts_day"], "max_dur": g["max_dur"],
                        "links": g["links"], "comments_day": g["comments_day"]},
             "posts_today": posts_today(acc["m0r"]),
@@ -901,6 +909,19 @@ def is_age_verified(m0r):
     return bool(r and r["age_verified"])
 
 
+def account_is_agent(m0r):
+    """1=AI投稿エージェント。投稿(upload)は agent のみ・評価(like/comment/share/remix)は agent 禁止。"""
+    if not m0r:
+        return False
+    conn = _db()
+    try:
+        r = conn.execute("SELECT is_agent FROM accounts WHERE m0r=?", (m0r,)).fetchone()
+    except Exception:
+        r = None
+    conn.close()
+    return bool(r and r["is_agent"])
+
+
 def set_age_verified(m0r, birth_year, method="self"):
     conn = _db()
     ensure_account(m0r)
@@ -971,6 +992,23 @@ def l1_transfer(to, amount, confirm_timeout=25):
 _payout_lock = threading.Lock()
 
 
+def _payout_dest(m0r):
+    """報酬合流(Phase2): 投稿agent口座の稼ぎは紐付くnode owner(owner_m0r)へ着地させる。
+    台帳(payouts/point_payouts)は稼いだ口座(m0r)基準のまま=会計は不変、送金先だけ owner に振替。
+    人間口座(is_agent=0)は素通し=自分に着地。owner_m0r 未設定の agent も自分に着地(安全側)。"""
+    if not m0r:
+        return m0r
+    conn = _db()
+    try:
+        r = conn.execute("SELECT is_agent,owner_m0r FROM accounts WHERE m0r=?", (m0r,)).fetchone()
+    except Exception:
+        r = None
+    conn.close()
+    if r and r["is_agent"] and (r["owner_m0r"] or "").strip():
+        return r["owner_m0r"].strip()
+    return m0r
+
+
 def payout(m0r):
     """未払いMORM(=earned-paid)を L1 送金し台帳を更新。冪等(paid累積)。
 
@@ -1006,7 +1044,7 @@ def payout(m0r):
                 conn.close()
                 return {"ok": True, "paid": 0, "pending": amt, "skipped": "concurrent"}
         try:
-            txh = l1_transfer(m0r, amt)          # ② 送金（着地確認まで）
+            txh = l1_transfer(_payout_dest(m0r), amt)   # ② 送金（着地確認まで・agentはowner合流）
         except Exception:
             # ③ 送金失敗 → 予約を巻き戻し（二重支払いも過少支払いも避ける）
             conn.execute("UPDATE payouts SET paid_morm=paid_morm-?, updated=? WHERE account=?",
@@ -1352,7 +1390,7 @@ def _settle_fixed():
             (acct, P, morm, remainder, now, P, morm, remainder, now))
         conn.commit()
         try:
-            txh = l1_transfer(acct, morm) or ""
+            txh = l1_transfer(_payout_dest(acct), morm) or ""   # agentはowner合流
         except Exception:
             # ③ 送金失敗 → 予約を巻き戻し(settled=0・配分記録を減算・carryを元へ)
             conn.executemany("UPDATE point_ledger SET settled=0 WHERE id=?", ids)
@@ -1419,7 +1457,7 @@ def _settle_proportional():
             (acct, d["P"], share, 0, now, d["P"], share, now))
         conn.commit()
         try:
-            txh = l1_transfer(acct, share) or ""        # amount=生のL1整数(=base units)
+            txh = l1_transfer(_payout_dest(acct), share) or ""   # agentはowner合流・amount=生のL1整数
         except Exception:
             # ③ 送金失敗 → 予約を巻き戻し(settled=0・配分記録を減算)
             conn.executemany("UPDATE point_ledger SET settled=0 WHERE id=?", ids)
@@ -1719,7 +1757,7 @@ def settle_challenge(slug, pool=None, top=3, weights=None):
                 continue
             conn.close()
             try:
-                tx = l1_transfer(m0r, amt) or ""
+                tx = l1_transfer(_payout_dest(m0r), amt) or ""   # agentはowner合流
             except Exception as e:
                 # ③ 送金失敗 → 予約を巻き戻し(次回admin決裁で再試行可能に)
                 conn = _db()
@@ -2700,6 +2738,23 @@ class H(BaseHTTPRequestHandler):
             conn.commit()
             conn.close()
             return self._json(200, account_public(ensure_account(data["m0r"])))
+        if path == "/api/admin/set-agent":  # 投稿エージェント指定 + node/owner 紐付け(Phase2 報酬合流)
+            if not ADMIN_TOKEN or data.get("token") != ADMIN_TOKEN:
+                return self._json(403, {"error": "forbidden"})
+            m0r = (data.get("m0r") or "").strip()
+            if not m0r:
+                return self._json(400, {"error": "m0r required"})
+            conn = _db()
+            ensure_account(m0r)
+            if "is_agent" in data:
+                conn.execute("UPDATE accounts SET is_agent=? WHERE m0r=?", (1 if data["is_agent"] else 0, m0r))
+            if "node_id" in data:
+                conn.execute("UPDATE accounts SET node_id=? WHERE m0r=?", (str(data["node_id"])[:64], m0r))
+            if "owner_m0r" in data:
+                conn.execute("UPDATE accounts SET owner_m0r=? WHERE m0r=?", (str(data["owner_m0r"])[:64], m0r))
+            conn.commit()
+            conn.close()
+            return self._json(200, account_public(ensure_account(m0r)))
         if path == "/api/admin/payout":  # 再生数・いいね数に応じた MORM 実配分(L1送金)
             if not ADMIN_TOKEN or data.get("token") != ADMIN_TOKEN:
                 return self._json(403, {"error": "forbidden"})
@@ -2829,6 +2884,8 @@ class H(BaseHTTPRequestHandler):
             m0r, payload = verify_signed(data, "like")
             if not m0r:
                 return self._json(400, {"error": payload})
+            if account_is_agent(m0r):
+                return self._json(403, {"error": "評価は人間のみ可能です", "human_only": True})
             iph = self._iph()
             if not _rl_allow("l:" + m0r, LIKE_IP_PER_MIN) or (iph and not _rl_allow("lip:" + iph, LIKE_IP_PER_MIN * 6)):
                 return self._json(429, {"error": "rate limited"})
@@ -2843,6 +2900,8 @@ class H(BaseHTTPRequestHandler):
             m0r, payload = verify_signed(data, "comment")
             if not m0r:
                 return self._json(400, {"error": payload})
+            if account_is_agent(m0r):
+                return self._json(403, {"error": "評価は人間のみ可能です", "human_only": True})
             cid = (payload.get("id") or "").strip()
             text = payload.get("text", "")
             if not cid:
@@ -2858,6 +2917,8 @@ class H(BaseHTTPRequestHandler):
             m0r, payload = verify_signed(data, "share")
             if not m0r:
                 return self._json(400, {"error": payload})
+            if account_is_agent(m0r):
+                return self._json(403, {"error": "評価は人間のみ可能です", "human_only": True})
             cid = (payload.get("id") or "").strip()
             if not cid:
                 return self._json(400, {"error": "id required"})
@@ -2987,6 +3048,13 @@ class H(BaseHTTPRequestHandler):
         if not m0r:
             return self._json(400, {"error": payload})
         acc = ensure_account(m0r)
+        # ★役割分離: ベース投稿=AIエージェント専用(admin が is_agent=1 を付与) / リミックス=人間専用。
+        _is_remix = bool((payload.get("remix_of") or "").strip())
+        _agent = account_is_agent(m0r)
+        if _is_remix and _agent:
+            return self._json(403, {"error": "リミックスは人間のみ可能です", "human_only": True})
+        if not _is_remix and not _agent:
+            return self._json(403, {"error": "投稿はAIエージェント専用です", "agent_only": True})
         dur = float(payload.get("duration") or 0)
         links = payload.get("links") or []
         ok, reason = gate_check_upload(acc, dur, links)
@@ -3019,6 +3087,21 @@ class H(BaseHTTPRequestHandler):
         if ln <= 0 or ln > MAX_UPLOAD_BYTES:
             return self._json(413, {"error": f"ファイルサイズが上限（{MAX_UPLOAD_BYTES // (1024*1024)}MB）を超えています"})
         raw = self.rfile.read(ln)
+        # 0) 同一素材dedup: 生mp4の sha256 が既存(rejected/removed以外)に在れば重複として弾く。
+        #    エンコード前に判定=gatewayの無駄打ちも防ぐ。「同じ動画素材の場合は消去」= 二本目を公開しない。
+        media_sha = hashlib.sha256(raw).hexdigest()
+        _dconn = _db()
+        try:
+            _same = _dconn.execute(
+                "SELECT id FROM content WHERE media_sha=? AND status NOT IN "
+                "('rejected','removed','reserved') AND id!=? LIMIT 1", (media_sha, cid)).fetchone()
+        except Exception:
+            _same = None
+        _dconn.close()
+        if _same:
+            self._reject_reserved(cid, "dup_media")
+            return self._json(409, {"error": "同じ動画素材が既に投稿されています。",
+                                    "dup_media": True, "existing_id": _same["id"]})
         # 1) 変換(正規化): gateway で HLS へトランスコード
         try:
             play_cid = gateway_encode(raw, filename=f"{cid}.mp4")
@@ -3042,6 +3125,10 @@ class H(BaseHTTPRequestHandler):
         status = finalize_reservation(cid, token, play_cid, spec["duration"], spec["ar"])
         if not status:
             return self._json(409, {"error": "bind failed"})
+        _mc = _db()
+        _mc.execute("UPDATE content SET media_sha=? WHERE id=?", (media_sha, cid))
+        _mc.commit()
+        _mc.close()
         return self._json(200, {"ok": True, "id": cid, "play_cid": play_cid, "status": status,
                                 "duration": spec["duration"], "ar": spec["ar"]})
 
