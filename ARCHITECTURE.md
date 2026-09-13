@@ -43,4 +43,4 @@
 - `_archive/morm-node-shop/` … 機体販売の元画像。実アセットは node-dashboard/public へ移行済み。
 
 ## セキュリティ状態（2026-08-29）
-封鎖済: api.morm.one `/api/admin/send` 無認証drain・admin既定`1234`（=`Yachida0024`へ）／node.morm.one 認証欠落。詳細＝メモリ `reference_morm_security_audit_2026-08`。残: play他4 settle経路・bridge MIN_EXIT・旧/my IDOR・**aiservice鍵ローテ（履歴混入）**。
+封鎖済: api.morm.one `/api/admin/send` 無認証drain・admin既定`1234`（=`«REDACTED-rotate-and-set-via-env»`へ）／node.morm.one 認証欠落。詳細＝メモリ `reference_morm_security_audit_2026-08`。残: play他4 settle経路・bridge MIN_EXIT・旧/my IDOR・**aiservice鍵ローテ（履歴混入）**。

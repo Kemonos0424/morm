@@ -21,7 +21,7 @@ MORM 4サーフェス（www/api/node/play.morm.one）を監査→致命セキュ
 
 ## 稼働URL・ログイン（詳細=ARCHITECTURE.md）
 - www.morm.one=`site/account.html`（walletless m0r）。api.morm.one=`morm-dashboard/`（ウォレットAPI＋Agent Lane API。旧0x UIは廃止済、`/`→node.morm.oneへ307）。node.morm.one=**`node-cluster/src/node-dashboard/`**（MCアカウント+PW）。play.morm.one=`morm-play/play_server.py`（Mac Mini）。L1=`morm-l1/` Mac Mini :8900（**不可侵**）。
-- **admin PW: api.morm.one=`Yachida0024`（設定済）**。node.morm.one=別の既設PW（1234不可）。play=`ADMIN_TOKEN`。
+- **admin PW: api.morm.one=`«REDACTED-rotate-and-set-via-env»`（設定済）**。node.morm.one=別の既設PW（1234不可）。play=`ADMIN_TOKEN`。
 
 ## ★重要な罠
 - **★launchd の env 変更は `kickstart -k` では反映されない**（EnvironmentVariables はロード時のみ読込）。plist の env を変えたら **`launchctl bootout gui/501/<label>` → `launchctl bootstrap gui/501 <plist>`** で再読込必須。code(play_server.py 等)ファイル変更は都度読込 or kickstart で反映されるが、**env(ADMIN_TOKEN/TREASURY_SEED_FILE/EMISSION_MODE/VIEW_EARN 等)は bootout+bootstrap**。※2026-08-29: 今セッションの play env 変更(payout分離/proportional/VIEW_EARN/token ローテ)は当初 kickstart で未反映→bootout+bootstrap で反映確定。
@@ -31,7 +31,7 @@ MORM 4サーフェス（www/api/node/play.morm.one）を監査→致命セキュ
 - 本番 L1 `127.0.0.1:8900` 書込みは fund-payouts 等の所定手順のみ。
 
 ## 完了済み（この一連）
-- セキュリティ本番反映: **api.morm.one `/api/admin/send` 無認証treasury drain封鎖**・admin`1234`撤廃(→`Yachida0024`)／node.morm.one morm-distribute認証・heartbeat安全化・見込み30倍修正・ops earned化・payout二重防止。旧`/my`IDOR削除。
+- セキュリティ本番反映: **api.morm.one `/api/admin/send` 無認証treasury drain封鎖**・admin`1234`撤廃(→`«REDACTED-rotate-and-set-via-env»`)／node.morm.one morm-distribute認証・heartbeat安全化・見込み30倍修正・ops earned化・payout二重防止。旧`/my`IDOR削除。
 - node.morm.one: earned報酬(`app/lib/reward.js`)一本化・shop報酬レート表示一致・特商法実値化・ログイン堅牢化（30日期限/ロックアウト/列保証）。デプロイ済。
 - account.html: 監査済（本番L1接続・faucet実払い確認）。
 - リポ整理: `ARCHITECTURE.md`・`CONSOLIDATION-PLAN.md`・`_archive/`・`poc/`・論理コミット・両repo main マージ・node-dashboard submodule。
@@ -65,7 +65,7 @@ MORM 4サーフェス（www/api/node/play.morm.one）を監査→致命セキュ
   - ✅**[DNS 完了 2026-08-29]** morm.one ゾーンに **proxied CNAME `market.morm.one` → `f60ef43f-8ba5-45ee-946f-1c1f673df231.cfargotunnel.com`** 作成済(M4mac ログイン済 CF で駆動)。**https://market.morm.one/ は live**(200・実プール価格チャート＋swap/bridge 稼働)。※`cloudflared tunnel route dns` は tunnel既定ゾーン ctai.online に付くため使わず手動作成。誤作成の `market.morm.one.ctai.online`(ctai.online ゾーン)は無害だが掃除推奨。
 
 ### E. Agent Lane 活性化（`agent-lane/DEPLOY.md` 冒頭★の順）★ready-state検証済 2026-08-29
-**✅ 準備完了(確認済)**: Phase A コード live(api.morm.one `/api/lane/skill|feed`=200・Vercel)／play settle修正 live(本日デプロイ・Phase D前提クリア)／verify 9/9／`ADMIN_PASSWORD`=Yachida0024／**treasury `m0rzjtz…ctbc` balance≈1e18・nonce20**／payout口座 balance=0(未fund)。
+**✅ 準備完了(確認済)**: Phase A コード live(api.morm.one `/api/lane/skill|feed`=200・Vercel)／play settle修正 live(本日デプロイ・Phase D前提クリア)／verify 9/9／`ADMIN_PASSWORD`=«REDACTED-rotate-and-set-via-env»／**treasury `m0rzjtz…ctbc` balance≈1e18・nonce20**／payout口座 balance=0(未fund)。
 **進捗(2026-08-29 実行)**:
 - ✅**E-1** PLAY_PAYOUT seed を Mac Mini `~/.morm-agentlane/play_payout.seed`(0600) に配置・導出アドレス一致で検証。
 - ✅**E-2 fund 完了(ユーザー実行)**: treasury→PLAY 100000・DASH 100000 着金。treasury 残 ≈1e18-2e5・nonce22。
