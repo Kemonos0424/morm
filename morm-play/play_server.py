@@ -66,6 +66,10 @@ POINT_TICK_SEC = int(os.environ.get("PT_TICK_SEC", "1800"))     # 集計デー�
 REWARD_MIN_AGE_DAYS = int(os.environ.get("REWARD_MIN_AGE_DAYS", "3"))  # 口座作成からこの日数で適格
 REWARD_MIN_TRUST = int(os.environ.get("REWARD_MIN_TRUST", "10"))       # trust_score下限(tier1相当)
 FRAUD_LOG = os.environ.get("FRAUD_LOG", "on")                          # fraud_signals 記録のon/off
+# --- 拡散報酬(#3・Phase1 hop1): シェア経由(?via=)の適格到達で owner主体+sharer少額 -----
+SPREAD_ENABLE = os.environ.get("SPREAD_ENABLE", "on")
+SPREAD_OWNER_PTS = int(os.environ.get("SPREAD_OWNER_PTS", "2"))   # 拡散1到達 → creator(→_payout_destでowner合流)
+SPREAD_SHARE_PTS = int(os.environ.get("SPREAD_SHARE_PTS", "1"))   # 拡散1到達 → sharer(人間・拡散インセンティブ)
 # --- Phase 2: 予算上限つき比例配分(固定レートの代替) ------------------------
 # EMISSION_MODE=fixed(既定=従来: points//POINT_PER_MORM の固定レート)
 #             =proportional(Payout_i = B_EPOCH × P_i / ΣP。総発行B固定=参加者増でも暴走なし)
@@ -501,7 +505,7 @@ def feed(sort="hot", q="", tag="", limit=24, offset=0, zone="sfw", uid="", follo
             "total": total, "next": (offset + limit) if offset + limit < total else None}
 
 
-def record_watch(cid, watched, completed, viewer="", ip_hash="", viewer_verified=False):
+def record_watch(cid, watched, completed, viewer="", ip_hash="", viewer_verified=False, via=""):
     """視聴ビーコン。★同一視聴者×作品は窓内1回のみ計上(pump防止)、閾値超えのみ有効再生としてviews加算。
     viewer_verified=True(署名付き視聴)かつ VIEW_EARN=on のとき、新規有効再生でクリエイターへ視聴ポイント付与。"""
     vk = (viewer or "").strip() or ("ip:" + ip_hash if ip_hash else "anon")
@@ -537,10 +541,14 @@ def record_watch(cid, watched, completed, viewer="", ip_hash="", viewer_verified
     conn.close()
     # view_by_other: 新規の有効再生かつ署名付き視聴のみ、作品のクリエイターへ視聴ポイント。
     awarded = 0
+    spread = 0
     if view and viewer_verified:
         awarded = grant_view_point(cid, viewer)
+        # 拡散報酬(#3): シェア経由(?via=sharer)の適格到達なら owner主体+sharer少額。
+        if via and via.startswith("m0r") and via != viewer:
+            spread = grant_spread(cid, via, viewer)
     return {"ok": True, "qualified": bool(qualified), "counted": bool(view),
-            "creator_awarded": awarded}
+            "creator_awarded": awarded, "spread_awarded": spread}
 
 
 def popular_tags(k=12):
@@ -1358,6 +1366,50 @@ def grant_view_point(cid, viewer):
             return pts
         except Exception:
             return 0   # UNIQUE違反=同一視聴者から付与済み
+    finally:
+        conn.close()
+
+
+def grant_spread(cid, sharer, viewer):
+    """拡散報酬(#3 hop1): シェア(sharer)経由で新規・適格な視聴者(viewer)が有効再生したら、
+    作品の creator(=settleで_payout_dest→owner合流) と sharer(人間) にポイント付与。
+    反farm: SPREAD_ENABLE・適格(L2)viewer/sharerのみ・自作拡散/自己視聴/自己シェア除外・
+    (account,kind, cid|sharer|viewer)恒久1回・各72h窓上限。ledger/settleは既存point系を再利用。"""
+    if SPREAD_ENABLE != "on":
+        return 0
+    if not (sharer or "").startswith("m0r") or not (viewer or "").startswith("m0r") or sharer == viewer:
+        return 0
+    conn = _db()
+    try:
+        c = conn.execute("SELECT uploader,status FROM content WHERE id=?", (cid,)).fetchone()
+        if not c or c["status"] != "approved":
+            return 0
+        creator = c["uploader"]
+        if not creator or creator == viewer or creator == sharer:
+            return 0  # 自作の拡散・自己視聴・自己シェアは対象外
+        if not reward_eligible(viewer):
+            log_fraud_signal("ineligible_spread_view", viewer, creator, cid, "spread")
+            return 0
+        if not reward_eligible(sharer):
+            log_fraud_signal("ineligible_spread_sharer", sharer, creator, cid, "spread")
+            return 0
+        ref = f"{cid}|{sharer}|{viewer}"   # per-(creator/sharer, content, sharer, viewer) 恒久1回
+        since = int(time.time()) - POINT_WINDOW_SEC
+        awarded = 0
+        for acct, kind, pts in ((creator, "spread_owner", SPREAD_OWNER_PTS),
+                                (sharer, "spread_share", SPREAD_SHARE_PTS)):
+            earned = conn.execute("SELECT COALESCE(SUM(points),0) FROM point_ledger WHERE account=? AND ts>?",
+                                  (acct, since)).fetchone()[0]
+            if earned >= POINT_72H_CAP:
+                continue
+            try:
+                conn.execute("INSERT INTO point_ledger(account,kind,content_id,points,ts,settled) "
+                             "VALUES(?,?,?,?,?,0)", (acct, kind, ref, pts, int(time.time())))
+                awarded += pts
+            except Exception:
+                pass   # UNIQUE違反=既に付与済み
+        conn.commit()
+        return awarded
     finally:
         conn.close()
 
@@ -3065,15 +3117,17 @@ class H(BaseHTTPRequestHandler):
                 completed = payload.get("completed")
                 viewer = m0r
                 verified = True
+                via = (payload.get("via") or "").strip()
             else:
                 vid = (data.get("id") or "").strip()
                 watched = data.get("watched", 0)
                 completed = data.get("completed")
                 viewer = (data.get("uid") or "").strip()
+                via = (data.get("via") or "").strip()
             if not vid:
                 return self._json(400, {"error": "id required"})
             return self._json(200, record_watch(vid, watched, completed,
-                                                viewer, self._iph(), viewer_verified=verified))
+                                                viewer, self._iph(), viewer_verified=verified, via=via))
         if path == "/api/cover":  # サムネのカット選択(所有者署名 or admin)
             cid = data.get("id")
             b64 = data.get("cover", "")

@@ -479,18 +479,22 @@ function pDetach(s){if(!s._on)return;s._on=0;const v=s.querySelector('video');tr
 const viewed=new Set();
 function beaconWatch(s,opts){if(!s||s._sent||!s._mw)return;s._sent=1;
   const id=s.dataset.id,watched=+(s._mw||0).toFixed(1),completed=!!s._cp;
+  // 拡散報酬(#3): シェアリンク ?via=<sharer m0r> があれば署名視聴payloadに載せ、サーバで拡散到達を計上。
+  const via=(new URLSearchParams(location.search).get('via')||'').trim();
+  const V=/^m0r[a-z2-7]{32}$/.test(via)?via:'';
   const post=b=>{try{fetch('/api/watch',{method:'POST',keepalive:true,headers:{'content-type':'application/json'},body:JSON.stringify(b)});}catch(e){}};
   // 署名付き視聴(ウォレット有・非unload時)=view_by_other報酬の対象。未署名は従来通りview計数のみ(無報酬)。
   // uid()==ME.m0r==署名者m0r なので、サーバの (cid,viewer) dedup で二重計上にならない。
   if(KEY&&PUBHEX&&!(opts&&opts.sync)){
     // watched は整数秒(署名payloadの数値はJS/Python間で常に一致させるため)。閾値判定は秒で十分。
     const payload={id,watched:Math.max(0,Math.round(watched)),completed};
+    if(V)payload.via=V;
     const env={kind:'watch',sender:PUBHEX,nonce:Date.now()+'-'+Math.random().toString(36).slice(2,6),payload};
     sign(new TextEncoder().encode(canon(env)))
       .then(sg=>post({kind:'watch',sender:PUBHEX,nonce:env.nonce,payload,sig:hex(sg)}))
-      .catch(()=>post({id,watched,completed,uid:uid()}));
+      .catch(()=>post({id,watched,completed,uid:uid(),via:V}));
   }else{
-    post({id,watched,completed,uid:uid()});  // unload時など=同期・未署名(確実にview計数)
+    post({id,watched,completed,uid:uid(),via:V});  // unload時など=同期・未署名(確実にview計数)
   }}
 /* pActive は現在再生中の「セル(.slide)」。縦=row間(おすすめ/フォロー)、横=row内(同カテゴリ)。 */
 const CAT_LABEL={asmr:'ASMR',nature:'自然',pets:'動物',sports:'スポーツ',news:'ニュース',education:'学び',tech:'テック',beauty:'ビューティー',fashion:'ファッション',travel:'旅',food:'グルメ',comedy:'コメディ',vlog:'Vlog',gaming:'ゲーム',art:'アート',dance:'ダンス',music:'ミュージック'};
@@ -585,7 +589,10 @@ async function claimShare(id){       // シェア報酬(署名付き・(口座,s
     const d=await fetch('/api/share',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...env,sig})}).then(r=>r.json());
     if(d&&d.awarded_points>0)awardToast(d.awarded_points);
   }catch(e){}}
-function share(id,title){const url=location.origin+'/watch?id='+id;
+function share(id,title){
+  // 拡散報酬(#3): 自分のm0rを ?via= に付け、シェア経由の到達を自分(sharer)へ帰属させる。
+  const me=(typeof ME!=='undefined'&&ME&&ME.m0r)?ME.m0r:'';
+  const url=location.origin+'/watch?id='+id+(/^m0r[a-z2-7]{32}$/.test(me)?'&via='+me:'');
   if(navigator.share)navigator.share({title:'MORM Play — '+title,url}).then(()=>claimShare(id)).catch(()=>{});
   else navigator.clipboard.writeText(url).then(()=>{toast('リンクをコピーしました');claimShare(id);});}
 
