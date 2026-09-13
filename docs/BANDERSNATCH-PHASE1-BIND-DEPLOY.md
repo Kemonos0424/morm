@@ -25,10 +25,15 @@
 2. `bs_node_agent`/`bs_tickets` は初回API呼び出しで**自己プロビジョニング**（Turso・DDL不要）。
 3. 動作確認: `curl -s https://node.morm.one/api/bandersnatch/agents` → `{"agents":[],"count":0}`。
 
-### B. Play 同期（mini）
+### B. Play 同期（mini）★2026-09-13 稼働済
 1. `scp morm-play/bandersnatch_sync.py user@100.106.58.67:~/morm-play/`。
-2. cron/launchd で数分間隔（例 `*/5`）。単発は `python3 bandersnatch_sync.py --once`。
-3. **移行注意**: 現行の投稿bot(`m0r622…`)は node に束縛されていない admin指定 agent。同期は**加算的**なので消えないが、正典に載せるなら owner(node)が bind するか、admin set-agent を継続。
+2. 常駐 launchd: `morm-play/com.morm.bandersnatch-sync.plist`（**.gitignore対象**＝リポ管理外だがmini上に配置）を
+   `~/Library/LaunchAgents/` に置き `launchctl bootstrap gui/$(id -u) …`。KeepAlive・`BS_SYNC_INTERVAL=300`・
+   `NODE_BASE=https://node.morm.one`・ログ `~/morm-play/bs-sync.log`。単発は `python3 bandersnatch_sync.py --once`。
+3. **移行注意**: 現行の投稿bot(`m0r622…`)は node 未束縛の admin指定 agent。同期は**加算的**なので消えない。
+   正典に載せるなら owner(node)が `/api/bandersnatch/bind`、または admin set-agent を継続。
+4. デプロイ実績: node.morm.one bind/is-agent/agents は PR #1 マージで本番稼働（`/api/bandersnatch/agents`→`{"agents":[],"count":0}`）。
+   sync デーモンは `synced=0/0` で正常起動（束縛0のため）。
 
 ## 使い方（ユーザーのバインドフロー）
 1. node owner が node.morm.one にログイン（member セッション）＋ reward-address(morm_address) 発行済み。
